@@ -1,38 +1,57 @@
 import type { Metadata } from "next";
-import "./tokens.css";
+import { Fraunces, Inter } from "next/font/google";
 import "./globals.css";
-import { brand } from "@/content";
-import Providers from "@/components/Providers";
+
+const inter = Inter({
+  subsets: ["latin"],
+  variable: "--font-body",
+  display: "swap",
+  weight: ["400", "500", "600", "700"],
+});
+
+const fraunces = Fraunces({
+  subsets: ["latin"],
+  variable: "--font-display",
+  display: "swap",
+  axes: ["opsz"],
+  style: ["normal", "italic"],
+});
 
 export const metadata: Metadata = {
-  title: `${brand.name} — A human expert on the line for every practice problem`,
+  metadataBase: new URL(process.env.NEXT_PUBLIC_APP_URL ?? "https://aestheticsuccessnetwork.com"),
+  title: {
+    default: "Aesthetic Success Network | Every practice problem, answered in writing",
+    template: "%s | Aesthetic Success Network",
+  },
   description:
-    "The only network for US aesthetic practice owners with a human expert on the line — 24/7 expert helpline, vendor savings, exclusive content, and 500+ practice owners.",
-  metadataBase: new URL(`https://${brand.domain}`),
+    "A membership for aesthetic practice owners: the Expert Hotline (written action plans in 2–3 business days), exclusive vetted-vendor deals, and a growing library of expert kits. Powered by Business of Aesthetics.",
+  openGraph: {
+    type: "website",
+    siteName: "Aesthetic Success Network",
+    title: "Aesthetic Success Network | Every practice problem, answered in writing",
+    description:
+      "The Expert Hotline, member-only vendor deals, and a growing library of expert kits, all in one membership for aesthetic practice owners.",
+  },
+  robots: { index: true, follow: true },
 };
 
 export default function RootLayout({
   children,
-}: {
-  children: React.ReactNode;
-}) {
+}: Readonly<{ children: React.ReactNode }>) {
   return (
-    <html lang="en" data-theme="orchid-atelier">
+    // suppressHydrationWarning: the inline script below adds a "js" class to
+    // <html> before React hydrates, which is expected to differ from the SSR HTML.
+    <html lang="en" className={`${inter.variable} ${fraunces.variable}`} suppressHydrationWarning>
       <head>
-        <link rel="preconnect" href="https://fonts.googleapis.com" />
-        <link
-          rel="preconnect"
-          href="https://fonts.gstatic.com"
-          crossOrigin="anonymous"
-        />
-        <link
-          href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400..900;1,400..700&family=Hanken+Grotesk:wght@300..700&display=swap"
-          rel="stylesheet"
+        {/* Gate entrance motion on a `js` class so content is always visible
+            without JavaScript (pattern carried over from the static site). */}
+        <script
+          dangerouslySetInnerHTML={{
+            __html: "document.documentElement.className+=' js';",
+          }}
         />
       </head>
-      <body>
-        <Providers>{children}</Providers>
-      </body>
+      <body>{children}</body>
     </html>
   );
 }

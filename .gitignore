@@ -1,17 +1,35 @@
 # dependencies
 /node_modules
 
-# next.js
+# next.js build output
 /.next/
 /out/
 
-# misc
-.DS_Store
-*.pem
+# env files — secrets and local config never get committed
+.env*
 
-# debug
+# vercel
+.vercel
+
+# logs
 npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+*.log
 
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# tooling / IDE
+.hallmark/
+.vscode/
+.idea/
+
+# OS junk
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# misc
+*.pem
