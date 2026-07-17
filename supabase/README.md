@@ -21,6 +21,7 @@ Open the SQL editor and run each file in `migrations/`:
 | 4 | `0004_admin.sql` | `admin_users` + `auth_audit` + RLS policy + admin seed |
 | 5 | `0005_waitlist_agreement.sql` | Member Agreement acceptance columns on `waitlist_signups` (no-op on fresh installs that ran the updated 0001) |
 | 6 | `0006_members_and_audit.sql` | `members` (waitlist → member activation) + `review_actions` (the Audit log) |
+| 7 | `0007_portal_gate_policies.sql` | self-read RLS policies powering the portal gate (only activated members / approved experts / approved partners can ever enter the future portal routes) |
 
 RLS is enabled deny-all on the intake tables — only the server (service
 role key) reads/writes them. **Never skip 0004**: it also carries the RLS

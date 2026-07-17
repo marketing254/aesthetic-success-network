@@ -58,6 +58,20 @@ function isPublicAdminPath(pathname: string) {
   return pathname === "/admin/login" || pathname.startsWith("/admin/login/");
 }
 
+// Future portal surfaces (member / expert / partner). Locked from day one:
+// access requires a session AND an approved/activated row for that role.
+// Exact-segment matching so the PUBLIC pages /experts and /partners are
+// never caught.
+type PortalRole = "member" | "expert" | "partner";
+
+function portalRoleFor(pathname: string): PortalRole | null {
+  if (pathname === "/dashboard" || pathname.startsWith("/dashboard/")) return "member";
+  if (pathname === "/expert" || pathname.startsWith("/expert/")) return "expert";
+  if (pathname === "/vendor" || pathname.startsWith("/vendor/")) return "partner";
+  if (pathname === "/portal" || pathname.startsWith("/portal/")) return "member";
+  return null;
+}
+
 export async function middleware(req: NextRequest) {
   const { pathname, search } = req.nextUrl;
   const res = NextResponse.next({ request: req });
@@ -65,9 +79,52 @@ export async function middleware(req: NextRequest) {
   if (pathname.startsWith("/auth/")) return applySecurityHeaders(res);
 
   const isAdmin = pathname.startsWith("/admin") && !isPublicAdminPath(pathname);
+  const portalRole = portalRoleFor(pathname);
+
+  // ── PORTAL GATE ─────────────────────────────────────────────────
+  // Members must be activated, experts and partners must be approved,
+  // before any portal surface opens for them. Everyone else bounces home.
+  if (portalRole) {
+    try {
+      const supabase = createMiddlewareSupabase(req, res);
+      const { data: userData } = await supabase.auth.getUser();
+      const email = userData.user?.email ?? "";
+
+      if (email) {
+        if (portalRole === "member") {
+          const { data: row } = await supabase
+            .from("members")
+            .select("id, status")
+            .ilike("email", email)
+            .maybeSingle();
+          if (row?.status === "active") return applySecurityHeaders(res);
+        } else if (portalRole === "expert") {
+          const { data: row } = await supabase
+            .from("expert_applications")
+            .select("id, status")
+            .ilike("email", email)
+            .maybeSingle();
+          if (row?.status === "approved") return applySecurityHeaders(res);
+        } else {
+          const { data: row } = await supabase
+            .from("partner_applications")
+            .select("id, status")
+            .ilike("contact_email", email)
+            .maybeSingle();
+          if (row?.status === "approved") return applySecurityHeaders(res);
+        }
+      }
+    } catch (err) {
+      console.error("[middleware:portal] gate check failed:", err);
+    }
+    const target = req.nextUrl.clone();
+    target.pathname = "/";
+    target.search = "?portal=inactive";
+    return applySecurityHeaders(NextResponse.redirect(target));
+  }
 
   if (!isAdmin) {
-    // Outside the gated surface — still run Supabase to keep the session
+    // Outside the gated surfaces — still run Supabase to keep the session
     // cookie fresh so /admin/login reads the latest state.
     try {
       const supabase = createMiddlewareSupabase(req, res);
