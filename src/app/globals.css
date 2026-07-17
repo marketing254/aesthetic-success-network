@@ -80,13 +80,10 @@ nav.site-nav .row {
   flex: none;
 }
 .brand-logo {
-  height: 56px;
-  width: 56px;
-  object-fit: cover;
-  border-radius: 14px;
-  border: 1px solid var(--clay);
-  background: #fff;
-  box-shadow: 0 10px 24px -18px rgba(10, 19, 32, 0.45);
+  height: 44px;
+  width: 44px;
+  border-radius: 10px;
+  box-shadow: 0 10px 24px -16px rgba(10, 19, 32, 0.55);
   transition: transform 0.2s ease, box-shadow 0.2s ease;
 }
 .brand:hover .brand-logo {
@@ -1727,8 +1724,19 @@ footer.site-footer .fl {
   font-size: 18px;
   color: #1f1b16;
   text-decoration: none;
+  display: flex;
+  align-items: center;
+  gap: 9px;
 }
-.legal-brand span {
+.legal-brand img.brandmark {
+  flex: none;
+  border-radius: 7px;
+  display: block;
+}
+.legal-brand .bt {
+  display: block;
+}
+.legal-brand .bt span {
   display: block;
   font-family: var(--font-body), "Inter", sans-serif;
   font-size: 8.5px;

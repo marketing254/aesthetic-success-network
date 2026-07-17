@@ -1,6 +1,7 @@
 "use client";
 import { useMemo, useState, useTransition } from "react";
 import {
+  Alert,
   Box,
   Button,
   Grid,
@@ -17,6 +18,7 @@ import SearchOutlinedIcon from "@mui/icons-material/SearchOutlined";
 import DownloadOutlinedIcon from "@mui/icons-material/DownloadOutlined";
 import EmailOutlinedIcon from "@mui/icons-material/EmailOutlined";
 import RefreshOutlinedIcon from "@mui/icons-material/RefreshOutlined";
+import PersonAddAltOutlinedIcon from "@mui/icons-material/PersonAddAltOutlined";
 
 export type WaitlistRow = {
   id: string;
@@ -28,6 +30,8 @@ export type WaitlistRow = {
   practice_role: string | null;
   locations: string | null;
   challenge: string | null;
+  agreement_accepted: boolean | null;
+  agreement_accepted_at: string | null;
   source: string | null;
   status: "new" | "contacted" | "converted" | "declined";
   created_at: string;
@@ -60,6 +64,8 @@ function exportCSV(rows: WaitlistRow[]) {
     "practice_role",
     "locations",
     "challenge",
+    "agreement_accepted",
+    "agreement_accepted_at",
     "source",
     "status",
     "created_at",
@@ -67,7 +73,9 @@ function exportCSV(rows: WaitlistRow[]) {
   const lines = [
     headers.join(","),
     ...rows.map((r) =>
-      headers.map((h) => csvEscape((r as unknown as Record<string, string | null>)[h])).join(","),
+      headers
+        .map((h) => csvEscape((r as unknown as Record<string, string | boolean | null>)[h] as string | null))
+        .join(","),
     ),
   ];
   const blob = new Blob([lines.join("\n")], { type: "text/csv;charset=utf-8;" });
@@ -100,7 +108,28 @@ export default function WaitlistTable({
   const [rows, setRows] = useState<WaitlistRow[]>(initialRows);
   const [counts] = useState<Counts>(initialCounts);
   const [q, setQ] = useState("");
+  const [err, setErr] = useState<string | null>(null);
+  const [notice, setNotice] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
+
+  const activateMember = async (row: WaitlistRow) => {
+    setErr(null);
+    setNotice(null);
+    const res = await fetch("/api/admin/members", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ waitlistSignupId: row.id }),
+    });
+    const body = (await res.json().catch(() => ({}))) as { ok?: boolean; error?: string };
+    if (!res.ok || !body.ok) {
+      setErr(body.error ?? "Could not activate this signup as a member.");
+      return;
+    }
+    setRows((r) => r.map((x) => (x.id === row.id ? { ...x, status: "converted" } : x)));
+    setNotice(
+      `${row.first_name} ${row.last_name} activated as a founding member — see the Members page.`,
+    );
+  };
 
   const filtered = useMemo(() => {
     const lc = q.trim().toLowerCase();
@@ -213,6 +242,17 @@ export default function WaitlistTable({
           </Grid>
         ))}
       </Grid>
+
+      {err && (
+        <Alert severity="error" onClose={() => setErr(null)}>
+          {err}
+        </Alert>
+      )}
+      {notice && (
+        <Alert severity="success" onClose={() => setNotice(null)}>
+          {notice}
+        </Alert>
+      )}
 
       <TextField
         placeholder="Search name, email, practice, role…"
@@ -379,12 +419,19 @@ export default function WaitlistTable({
                           {formatDate(row.created_at)}
                         </Typography>
                       </Box>
-                      <Box component="td">
+                      <Box component="td" sx={{ whiteSpace: "nowrap" }}>
                         <Tooltip title={`Email ${row.email}`}>
                           <IconButton component="a" href={`mailto:${row.email}`} size="small">
                             <EmailOutlinedIcon fontSize="small" />
                           </IconButton>
                         </Tooltip>
+                        {row.status !== "converted" && (
+                          <Tooltip title="Activate as founding member">
+                            <IconButton size="small" onClick={() => activateMember(row)}>
+                              <PersonAddAltOutlinedIcon fontSize="small" />
+                            </IconButton>
+                          </Tooltip>
+                        )}
                       </Box>
                     </Box>
                   );

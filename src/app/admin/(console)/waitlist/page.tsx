@@ -1,6 +1,7 @@
 import { Box, Typography } from "@mui/material";
 import { getSupabaseAdmin } from "@/lib/supabase/server";
 import WaitlistTable, { type WaitlistRow, type Counts } from "./WaitlistTable";
+import { errMessage } from "@/lib/errMessage";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
@@ -12,7 +13,7 @@ async function loadData(): Promise<{ rows: WaitlistRow[]; counts: Counts; error:
       supabase
         .from("waitlist_signups")
         .select(
-          "id, email, first_name, last_name, phone, practice_name, practice_role, locations, challenge, source, status, created_at",
+          "id, email, first_name, last_name, phone, practice_name, practice_role, locations, challenge, agreement_accepted, agreement_accepted_at, source, status, created_at",
         )
         .order("created_at", { ascending: false })
         .limit(500),
@@ -30,7 +31,7 @@ async function loadData(): Promise<{ rows: WaitlistRow[]; counts: Counts; error:
     return {
       rows: [],
       counts: { total: 0, last_24h: 0, last_7d: 0 },
-      error: err instanceof Error ? err.message : "Unknown error",
+      error: errMessage(err),
     };
   }
 }

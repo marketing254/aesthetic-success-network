@@ -18,7 +18,6 @@ import ArrowBackIcon from "@mui/icons-material/ArrowBack";
 import EmailOutlinedIcon from "@mui/icons-material/EmailOutlined";
 import PinOutlinedIcon from "@mui/icons-material/PinOutlined";
 import LockOutlinedIcon from "@mui/icons-material/LockOutlined";
-import { createBrowserSupabase } from "@/lib/supabase/browser";
 
 function AdminLoginInner() {
   const params = useSearchParams();
@@ -32,6 +31,8 @@ function AdminLoginInner() {
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState<string | null>(initialError);
 
+  // DMN pattern: the server route checks the admin allow-list first, then
+  // asks Supabase to email the code — so errors come back specific and safe.
   const sendCode = async (e?: React.FormEvent) => {
     e?.preventDefault();
     if (!email.trim() || !email.includes("@")) {
@@ -41,28 +42,21 @@ function AdminLoginInner() {
     setBusy(true);
     setErr(null);
 
-    const supabase = createBrowserSupabase();
-    const { error } = await supabase.auth.signInWithOtp({
-      email: email.trim().toLowerCase(),
-      options: {
-        // Admins must be pre-created in Supabase Authentication → Users
-        // (and have a matching admin_users row). No auto-create.
-        shouldCreateUser: false,
-      },
-    });
-
-    if (error) {
-      const msg = error.message ?? "";
-      const isUserNotFound =
-        /not allowed|not found|invalid/i.test(msg) || error.status === 422 || error.status === 400;
-      setErr(
-        isUserNotFound
-          ? "That email isn't on the admin allow-list. Ask an owner-role admin to add you, then try again."
-          : msg || "Could not send the sign-in code. Please try again.",
-      );
-    } else {
-      setStep("code");
-      setCode("");
+    try {
+      const res = await fetch("/api/admin/login", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email: email.trim().toLowerCase() }),
+      });
+      const body = (await res.json().catch(() => ({}))) as { ok?: boolean; error?: string };
+      if (!res.ok || !body.ok) {
+        setErr(body.error ?? "Could not send the sign-in code. Please try again.");
+      } else {
+        setStep("code");
+        setCode("");
+      }
+    } catch {
+      setErr("Could not reach the server. Check your connection and try again.");
     }
     setBusy(false);
   };
@@ -77,36 +71,23 @@ function AdminLoginInner() {
     setBusy(true);
     setErr(null);
 
-    const supabase = createBrowserSupabase();
-    const { error } = await supabase.auth.verifyOtp({
-      email: email.trim().toLowerCase(),
-      token,
-      type: "email",
-    });
-
-    if (error) {
-      setErr(
-        /expired/i.test(error.message ?? "")
-          ? "That code has expired. Send a new one and try again."
-          : "That code isn't right. Check the email and try again.",
-      );
-      setBusy(false);
-      return;
-    }
-
-    // First-sign-in bootstrap: link the admin row + audit. A 403 means the
-    // email isn't an active admin — sign straight back out.
     try {
-      const res = await fetch("/api/admin/link-session", { method: "POST" });
-      if (res.status === 403) {
-        await supabase.auth.signOut();
-        setErr("Your account is not an admin.");
-        setStep("email");
+      const res = await fetch("/api/admin/verify-otp", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email: email.trim().toLowerCase(), token }),
+      });
+      const body = (await res.json().catch(() => ({}))) as { ok?: boolean; error?: string };
+      if (!res.ok || !body.ok) {
+        setErr(body.error ?? "That code isn't right. Check the email and try again.");
+        if (res.status === 403) setStep("email");
         setBusy(false);
         return;
       }
     } catch {
-      // Non-fatal — middleware still gates by email.
+      setErr("Could not reach the server. Check your connection and try again.");
+      setBusy(false);
+      return;
     }
 
     router.replace(redirect);
@@ -307,23 +288,35 @@ export default function AdminLoginPage() {
               justifyContent: "space-between",
             }}
           >
-            <Box component={Link} href="/" sx={{ textDecoration: "none" }}>
-              <Typography
-                sx={{ fontFamily: "var(--font-display)", fontSize: "1.15rem", color: "#0A1320" }}
-              >
-                Aesthetic Success Network
-              </Typography>
-              <Typography
-                sx={{
-                  fontSize: "0.55rem",
-                  letterSpacing: "0.28em",
-                  textTransform: "uppercase",
-                  color: "#A87D2C",
-                  fontWeight: 700,
-                }}
-              >
-                Powered by Business of Aesthetics
-              </Typography>
+            <Box
+              component={Link}
+              href="/"
+              sx={{ textDecoration: "none", display: "flex", alignItems: "center", gap: 1.25 }}
+            >
+              <Box
+                component="img"
+                src="/asn-nav-icon.png"
+                alt="Aesthetic Success Network"
+                sx={{ width: 36, height: 36, borderRadius: "8px", flexShrink: 0 }}
+              />
+              <Box>
+                <Typography
+                  sx={{ fontFamily: "var(--font-display)", fontSize: "1.1rem", color: "#0A1320", lineHeight: 1.15 }}
+                >
+                  Aesthetic Success Network
+                </Typography>
+                <Typography
+                  sx={{
+                    fontSize: "0.55rem",
+                    letterSpacing: "0.28em",
+                    textTransform: "uppercase",
+                    color: "#A87D2C",
+                    fontWeight: 700,
+                  }}
+                >
+                  Powered by Business of Aesthetics
+                </Typography>
+              </Box>
             </Box>
             <Box
               component={Link}

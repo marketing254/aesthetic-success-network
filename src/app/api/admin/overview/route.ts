@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { getSupabaseAdmin } from "@/lib/supabase/server";
 import { requireAdmin } from "@/lib/auth/guards";
+import { errMessage } from "@/lib/errMessage";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -38,7 +39,7 @@ export async function GET() {
       },
     });
   } catch (err) {
-    const message = err instanceof Error ? err.message : "Unknown error";
+    const message = errMessage(err);
     return NextResponse.json({ error: message }, { status: 500 });
   }
 }

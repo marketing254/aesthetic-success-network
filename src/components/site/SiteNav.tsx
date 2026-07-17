@@ -26,7 +26,13 @@ export default function SiteNav({
       <div className="wrap row">
         <Link href="/" className="brand" aria-label="Aesthetic Success Network home">
           {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img className="brand-logo" src="/asn-logo.png" alt="Aesthetic Success Network" />
+          <img
+            className="brand-logo"
+            src="/asn-nav-icon.png"
+            alt="Aesthetic Success Network"
+            width={44}
+            height={44}
+          />
         </Link>
         <div className="nav-links">
           {links.map((l) => (

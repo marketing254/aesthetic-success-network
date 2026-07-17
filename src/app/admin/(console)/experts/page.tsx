@@ -1,6 +1,7 @@
 import { Box, Typography } from "@mui/material";
 import { getSupabaseAdmin } from "@/lib/supabase/server";
 import ApplicationsTable, { type AppRow } from "@/components/admin/ApplicationsTable";
+import { errMessage } from "@/lib/errMessage";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
@@ -19,7 +20,7 @@ async function loadRows(): Promise<{ rows: AppRow[]; error: string | null }> {
     if (error) throw error;
     return { rows: (data ?? []) as AppRow[], error: null };
   } catch (err) {
-    return { rows: [], error: err instanceof Error ? err.message : "Unknown error" };
+    return { rows: [], error: errMessage(err) };
   }
 }
 

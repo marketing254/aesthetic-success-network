@@ -1,6 +1,9 @@
 import { NextResponse } from "next/server";
 import { getSupabaseAdmin } from "@/lib/supabase/server";
 import { requireAdmin } from "@/lib/auth/guards";
+import { errMessage } from "@/lib/errMessage";
+import { writeAudit } from "@/lib/audit";
+import { notifyTeam, sendExpertApprovalEmail } from "@/lib/email/templates";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -23,7 +26,7 @@ export async function GET() {
     if (error) throw error;
     return NextResponse.json({ rows: data ?? [] });
   } catch (err) {
-    const message = err instanceof Error ? err.message : "Unknown error";
+    const message = errMessage(err);
     return NextResponse.json({ error: message }, { status: 500 });
   }
 }
@@ -46,6 +49,15 @@ export async function PATCH(req: Request) {
 
   try {
     const supabase = getSupabaseAdmin();
+
+    // Read the previous state so the approval email only fires on the
+    // FIRST transition to approved (re-saving approved sends nothing).
+    const { data: before } = await supabase
+      .from("expert_applications")
+      .select("status, email, first_name")
+      .eq("id", body.id)
+      .maybeSingle();
+
     const { error } = await supabase
       .from("expert_applications")
       .update({
@@ -55,9 +67,20 @@ export async function PATCH(req: Request) {
       })
       .eq("id", body.id);
     if (error) throw error;
+    await writeAudit(guard, "expert_application", body.id, `status:${body.status}`);
+
+    if (body.status === "approved" && before && before.status !== "approved") {
+      await sendExpertApprovalEmail(before.email as string, (before.first_name as string) ?? "");
+      void notifyTeam("Expert approved", [
+        ["Expert", (before.first_name as string) ?? ""],
+        ["Email", before.email as string],
+        ["Approved by", guard.email],
+      ]);
+    }
+
     return NextResponse.json({ ok: true });
   } catch (err) {
-    const message = err instanceof Error ? err.message : "Unknown error";
+    const message = errMessage(err);
     return NextResponse.json({ error: message }, { status: 500 });
   }
 }

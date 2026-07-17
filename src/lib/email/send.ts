@@ -12,7 +12,8 @@ import "server-only";
  */
 
 const FROM_EMAIL =
-  process.env.WAITLIST_EMAIL_FROM ?? "Aesthetic Success Network <marketing@ekwa.co>";
+  process.env.WAITLIST_EMAIL_FROM ??
+  "Aesthetic Success Network <support@aestheticsuccessnetwork.com>";
 
 export type SendInput = {
   to: string;
@@ -20,12 +21,16 @@ export type SendInput = {
   html: string;
   text: string;
   replyTo?: string;
+  /** Per-purpose sender (e.g. members@/experts@/partners@). The SMTP auth
+   * account stays the same; Rackspace allows same-domain send-as. */
+  from?: string;
 };
 
 export async function sendEmail(
   input: SendInput,
 ): Promise<{ id?: string; transport: "smtp" | "gmail" | "resend" | "log" }> {
   const { to, subject, html, text, replyTo } = input;
+  const from = input.from ?? FROM_EMAIL;
 
   const smtpHost = process.env.SMTP_HOST;
   const smtpUser = process.env.SMTP_USER;
@@ -40,7 +45,7 @@ export async function sendEmail(
       auth: { user: smtpUser, pass: smtpPass },
     });
     const info = await transporter.sendMail({
-      from: FROM_EMAIL,
+      from,
       to,
       subject,
       html,
@@ -62,7 +67,7 @@ export async function sendEmail(
       auth: { user: gmailUser, pass: gmailPass },
     });
     const info = await transporter.sendMail({
-      from: FROM_EMAIL,
+      from,
       to,
       subject,
       html,
@@ -79,7 +84,7 @@ export async function sendEmail(
       method: "POST",
       headers: { Authorization: `Bearer ${resendKey}`, "Content-Type": "application/json" },
       body: JSON.stringify({
-        from: FROM_EMAIL,
+        from,
         to: [to],
         subject,
         html,

@@ -31,6 +31,16 @@ export const metadata: Metadata = {
     title: "Aesthetic Success Network | Every practice problem, answered in writing",
     description:
       "The Expert Hotline, member-only vendor deals, and a growing library of expert kits, all in one membership for aesthetic practice owners.",
+    images: [{ url: "/asn-logo-full-white.png", width: 1232, height: 1232, alt: "Aesthetic Success Network" }],
+  },
+  icons: {
+    icon: [
+      { url: "/favicon.ico", sizes: "any" },
+      { url: "/favicon-32.png", sizes: "32x32", type: "image/png" },
+      { url: "/favicon-48.png", sizes: "48x48", type: "image/png" },
+    ],
+    shortcut: "/favicon.ico",
+    apple: "/apple-touch-icon.png",
   },
   robots: { index: true, follow: true },
 };

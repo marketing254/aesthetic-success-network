@@ -2,6 +2,8 @@ import { NextResponse } from "next/server";
 import { getSupabaseAdmin } from "@/lib/supabase/server";
 import { requireAdmin, requireOwner } from "@/lib/auth/guards";
 import { isValidEmail, asString } from "@/lib/forms/request";
+import { errMessage } from "@/lib/errMessage";
+import { writeAudit } from "@/lib/audit";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -21,7 +23,7 @@ export async function GET() {
     if (error) throw error;
     return NextResponse.json({ rows: data ?? [] });
   } catch (err) {
-    const message = err instanceof Error ? err.message : "Unknown error";
+    const message = errMessage(err);
     return NextResponse.json({ error: message }, { status: 500 });
   }
 }
@@ -63,9 +65,10 @@ export async function POST(req: Request) {
       }
       throw error;
     }
+    await writeAudit(guard, "admin_user", null, "add", `${email} (${role})`);
     return NextResponse.json({ ok: true });
   } catch (err) {
-    const message = err instanceof Error ? err.message : "Unknown error";
+    const message = errMessage(err);
     return NextResponse.json({ error: message }, { status: 500 });
   }
 }
@@ -116,9 +119,10 @@ export async function PATCH(req: Request) {
       .update({ active: body.active })
       .eq("id", body.id);
     if (error) throw error;
+    await writeAudit(guard, "admin_user", body.id, body.active ? "activate" : "deactivate");
     return NextResponse.json({ ok: true });
   } catch (err) {
-    const message = err instanceof Error ? err.message : "Unknown error";
+    const message = errMessage(err);
     return NextResponse.json({ error: message }, { status: 500 });
   }
 }

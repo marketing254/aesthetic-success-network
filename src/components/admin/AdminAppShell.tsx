@@ -23,9 +23,11 @@ import {
 import { useTheme } from "@mui/material/styles";
 import DashboardOutlinedIcon from "@mui/icons-material/DashboardOutlined";
 import MarkEmailReadOutlinedIcon from "@mui/icons-material/MarkEmailReadOutlined";
+import PeopleAltOutlinedIcon from "@mui/icons-material/PeopleAltOutlined";
 import SchoolOutlinedIcon from "@mui/icons-material/SchoolOutlined";
 import StoreOutlinedIcon from "@mui/icons-material/StoreOutlined";
 import AdminPanelSettingsOutlinedIcon from "@mui/icons-material/AdminPanelSettingsOutlined";
+import HistoryOutlinedIcon from "@mui/icons-material/HistoryOutlined";
 import MenuOutlinedIcon from "@mui/icons-material/MenuOutlined";
 import LogoutOutlinedIcon from "@mui/icons-material/LogoutOutlined";
 import KeyboardArrowDownOutlinedIcon from "@mui/icons-material/KeyboardArrowDownOutlined";
@@ -87,17 +89,17 @@ const navSections: { label: string; items: NavItem[] }[] = [
     ],
   },
   {
-    label: "APPLICATIONS",
+    label: "PEOPLE",
     items: [
+      { href: "/admin/members", label: "Members", icon: PeopleAltOutlinedIcon },
       { href: "/admin/experts", label: "Experts", icon: SchoolOutlinedIcon, badgeKey: "expertsPending" },
       { href: "/admin/partners", label: "Partners", icon: StoreOutlinedIcon, badgeKey: "partnersPending" },
+      { href: "/admin/admins", label: "Admin team", icon: AdminPanelSettingsOutlinedIcon },
     ],
   },
   {
-    label: "TEAM",
-    items: [
-      { href: "/admin/admins", label: "Admin team", icon: AdminPanelSettingsOutlinedIcon },
-    ],
+    label: "SYSTEM",
+    items: [{ href: "/admin/audit-log", label: "Audit log", icon: HistoryOutlinedIcon }],
   },
 ];
 
@@ -127,22 +129,42 @@ function SidebarContent({
       }}
     >
       <Box sx={{ px: 3, pt: 3, pb: 2 }}>
-        <Box component={Link} href="/admin" sx={{ textDecoration: "none" }}>
-          <Typography sx={{ fontFamily: "var(--font-display)", fontSize: "1.1rem", color: "#F6F1E7" }}>
-            Aesthetic Success Network
-          </Typography>
-          <Typography
+        <Box
+          component={Link}
+          href="/admin"
+          sx={{ textDecoration: "none", display: "flex", alignItems: "center", gap: 1.25 }}
+        >
+          <Box
+            component="img"
+            src="/asn-nav-icon.png"
+            alt="Aesthetic Success Network"
             sx={{
-              fontSize: "0.55rem",
-              letterSpacing: "0.26em",
-              textTransform: "uppercase",
-              color: "#D9A84B",
-              fontWeight: 700,
-              mt: 0.5,
+              width: 38,
+              height: 38,
+              borderRadius: "9px",
+              flexShrink: 0,
+              border: "1px solid rgba(217,168,75,0.35)",
             }}
-          >
-            Powered by Business of Aesthetics
-          </Typography>
+          />
+          <Box>
+            <Typography
+              sx={{ fontFamily: "var(--font-display)", fontSize: "1rem", color: "#F6F1E7", lineHeight: 1.15 }}
+            >
+              Aesthetic Success Network
+            </Typography>
+            <Typography
+              sx={{
+                fontSize: "0.52rem",
+                letterSpacing: "0.24em",
+                textTransform: "uppercase",
+                color: "#D9A84B",
+                fontWeight: 700,
+                mt: 0.4,
+              }}
+            >
+              Powered by Business of Aesthetics
+            </Typography>
+          </Box>
         </Box>
         <Typography
           variant="body2"

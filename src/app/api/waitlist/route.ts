@@ -32,6 +32,7 @@ export async function POST(req: Request) {
   const roleLabel = roleLabelOther ? `Other: ${roleLabelOther}` : roleLabelRaw;
   const locations = asString(b.locations);
   const challenge = asString(b.challenge);
+  const agreementAccepted = b.agreementAccepted === true;
   const source = asString(b.source) || "landing";
 
   if (firstName.length < 1 || firstName.length > 80) {
@@ -55,6 +56,12 @@ export async function POST(req: Request) {
   if (challenge.length > 2000) {
     return NextResponse.json(
       { error: "Keep your challenge under 2000 characters.", field: "challenge" },
+      { status: 400 },
+    );
+  }
+  if (!agreementAccepted) {
+    return NextResponse.json(
+      { error: "Please agree to the Member Agreement to join the waitlist." },
       { status: 400 },
     );
   }
@@ -90,6 +97,8 @@ export async function POST(req: Request) {
       practice_role: roleLabel || null,
       locations: locations || null,
       challenge: challenge || null,
+      agreement_accepted: agreementAccepted,
+      agreement_accepted_at: new Date().toISOString(),
       source,
       ip_hash: hashIp(ip),
       user_agent: userAgent(req),
@@ -116,7 +125,7 @@ export async function POST(req: Request) {
     );
   }
 
-  await sendWaitlistConfirmation(email, firstName);
+  await sendWaitlistConfirmation(email, firstName, data.id, data.created_at);
   await notifyTeam("New waitlist signup", [
     ["Name", `${firstName} ${lastName}`],
     ["Email", email],

@@ -22,8 +22,18 @@ export default function LegalShell({
       <div className="legal-topbar">
         <div className="in">
           <Link className="legal-brand" href="/">
-            Aesthetic Success Network
-            <span>Powered by Business of Aesthetics</span>
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              className="brandmark"
+              src="/asn-nav-icon.png"
+              alt="Aesthetic Success Network"
+              width={34}
+              height={34}
+            />
+            <span className="bt">
+              Aesthetic Success Network
+              <span>Powered by Business of Aesthetics</span>
+            </span>
           </Link>
           <Link className="back" href="/">
             &larr; Back to the site

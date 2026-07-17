@@ -15,6 +15,8 @@ create table if not exists public.waitlist_signups (
   practice_role text,          -- "You are a…" select (Dermatologist, Injector, …)
   locations     text,          -- "1", "2–3", "4–9", "10+"
   challenge     text,          -- free-text biggest practice challenge
+  agreement_accepted    boolean not null default false,  -- Member Agreement tick
+  agreement_accepted_at timestamptz,
   source        text default 'landing',
   utm           jsonb,
   ip_hash       text,          -- salted hash, never the raw IP

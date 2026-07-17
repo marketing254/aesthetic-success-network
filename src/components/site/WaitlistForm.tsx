@@ -1,6 +1,7 @@
 "use client";
 
 import { useRef, useState } from "react";
+import Link from "next/link";
 
 type Status = "idle" | "busy" | "done";
 
@@ -38,6 +39,7 @@ export default function WaitlistForm() {
       roleLabelOther: String(fd.get("roleOther") ?? ""),
       locations: String(fd.get("locations") ?? ""),
       challenge: String(fd.get("challenge") ?? ""),
+      agreementAccepted: fd.get("terms") === "on",
       source: "landing",
     };
 
@@ -153,6 +155,12 @@ export default function WaitlistForm() {
         <label htmlFor="wl-chal">Your biggest practice challenge right now</label>
         <textarea id="wl-chal" name="challenge" />
       </div>
+      <label className="check">
+        <input type="checkbox" name="terms" required /> I agree to the{" "}
+        <Link href="/member-agreement">Member Agreement</Link>, the{" "}
+        <Link href="/refund-policy">Refund &amp; Cancellation Policy</Link> and the{" "}
+        <Link href="/privacy">Privacy Policy</Link>.
+      </label>
       <button className="btn bronze" type="submit" disabled={status === "busy"}>
         {status === "busy" ? "Saving your spot…" : "Join the founding waitlist"}
       </button>

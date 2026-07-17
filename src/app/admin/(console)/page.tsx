@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { Box, Chip, Grid, Stack, Typography } from "@mui/material";
 import { getSupabaseAdmin } from "@/lib/supabase/server";
+import { errMessage } from "@/lib/errMessage";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
@@ -94,7 +95,7 @@ async function loadOverview(): Promise<Overview> {
       partnersTotal: 0,
       partnersPending: 0,
       recent: [],
-      error: err instanceof Error ? err.message : "Unknown error",
+      error: errMessage(err),
     };
   }
 }

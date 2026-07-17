@@ -19,6 +19,8 @@ import EmailOutlinedIcon from "@mui/icons-material/EmailOutlined";
 import RefreshOutlinedIcon from "@mui/icons-material/RefreshOutlined";
 import ExpandMoreOutlinedIcon from "@mui/icons-material/ExpandMoreOutlined";
 import ExpandLessOutlinedIcon from "@mui/icons-material/ExpandLessOutlined";
+import CheckCircleOutlinedIcon from "@mui/icons-material/CheckCircleOutlined";
+import CancelOutlinedIcon from "@mui/icons-material/CancelOutlined";
 
 export type AppStatus = "new" | "in_review" | "approved" | "declined";
 
@@ -378,6 +380,28 @@ export default function ApplicationsTable({
                           </Typography>
                         </Box>
                         <Box component="td" sx={{ whiteSpace: "nowrap" }}>
+                          {row.status !== "approved" && (
+                            <Tooltip title="Approve">
+                              <IconButton
+                                size="small"
+                                onClick={() => updateStatus(row.id, "approved")}
+                                sx={{ color: "#1F5C39" }}
+                              >
+                                <CheckCircleOutlinedIcon fontSize="small" />
+                              </IconButton>
+                            </Tooltip>
+                          )}
+                          {row.status !== "declined" && row.status !== "approved" && (
+                            <Tooltip title="Decline">
+                              <IconButton
+                                size="small"
+                                onClick={() => updateStatus(row.id, "declined")}
+                                sx={{ color: "#7A2E1F" }}
+                              >
+                                <CancelOutlinedIcon fontSize="small" />
+                              </IconButton>
+                            </Tooltip>
+                          )}
                           {email && (
                             <Tooltip title={`Email ${email}`}>
                               <IconButton component="a" href={`mailto:${email}`} size="small">
@@ -403,6 +427,40 @@ export default function ApplicationsTable({
                             colSpan={columns.length + 3}
                             sx={{ bgcolor: "rgba(247,245,240,0.5)" }}
                           >
+                            <Stack
+                              direction="row"
+                              spacing={1}
+                              sx={{ mb: 2, flexWrap: "wrap", rowGap: 1 }}
+                            >
+                              <Button
+                                size="small"
+                                variant="contained"
+                                color="secondary"
+                                startIcon={<CheckCircleOutlinedIcon />}
+                                disabled={row.status === "approved"}
+                                onClick={() => updateStatus(row.id, "approved")}
+                              >
+                                {row.status === "approved" ? "Approved" : "Approve"}
+                              </Button>
+                              <Button
+                                size="small"
+                                variant="outlined"
+                                disabled={row.status === "in_review"}
+                                onClick={() => updateStatus(row.id, "in_review")}
+                              >
+                                Start review
+                              </Button>
+                              <Button
+                                size="small"
+                                variant="outlined"
+                                color="error"
+                                startIcon={<CancelOutlinedIcon />}
+                                disabled={row.status === "declined"}
+                                onClick={() => updateStatus(row.id, "declined")}
+                              >
+                                {row.status === "declined" ? "Declined" : "Decline"}
+                              </Button>
+                            </Stack>
                             <Grid container spacing={2}>
                               {details.map((d) => {
                                 const val = row[d.key];

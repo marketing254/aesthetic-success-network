@@ -1,6 +1,8 @@
 import { NextResponse } from "next/server";
 import { getSupabaseAdmin } from "@/lib/supabase/server";
 import { requireAdmin } from "@/lib/auth/guards";
+import { errMessage } from "@/lib/errMessage";
+import { writeAudit } from "@/lib/audit";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -16,14 +18,14 @@ export async function GET() {
     const { data, error } = await supabase
       .from("waitlist_signups")
       .select(
-        "id, email, first_name, last_name, phone, practice_name, practice_role, locations, challenge, source, status, created_at",
+        "id, email, first_name, last_name, phone, practice_name, practice_role, locations, challenge, agreement_accepted, agreement_accepted_at, source, status, created_at",
       )
       .order("created_at", { ascending: false })
       .limit(500);
     if (error) throw error;
     return NextResponse.json({ rows: data ?? [] });
   } catch (err) {
-    const message = err instanceof Error ? err.message : "Unknown error";
+    const message = errMessage(err);
     return NextResponse.json({ error: message }, { status: 500 });
   }
 }
@@ -52,9 +54,10 @@ export async function PATCH(req: Request) {
 
     const { error } = await supabase.from("waitlist_signups").update(update).eq("id", body.id);
     if (error) throw error;
+    await writeAudit(guard, "waitlist_signup", body.id, `status:${newStatus}`);
     return NextResponse.json({ ok: true });
   } catch (err) {
-    const message = err instanceof Error ? err.message : "Unknown error";
+    const message = errMessage(err);
     return NextResponse.json({ error: message }, { status: 500 });
   }
 }
