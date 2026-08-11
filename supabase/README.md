@@ -21,7 +21,8 @@ Open the SQL editor and run each file in `migrations/`:
 | 4 | `0004_admin.sql` | `admin_users` + `auth_audit` + RLS policy + admin seed |
 | 5 | `0005_waitlist_agreement.sql` | Member Agreement acceptance columns on `waitlist_signups` (no-op on fresh installs that ran the updated 0001) |
 | 6 | `0006_members_and_audit.sql` | `members` (waitlist → member activation) + `review_actions` (the Audit log) |
-| 7 | `0007_portal_gate_policies.sql` | self-read RLS policies powering the portal gate (only activated members / approved experts / approved partners can ever enter the future portal routes) |
+| 7 | `0007_portal_gate_policies.sql` | self-read RLS policies powering the portal gate (only activated members / approved experts / approved partners can ever enter the portal routes) |
+| 8 | `0008_portals.sql` | `hotline_requests` + `hotline_responses` (the Expert Hotline), `vendor_deals`, `expert_kits` — everything the three portals read and write |
 
 RLS is enabled deny-all on the intake tables — only the server (service
 role key) reads/writes them. **Never skip 0004**: it also carries the RLS
@@ -36,7 +37,11 @@ select
   to_regclass('public.partner_applications') is not null as partner_apps,
   to_regclass('public.admin_users')          is not null as admins,
   to_regclass('public.auth_audit')           is not null as audit,
-  to_regclass('public.waitlist_counts')      is not null as counts_view;
+  to_regclass('public.waitlist_counts')      is not null as counts_view,
+  to_regclass('public.hotline_requests')     is not null as hotline,
+  to_regclass('public.hotline_responses')    is not null as hotline_responses,
+  to_regclass('public.vendor_deals')         is not null as deals,
+  to_regclass('public.expert_kits')          is not null as kits;
 ```
 
 ## 4. Admin sign-in (6-digit email codes)
@@ -108,6 +113,44 @@ links), gated by the `admin_users` allow-list:
    (`templates/admin-otp-email.html` is kept only as a reference copy of
    the email design; it does not need to be pasted into Supabase.)
 
+## 4b. Portal sign-in (members / experts / partners)
+
+The three portals — `/dashboard`, `/expert`, `/vendor` — share one sign-in
+page at **`/login`**, using the same 6-digit email-code flow as the admin
+console but gated on portal roles instead of the admin allow-list:
+
+- **member** → an `active` row in `members`
+- **expert** → an `approved` row in `expert_applications`
+- **partner** → an `approved` row in `partner_applications`
+
+One email can hold several roles; the portal shell then shows a switcher.
+
+**Auth users are provisioned automatically.** Portal sign-in uses
+`shouldCreateUser: false`, so an approved person with no Supabase auth user
+would be locked out. Activating a member and approving an expert/partner
+both call `ensureAuthUser()`, which creates the auth user (already
+email-confirmed — control of the inbox is proven by the code at sign-in).
+Provisioning is fail-soft and logged, so a hiccup never rolls back an
+approval; if someone reports "your account isn't set up for sign-in yet",
+add them under Authentication → Users and they're unblocked.
+
+Anyone signed in without a live role is bounced to `/?portal=inactive`;
+signed-out visitors go to `/login?redirect=…`.
+
+### The Expert Hotline loop
+
+1. Member submits at `/dashboard/hotline/new` → row lands as `submitted`,
+   member gets a receipt email, the team gets a notification.
+2. Admin routes it at **`/admin/hotline`** → status `assigned`, the chosen
+   expert is emailed. This is the one deliberately manual step.
+3. Expert writes the plan at `/expert/requests/[id]`. Drafts stay private;
+   delivering flips the request to `answered` and emails the member.
+4. Member reads it at `/dashboard/hotline/[id]`.
+
+Vendor deals follow the same curated shape: partners draft and submit,
+**only an admin can publish** (`/admin/deals`), and editing a live deal
+pulls it back into review.
+
 ## 5. Environment variables
 
 Copy `.env.example` to `.env.local` and fill in:
@@ -135,3 +178,14 @@ and signups still succeed (fail-soft by design).
 2. Check rows landed: `select * from waitlist_signups; select * from expert_applications; select * from partner_applications;`
 3. Confirmation + team emails arrive (or appear in the server log).
 4. Sign in at `/admin/login`, review each queue, flip statuses, export CSV.
+5. Portals, end to end:
+   - Activate yourself as a member (Members → activate), approve a test
+     expert and a test partner.
+   - Sign in at `/login` with each email — you should land on `/dashboard`,
+     `/expert` and `/vendor` respectively.
+   - Member: submit a Hotline question. Admin: route it at `/admin/hotline`.
+     Expert: deliver an action plan. Member: read it. Check the emails at
+     each hop.
+   - Partner: create a deal → submit for review. Admin: publish it at
+     `/admin/deals`. Member: see it under Vendor deals.
+   - Expert: publish a kit → it appears in the member's Expert kits.

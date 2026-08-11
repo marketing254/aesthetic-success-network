@@ -1,5 +1,6 @@
 "use client";
-import { useCallback, useEffect, useRef, useState } from "react";
+
+import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import {
@@ -22,119 +23,112 @@ import {
 } from "@mui/material";
 import { useTheme } from "@mui/material/styles";
 import DashboardOutlinedIcon from "@mui/icons-material/DashboardOutlined";
-import MarkEmailReadOutlinedIcon from "@mui/icons-material/MarkEmailReadOutlined";
-import PeopleAltOutlinedIcon from "@mui/icons-material/PeopleAltOutlined";
-import SchoolOutlinedIcon from "@mui/icons-material/SchoolOutlined";
-import StoreOutlinedIcon from "@mui/icons-material/StoreOutlined";
-import AdminPanelSettingsOutlinedIcon from "@mui/icons-material/AdminPanelSettingsOutlined";
-import HistoryOutlinedIcon from "@mui/icons-material/HistoryOutlined";
 import SupportAgentOutlinedIcon from "@mui/icons-material/SupportAgentOutlined";
 import LocalOfferOutlinedIcon from "@mui/icons-material/LocalOfferOutlined";
+import AutoStoriesOutlinedIcon from "@mui/icons-material/AutoStoriesOutlined";
+import PersonOutlineOutlinedIcon from "@mui/icons-material/PersonOutlineOutlined";
+import AssignmentOutlinedIcon from "@mui/icons-material/AssignmentOutlined";
+import StorefrontOutlinedIcon from "@mui/icons-material/StorefrontOutlined";
 import MenuOutlinedIcon from "@mui/icons-material/MenuOutlined";
 import LogoutOutlinedIcon from "@mui/icons-material/LogoutOutlined";
 import KeyboardArrowDownOutlinedIcon from "@mui/icons-material/KeyboardArrowDownOutlined";
+import SwapHorizOutlinedIcon from "@mui/icons-material/SwapHorizOutlined";
 import { createBrowserSupabase } from "@/lib/supabase/browser";
 
-const SIDEBAR_W = 264;
+const SIDEBAR_W = 260;
 
-type CurrentAdmin = { email: string; full_name: string; role: string };
+export type PortalKind = "member" | "expert" | "partner";
 
-type QueueCounts = {
-  expertsPending: number;
-  partnersPending: number;
-  hotlineNeedsRouting: number;
-  dealsPending: number;
+type NavItem = { href: string; label: string; icon: React.ElementType<{ sx?: object }> };
+
+type Identity = {
+  email: string;
+  member: { firstName: string; lastName: string; practiceName: string | null; tier: string } | null;
+  expert: { fullName: string; company: string | null } | null;
+  partner: { companyName: string; contactName: string } | null;
+  roles: PortalKind[];
 };
 
-function useCurrentAdmin(): CurrentAdmin | null {
-  const [me, setMe] = useState<CurrentAdmin | null>(null);
-  useEffect(() => {
-    let active = true;
-    (async () => {
-      const supabase = createBrowserSupabase();
-      const { data: userData } = await supabase.auth.getUser();
-      const email = userData.user?.email?.toLowerCase();
-      if (!email) return;
-      const { data } = await supabase
-        .from("admin_users")
-        .select("email, full_name, role")
-        .eq("email", email)
-        .maybeSingle();
-      if (!active) return;
-      setMe(data ?? { email, full_name: email.split("@")[0] ?? "Admin", role: "admin" });
-    })();
-    return () => {
-      active = false;
-    };
-  }, []);
-  return me;
-}
-
-function initials(full: string): string {
-  return full
-    .split(" ")
-    .map((p) => p[0])
-    .filter(Boolean)
-    .slice(0, 2)
-    .join("")
-    .toUpperCase();
-}
-
-type NavItem = {
-  href: string;
-  label: string;
-  icon: React.ElementType<{ sx?: object }>;
-  badgeKey?: keyof QueueCounts;
+const PORTALS: Record<
+  PortalKind,
+  { home: string; label: string; eyebrow: string; nav: NavItem[] }
+> = {
+  member: {
+    home: "/dashboard",
+    label: "Member portal",
+    eyebrow: "Founding member",
+    nav: [
+      { href: "/dashboard", label: "Overview", icon: DashboardOutlinedIcon },
+      { href: "/dashboard/hotline", label: "Expert Hotline", icon: SupportAgentOutlinedIcon },
+      { href: "/dashboard/deals", label: "Vendor deals", icon: LocalOfferOutlinedIcon },
+      { href: "/dashboard/kits", label: "Expert kits", icon: AutoStoriesOutlinedIcon },
+      { href: "/dashboard/account", label: "Account", icon: PersonOutlineOutlinedIcon },
+    ],
+  },
+  expert: {
+    home: "/expert",
+    label: "Expert portal",
+    eyebrow: "Network expert",
+    nav: [
+      { href: "/expert", label: "Overview", icon: DashboardOutlinedIcon },
+      { href: "/expert/requests", label: "Hotline queue", icon: AssignmentOutlinedIcon },
+      { href: "/expert/kits", label: "My kits", icon: AutoStoriesOutlinedIcon },
+      { href: "/expert/profile", label: "Profile", icon: PersonOutlineOutlinedIcon },
+    ],
+  },
+  partner: {
+    home: "/vendor",
+    label: "Partner portal",
+    eyebrow: "Vetted partner",
+    nav: [
+      { href: "/vendor", label: "Overview", icon: DashboardOutlinedIcon },
+      { href: "/vendor/deals", label: "My deals", icon: StorefrontOutlinedIcon },
+      { href: "/vendor/profile", label: "Profile", icon: PersonOutlineOutlinedIcon },
+    ],
+  },
 };
 
-const navSections: { label: string; items: NavItem[] }[] = [
-  {
-    label: "OVERVIEW",
-    items: [
-      { href: "/admin", label: "Dashboard", icon: DashboardOutlinedIcon },
-      { href: "/admin/waitlist", label: "Launch waitlist", icon: MarkEmailReadOutlinedIcon },
-    ],
-  },
-  {
-    label: "NETWORK",
-    items: [
-      {
-        href: "/admin/hotline",
-        label: "Expert Hotline",
-        icon: SupportAgentOutlinedIcon,
-        badgeKey: "hotlineNeedsRouting",
-      },
-      { href: "/admin/deals", label: "Vendor deals", icon: LocalOfferOutlinedIcon, badgeKey: "dealsPending" },
-    ],
-  },
-  {
-    label: "PEOPLE",
-    items: [
-      { href: "/admin/members", label: "Members", icon: PeopleAltOutlinedIcon },
-      { href: "/admin/experts", label: "Experts", icon: SchoolOutlinedIcon, badgeKey: "expertsPending" },
-      { href: "/admin/partners", label: "Partners", icon: StoreOutlinedIcon, badgeKey: "partnersPending" },
-      { href: "/admin/admins", label: "Admin team", icon: AdminPanelSettingsOutlinedIcon },
-    ],
-  },
-  {
-    label: "SYSTEM",
-    items: [{ href: "/admin/audit-log", label: "Audit log", icon: HistoryOutlinedIcon }],
-  },
-];
+function initials(name: string): string {
+  return (
+    name
+      .split(" ")
+      .map((p) => p[0])
+      .filter(Boolean)
+      .slice(0, 2)
+      .join("")
+      .toUpperCase() || "—"
+  );
+}
+
+function displayNameFor(portal: PortalKind, me: Identity | null): string {
+  if (!me) return "—";
+  if (portal === "member" && me.member) return `${me.member.firstName} ${me.member.lastName}`.trim();
+  if (portal === "expert" && me.expert) return me.expert.fullName;
+  if (portal === "partner" && me.partner) return me.partner.companyName;
+  return me.email;
+}
+
+function subtitleFor(portal: PortalKind, me: Identity | null): string {
+  if (!me) return "";
+  if (portal === "member") return me.member?.practiceName ?? "Founding member";
+  if (portal === "expert") return me.expert?.company ?? "Network expert";
+  return me.partner?.contactName ?? "Vetted partner";
+}
 
 function SidebarContent({
+  portal,
   pathname,
-  onClose,
   me,
-  counts,
+  onClose,
 }: {
+  portal: PortalKind;
   pathname: string;
+  me: Identity | null;
   onClose?: () => void;
-  me: CurrentAdmin | null;
-  counts: QueueCounts;
 }) {
-  const displayName = me?.full_name ?? "—";
-  const role = me?.role ?? "admin";
+  const cfg = PORTALS[portal];
+  const name = displayNameFor(portal, me);
+
   return (
     <Box
       sx={{
@@ -150,7 +144,7 @@ function SidebarContent({
       <Box sx={{ px: 3, pt: 3, pb: 2 }}>
         <Box
           component={Link}
-          href="/admin"
+          href={cfg.home}
           sx={{ textDecoration: "none", display: "flex", alignItems: "center", gap: 1.25 }}
         >
           <Box
@@ -186,7 +180,6 @@ function SidebarContent({
           </Box>
         </Box>
         <Typography
-          variant="body2"
           sx={{
             mt: 1.5,
             color: "rgba(255,255,255,0.55)",
@@ -196,7 +189,7 @@ function SidebarContent({
             textTransform: "uppercase",
           }}
         >
-          Admin Console
+          {cfg.label}
         </Typography>
       </Box>
 
@@ -221,21 +214,20 @@ function SidebarContent({
                 border: "1px solid rgba(217,168,75,0.4)",
               }}
             >
-              {initials(displayName)}
+              {initials(name)}
             </Avatar>
             <Box sx={{ minWidth: 0, flex: 1 }}>
               <Typography
                 sx={{ color: "common.white", fontWeight: 600, fontSize: "0.9rem", lineHeight: 1.2 }}
                 noWrap
               >
-                {displayName}
+                {name}
               </Typography>
               <Typography
-                variant="body2"
-                sx={{ color: "rgba(255,255,255,0.7)", fontSize: "0.72rem", textTransform: "capitalize" }}
+                sx={{ color: "rgba(255,255,255,0.7)", fontSize: "0.72rem" }}
                 noWrap
               >
-                {role}
+                {subtitleFor(portal, me)}
               </Typography>
             </Box>
           </Stack>
@@ -243,170 +235,134 @@ function SidebarContent({
       </Box>
 
       <Box sx={{ px: 2.25, py: 1.5, flex: 1 }}>
-        <Stack spacing={2}>
-          {navSections.map((sec) => (
-            <Box key={sec.label}>
-              <Typography
+        <Stack spacing={0.25}>
+          {cfg.nav.map((item) => {
+            const Icon = item.icon;
+            const active =
+              item.href === cfg.home ? pathname === cfg.home : pathname.startsWith(item.href);
+            return (
+              <Box
+                key={item.href}
+                component={Link}
+                href={item.href}
+                onClick={onClose}
                 sx={{
-                  color: "rgba(255,255,255,0.4)",
-                  fontSize: "0.65rem",
-                  letterSpacing: "0.18em",
-                  fontWeight: 700,
-                  mb: 0.75,
-                  px: 1,
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 1.5,
+                  px: 1.5,
+                  py: 1.05,
+                  borderRadius: 2,
+                  color: active ? "common.white" : "rgba(255,255,255,0.65)",
+                  bgcolor: active ? "rgba(217,168,75,0.12)" : "transparent",
+                  border: "1px solid",
+                  borderColor: active ? "rgba(217,168,75,0.25)" : "transparent",
+                  textDecoration: "none",
+                  fontSize: "0.9rem",
+                  fontWeight: active ? 600 : 500,
+                  "&:hover": {
+                    bgcolor: active ? "rgba(217,168,75,0.16)" : "rgba(255,255,255,0.05)",
+                    color: "common.white",
+                  },
                 }}
               >
-                {sec.label}
-              </Typography>
-              <Stack spacing={0.25}>
-                {sec.items.map((item) => {
-                  const Icon = item.icon;
-                  const active =
-                    item.href === "/admin" ? pathname === "/admin" : pathname.startsWith(item.href);
-                  const badge = item.badgeKey ? counts[item.badgeKey] : 0;
-                  return (
-                    <Box
-                      key={item.href}
-                      component={Link}
-                      href={item.href}
-                      onClick={onClose}
-                      sx={{
-                        display: "flex",
-                        alignItems: "center",
-                        gap: 1.5,
-                        px: 1.5,
-                        py: 1.05,
-                        borderRadius: 2,
-                        color: active ? "common.white" : "rgba(255,255,255,0.65)",
-                        bgcolor: active ? "rgba(217,168,75,0.12)" : "transparent",
-                        border: "1px solid",
-                        borderColor: active ? "rgba(217,168,75,0.25)" : "transparent",
-                        textDecoration: "none",
-                        fontSize: "0.9rem",
-                        fontWeight: active ? 600 : 500,
-                        "&:hover": {
-                          bgcolor: active ? "rgba(217,168,75,0.16)" : "rgba(255,255,255,0.05)",
-                          color: "common.white",
-                        },
-                      }}
-                    >
-                      <Icon sx={{ fontSize: 20, color: active ? "#F0C16E" : "inherit" }} />
-                      <Box sx={{ flex: 1 }}>{item.label}</Box>
-                      {badge > 0 && (
-                        <Chip
-                          label={badge}
-                          size="small"
-                          sx={{
-                            bgcolor: "rgba(217,168,75,0.2)",
-                            color: "#F0C16E",
-                            fontWeight: 700,
-                            fontSize: "0.65rem",
-                            height: 18,
-                            minWidth: 22,
-                            "& .MuiChip-label": { px: 0.75 },
-                          }}
-                        />
-                      )}
-                    </Box>
-                  );
-                })}
-              </Stack>
-            </Box>
-          ))}
+                <Icon sx={{ fontSize: 20, color: active ? "#F0C16E" : "inherit" }} />
+                <Box sx={{ flex: 1 }}>{item.label}</Box>
+              </Box>
+            );
+          })}
         </Stack>
       </Box>
 
-      <Box sx={{ px: 2.25, pb: 2.5 }}>
-        <Box
-          sx={{
-            p: 2,
-            borderRadius: "14px",
-            border: "1px solid rgba(255,255,255,0.08)",
-            bgcolor: "rgba(255,255,255,0.03)",
-          }}
-        >
-          <Typography
+      {/* Portal switcher — only when this email holds more than one role. */}
+      {me && me.roles.length > 1 && (
+        <Box sx={{ px: 2.25, pb: 2.5 }}>
+          <Box
             sx={{
-              fontSize: "0.65rem",
-              letterSpacing: "0.18em",
-              fontWeight: 700,
-              color: "rgba(255,255,255,0.5)",
-              mb: 0.75,
+              p: 2,
+              borderRadius: "14px",
+              border: "1px solid rgba(255,255,255,0.08)",
+              bgcolor: "rgba(255,255,255,0.03)",
             }}
           >
-            REVIEW QUEUES
-          </Typography>
-          <Stack direction="row" spacing={2}>
-            <Stack>
-              <Typography
-                sx={{ fontFamily: "var(--font-display)", color: "common.white", fontSize: "1.4rem", lineHeight: 1 }}
-              >
-                {counts.expertsPending}
-              </Typography>
-              <Typography variant="body2" sx={{ fontSize: "0.7rem", color: "rgba(255,255,255,0.6)" }}>
-                experts
-              </Typography>
+            <Typography
+              sx={{
+                fontSize: "0.65rem",
+                letterSpacing: "0.18em",
+                fontWeight: 700,
+                color: "rgba(255,255,255,0.5)",
+                mb: 1,
+              }}
+            >
+              SWITCH PORTAL
+            </Typography>
+            <Stack spacing={0.5}>
+              {me.roles
+                .filter((r) => r !== portal)
+                .map((r) => (
+                  <Box
+                    key={r}
+                    component={Link}
+                    href={PORTALS[r].home}
+                    onClick={onClose}
+                    sx={{
+                      display: "flex",
+                      alignItems: "center",
+                      gap: 1,
+                      px: 1.25,
+                      py: 0.9,
+                      borderRadius: 2,
+                      color: "rgba(255,255,255,0.75)",
+                      textDecoration: "none",
+                      fontSize: "0.83rem",
+                      fontWeight: 600,
+                      "&:hover": { bgcolor: "rgba(255,255,255,0.06)", color: "common.white" },
+                    }}
+                  >
+                    <SwapHorizOutlinedIcon sx={{ fontSize: 17, color: "#F0C16E" }} />
+                    {PORTALS[r].label}
+                  </Box>
+                ))}
             </Stack>
-            <Stack>
-              <Typography
-                sx={{ fontFamily: "var(--font-display)", color: "common.white", fontSize: "1.4rem", lineHeight: 1 }}
-              >
-                {counts.partnersPending}
-              </Typography>
-              <Typography variant="body2" sx={{ fontSize: "0.7rem", color: "rgba(255,255,255,0.6)" }}>
-                partners
-              </Typography>
-            </Stack>
-          </Stack>
+          </Box>
         </Box>
-      </Box>
+      )}
     </Box>
   );
 }
 
-export default function AdminAppShell({ children }: { children: React.ReactNode }) {
+export default function PortalShell({
+  portal,
+  children,
+}: {
+  portal: PortalKind;
+  children: React.ReactNode;
+}) {
   const pathname = usePathname();
   const theme = useTheme();
+  const router = useRouter();
   const isMd = useMediaQuery(theme.breakpoints.up("md"));
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [userMenuOpen, setUserMenuOpen] = useState(false);
   const userMenuAnchor = useRef<HTMLDivElement | null>(null);
-  const router = useRouter();
-  const me = useCurrentAdmin();
-
-  const [counts, setCounts] = useState<QueueCounts>({
-    expertsPending: 0,
-    partnersPending: 0,
-    hotlineNeedsRouting: 0,
-    dealsPending: 0,
-  });
-
-  const loadCounts = useCallback(async () => {
-    try {
-      const res = await fetch("/api/admin/overview", { cache: "no-store" });
-      if (!res.ok) return;
-      const body = (await res.json()) as {
-        experts?: { pending?: number };
-        partners?: { pending?: number };
-        hotline?: { needsRouting?: number };
-        deals?: { pending?: number };
-      };
-      setCounts({
-        expertsPending: body.experts?.pending ?? 0,
-        partnersPending: body.partners?.pending ?? 0,
-        hotlineNeedsRouting: body.hotline?.needsRouting ?? 0,
-        dealsPending: body.deals?.pending ?? 0,
-      });
-    } catch {
-      // ignore — counts are decorative
-    }
-  }, []);
+  const [me, setMe] = useState<Identity | null>(null);
 
   useEffect(() => {
-    void loadCounts();
-    const t = setInterval(() => void loadCounts(), 90_000);
-    return () => clearInterval(t);
-  }, [loadCounts]);
+    let active = true;
+    (async () => {
+      try {
+        const res = await fetch("/api/portal/me", { cache: "no-store" });
+        if (!res.ok) return;
+        const body = (await res.json()) as Identity;
+        if (active) setMe(body);
+      } catch {
+        // The page itself is already guarded server-side; the chip is cosmetic.
+      }
+    })();
+    return () => {
+      active = false;
+    };
+  }, []);
 
   const handleSignOut = async () => {
     setUserMenuOpen(false);
@@ -416,8 +372,11 @@ export default function AdminAppShell({ children }: { children: React.ReactNode 
     } catch {
       // ignore
     }
-    router.push("/admin/login");
+    router.push("/login");
   };
+
+  const cfg = PORTALS[portal];
+  const name = displayNameFor(portal, me);
 
   return (
     <Box sx={{ minHeight: "100vh", bgcolor: "#F4F0E6", display: "flex" }}>
@@ -433,7 +392,7 @@ export default function AdminAppShell({ children }: { children: React.ReactNode 
             zIndex: theme.zIndex.appBar - 1,
           }}
         >
-          <SidebarContent pathname={pathname} me={me} counts={counts} />
+          <SidebarContent portal={portal} pathname={pathname} me={me} />
         </Box>
       )}
       {!isMd && (
@@ -443,10 +402,10 @@ export default function AdminAppShell({ children }: { children: React.ReactNode 
           slotProps={{ paper: { sx: { width: SIDEBAR_W, border: "none" } } }}
         >
           <SidebarContent
+            portal={portal}
             pathname={pathname}
-            onClose={() => setDrawerOpen(false)}
             me={me}
-            counts={counts}
+            onClose={() => setDrawerOpen(false)}
           />
         </Drawer>
       )}
@@ -469,12 +428,12 @@ export default function AdminAppShell({ children }: { children: React.ReactNode 
               </IconButton>
             )}
             <Chip
-              label="ADMIN MODE"
+              label={cfg.eyebrow.toUpperCase()}
               size="small"
               sx={{
-                bgcolor: "rgba(220, 60, 60, 0.12)",
-                color: "#8C1D1D",
-                border: "1px solid rgba(220,60,60,0.3)",
+                bgcolor: "rgba(217,168,75,0.16)",
+                color: "#7A5C10",
+                border: "1px solid rgba(217,168,75,0.4)",
                 fontWeight: 700,
                 fontSize: "0.65rem",
                 letterSpacing: "0.12em",
@@ -493,7 +452,6 @@ export default function AdminAppShell({ children }: { children: React.ReactNode 
                 pl: { xs: 0, sm: 1.25 },
                 pr: { xs: 0, sm: 1 },
                 py: 0.5,
-                ml: 0.5,
                 bgcolor: "transparent",
                 border: 0,
                 borderRadius: "999px",
@@ -513,17 +471,14 @@ export default function AdminAppShell({ children }: { children: React.ReactNode 
                   fontWeight: 700,
                 }}
               >
-                {initials(me?.full_name ?? "")}
+                {initials(name)}
               </Avatar>
               <Box sx={{ display: { xs: "none", lg: "block" }, textAlign: "left" }}>
                 <Typography sx={{ fontSize: "0.85rem", fontWeight: 600, lineHeight: 1.15 }}>
-                  {me?.full_name ?? "—"}
+                  {name}
                 </Typography>
-                <Typography
-                  variant="body2"
-                  sx={{ fontSize: "0.7rem", color: "text.secondary", textTransform: "capitalize" }}
-                >
-                  Admin · {me?.role ?? "—"}
+                <Typography variant="body2" sx={{ fontSize: "0.7rem", color: "text.secondary" }}>
+                  {cfg.eyebrow}
                 </Typography>
               </Box>
               <KeyboardArrowDownOutlinedIcon sx={{ fontSize: 18, color: "text.secondary", ml: 0.25 }} />
@@ -551,13 +506,31 @@ export default function AdminAppShell({ children }: { children: React.ReactNode 
             >
               <Box sx={{ px: 2, pt: 1.5, pb: 1.25 }}>
                 <Typography sx={{ fontSize: "0.92rem", fontWeight: 600, lineHeight: 1.2 }}>
-                  {me?.full_name ?? "—"}
+                  {name}
                 </Typography>
                 <Typography variant="body2" sx={{ fontSize: "0.74rem", color: "text.secondary" }}>
                   {me?.email ?? ""}
                 </Typography>
               </Box>
               <Divider />
+              {(me?.roles ?? [])
+                .filter((r) => r !== portal)
+                .map((r) => (
+                  <MenuItem
+                    key={r}
+                    component={Link}
+                    href={PORTALS[r].home}
+                    onClick={() => setUserMenuOpen(false)}
+                  >
+                    <ListItemIcon>
+                      <SwapHorizOutlinedIcon fontSize="small" />
+                    </ListItemIcon>
+                    <ListItemText
+                      primary={`Go to ${PORTALS[r].label.toLowerCase()}`}
+                      slotProps={{ primary: { sx: { fontSize: "0.9rem", fontWeight: 600 } } }}
+                    />
+                  </MenuItem>
+                ))}
               <MenuItem onClick={handleSignOut} sx={{ color: "error.main" }}>
                 <ListItemIcon sx={{ color: "error.main" }}>
                   <LogoutOutlinedIcon fontSize="small" />
@@ -577,7 +550,7 @@ export default function AdminAppShell({ children }: { children: React.ReactNode 
 
         <Divider />
         <Box sx={{ px: 3, py: 2.5, color: "text.secondary", fontSize: "0.8rem" }}>
-          © 2026 Aesthetic Success Network · Admin console · Launch phase
+          © 2026 Aesthetic Success Network · {cfg.label}
         </Box>
       </Box>
     </Box>

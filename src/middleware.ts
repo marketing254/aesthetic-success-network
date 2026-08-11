@@ -85,10 +85,12 @@ export async function middleware(req: NextRequest) {
   // Members must be activated, experts and partners must be approved,
   // before any portal surface opens for them. Everyone else bounces home.
   if (portalRole) {
+    let signedIn = false;
     try {
       const supabase = createMiddlewareSupabase(req, res);
       const { data: userData } = await supabase.auth.getUser();
       const email = userData.user?.email ?? "";
+      signedIn = Boolean(email);
 
       if (email) {
         if (portalRole === "member") {
@@ -117,9 +119,16 @@ export async function middleware(req: NextRequest) {
     } catch (err) {
       console.error("[middleware:portal] gate check failed:", err);
     }
+    // Signed out → sign-in page (come back here afterwards).
+    // Signed in but not activated/approved → home with an explainer.
     const target = req.nextUrl.clone();
-    target.pathname = "/";
-    target.search = "?portal=inactive";
+    if (signedIn) {
+      target.pathname = "/";
+      target.search = "?portal=inactive";
+    } else {
+      target.pathname = "/login";
+      target.search = `?redirect=${encodeURIComponent(pathname + search)}`;
+    }
     return applySecurityHeaders(NextResponse.redirect(target));
   }
 

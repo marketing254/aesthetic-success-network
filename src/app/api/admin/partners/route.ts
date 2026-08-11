@@ -4,6 +4,7 @@ import { requireAdmin } from "@/lib/auth/guards";
 import { errMessage } from "@/lib/errMessage";
 import { writeAudit } from "@/lib/audit";
 import { notifyTeam, sendPartnerApprovalEmail } from "@/lib/email/templates";
+import { ensureAuthUser } from "@/lib/auth/portal";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -70,6 +71,10 @@ export async function PATCH(req: Request) {
     await writeAudit(guard, "partner_application", body.id, `status:${body.status}`);
 
     if (body.status === "approved" && before && before.status !== "approved") {
+      // Approval opens /vendor — provision the auth user so sign-in works.
+      if (!(await ensureAuthUser(before.contact_email as string))) {
+        console.error("[admin:partners] auth user provisioning failed for", before.contact_email);
+      }
       await sendPartnerApprovalEmail(
         before.contact_email as string,
         (before.contact_name as string) ?? "",

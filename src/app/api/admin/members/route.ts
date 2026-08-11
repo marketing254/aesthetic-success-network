@@ -5,6 +5,7 @@ import { writeAudit } from "@/lib/audit";
 import { errMessage } from "@/lib/errMessage";
 import { asString, isValidEmail } from "@/lib/forms/request";
 import { notifyTeam, sendMemberWelcomeEmail } from "@/lib/email/templates";
+import { ensureAuthUser } from "@/lib/auth/portal";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -34,9 +35,9 @@ export async function GET() {
  * Two modes:
  *   { waitlistSignupId }  — promote a waitlist signup (flips it to "converted")
  *   { email, firstName, lastName, practiceName?, phone? } — manual add
- * Launch phase records the member; portal auth + welcome email arrive with
- * the Stripe/Agree-and-Pay phase (no payment flow exists yet, and the site
- * promises members confirm before any charge).
+ * Activation also provisions the Supabase auth user, which is what opens
+ * /dashboard for them. Billing is still out of scope — no payment flow
+ * exists yet, and the site promises members confirm before any charge.
  */
 export async function POST(req: Request) {
   const guard = await requireAdmin();
@@ -138,6 +139,11 @@ export async function POST(req: Request) {
       waitlistSignupId ? "activate_from_waitlist" : "activate_manual",
       waitlistSignupId ? `waitlist_signup ${waitlistSignupId}` : undefined,
     );
+
+    // Provision the auth user so they can actually sign in to /dashboard.
+    if (!(await ensureAuthUser(email))) {
+      console.error("[admin:members] auth user provisioning failed for", email);
+    }
 
     await sendMemberWelcomeEmail(email, firstName);
 

@@ -506,6 +506,174 @@ export async function sendAdminCodeEmail(to: string, code: string) {
   });
 }
 
+// ── Portal sign-in code ─────────────────────────────────────────────
+// Same contract as sendAdminCodeEmail: NOT fail-soft, because the portal
+// login route must know whether delivery failed.
+
+export async function sendPortalCodeEmail(to: string, code: string) {
+  const safeCode = code.replace(/[^0-9]/g, "");
+  const paragraphs = [
+    `Enter this code to sign in to your Aesthetic Success Network portal. It expires shortly and can only be used once.`,
+    `<div style="text-align:center;padding:6px 0 10px;"><span style="display:inline-block;background:#f7f5f0;border:1px solid #d9a84b;border-radius:14px;padding:16px 30px;font-family:'Courier New',Courier,monospace;font-size:32px;font-weight:700;letter-spacing:10px;color:#0a1320;">${safeCode}</span></div>`,
+    `If you didn't try to sign in, you can ignore this email. The code is useless without access to this inbox.`,
+  ];
+  await sendEmail({
+    to,
+    subject: `Your Aesthetic Success Network sign-in code: ${safeCode}`,
+    html: shell("Your sign-in code", paragraphs),
+    text: [
+      "Your Aesthetic Success Network sign-in code:",
+      "",
+      `    ${safeCode}`,
+      "",
+      "Enter it on the sign-in page. It expires shortly and can only be used once.",
+      "If you didn't try to sign in, you can ignore this email.",
+    ].join("\n"),
+    from: FROM_SUPPORT,
+    replyTo: SUPPORT_EMAIL,
+  });
+}
+
+// ── Expert Hotline lifecycle ────────────────────────────────────────
+// Three touches: the member's receipt, the expert's assignment, and the
+// member's "your action plan is ready". All fail-soft.
+
+/** Member receipt the moment a Hotline request lands. */
+export async function sendHotlineReceivedEmail(
+  to: string,
+  firstName: string,
+  subject: string,
+  requestId: string,
+) {
+  const { html, text } = renderBranded({
+    subject: `We've got your Hotline request`,
+    preview: `Your question is in the queue — a written action plan follows in 2–3 business days.`,
+    eyebrow: "Expert Hotline",
+    headline: "Your question is with us",
+    intro: [
+      `Hi ${escapeHtml(firstName || "there")}, thanks for using the Expert Hotline. Here's what you asked about:`,
+      `<strong>${escapeHtml(subject)}</strong>`,
+    ],
+    sections: [
+      {
+        title: "What happens next",
+        bullets: [
+          "Our team routes your question to the right expert — usually same day.",
+          "You get a <strong>written action plan</strong> back within 2–3 business days.",
+          "Everything stays in your portal, so you can revisit it any time.",
+        ],
+      },
+    ],
+    cta: { label: "View your request", url: `${SITE_URL}/dashboard/hotline/${requestId}` },
+    closing: "If anything changes in the meantime, reply to this email and we'll update the request.",
+    signoff: ["The Aesthetic Success Network team", "Powered by Business of Aesthetics"],
+    footerLines: [
+      `Reference: ${escapeHtml(requestId)}`,
+      `Aesthetic Success Network &middot; ${REPLY_MEMBERS}`,
+    ],
+  });
+  await safeSend("hotline-received", {
+    to,
+    subject: "We've got your Hotline request",
+    html,
+    text,
+    from: FROM_MEMBERS,
+    replyTo: REPLY_MEMBERS,
+  });
+}
+
+/** Expert notification when an admin routes a request to them. */
+export async function sendHotlineAssignedEmail(
+  to: string,
+  expertName: string,
+  subject: string,
+  requestId: string,
+  urgency: string,
+) {
+  const urgent = urgency === "urgent";
+  const { html, text } = renderBranded({
+    subject: `New Hotline request assigned to you`,
+    preview: `${subject} — action plan due in 2–3 business days.`,
+    eyebrow: urgent ? "Expert Hotline · Urgent" : "Expert Hotline",
+    headline: "A member needs your read on this",
+    intro: [
+      `Hi ${escapeHtml(expertName || "there")}, a Hotline request has been routed to you:`,
+      `<strong>${escapeHtml(subject)}</strong>`,
+    ],
+    sections: [
+      {
+        title: "What we need",
+        bullets: [
+          "A one-line summary of your answer.",
+          "A <strong>written action plan</strong> the member can act on this week.",
+          urgent
+            ? "This one is flagged <strong>urgent</strong> — please turn it around within 1 business day."
+            : "Turnaround target is 2–3 business days.",
+        ],
+      },
+    ],
+    cta: { label: "Open the request", url: `${SITE_URL}/expert/requests/${requestId}` },
+    closing: "Thanks for being part of the network — the action plans are the whole product.",
+    signoff: ["The Aesthetic Success Network team", "Powered by Business of Aesthetics"],
+    footerLines: [
+      `Reference: ${escapeHtml(requestId)}`,
+      `Aesthetic Success Network &middot; ${REPLY_EXPERTS}`,
+    ],
+  });
+  await safeSend("hotline-assigned", {
+    to,
+    subject: urgent ? "[Urgent] New Hotline request assigned to you" : "New Hotline request assigned to you",
+    html,
+    text,
+    from: FROM_EXPERTS,
+    replyTo: REPLY_EXPERTS,
+  });
+}
+
+/** Member notification when the action plan is delivered. */
+export async function sendHotlineAnsweredEmail(
+  to: string,
+  firstName: string,
+  subject: string,
+  requestId: string,
+) {
+  const { html, text } = renderBranded({
+    subject: "Your action plan is ready",
+    preview: `${subject} — your written action plan is waiting in the portal.`,
+    eyebrow: "Expert Hotline",
+    headline: "Your action plan is ready",
+    intro: [
+      `Hi ${escapeHtml(firstName || "there")}, an expert has answered your Hotline request:`,
+      `<strong>${escapeHtml(subject)}</strong>`,
+    ],
+    sections: [
+      {
+        title: "In your portal",
+        bullets: [
+          "A one-line summary of the answer.",
+          "The full written action plan, step by step.",
+          "The request stays in your history — no need to save it anywhere else.",
+        ],
+      },
+    ],
+    cta: { label: "Read your action plan", url: `${SITE_URL}/dashboard/hotline/${requestId}` },
+    closing: "Need a follow-up? Submit another request and we'll route it to the same expert where we can.",
+    signoff: ["The Aesthetic Success Network team", "Powered by Business of Aesthetics"],
+    footerLines: [
+      `Reference: ${escapeHtml(requestId)}`,
+      `Aesthetic Success Network &middot; ${REPLY_MEMBERS}`,
+    ],
+  });
+  await safeSend("hotline-answered", {
+    to,
+    subject: "Your action plan is ready",
+    html,
+    text,
+    from: FROM_MEMBERS,
+    replyTo: REPLY_MEMBERS,
+  });
+}
+
 // ── Team notification ───────────────────────────────────────────────
 
 export async function notifyTeam(subject: string, lines: [string, string][]) {

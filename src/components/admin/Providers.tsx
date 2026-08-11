@@ -5,7 +5,11 @@ import { ThemeProvider } from "@mui/material/styles";
 import CssBaseline from "@mui/material/CssBaseline";
 import theme from "@/theme";
 
-/** MUI providers — wraps the admin surfaces only; the public site is plain CSS. */
+/**
+ * MUI providers — wraps the app surfaces that are built in MUI: the admin
+ * console, the portal sign-in page, and the three portals. The public
+ * marketing site stays plain CSS and never mounts this.
+ */
 export default function Providers({ children }: { children: React.ReactNode }) {
   return (
     // NOTE: no enableCssLayer here — layered MUI styles would lose to the

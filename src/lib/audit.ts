@@ -14,7 +14,10 @@ export async function writeAudit(
     | "expert_application"
     | "partner_application"
     | "member"
-    | "admin_user",
+    | "admin_user"
+    | "hotline_request"
+    | "vendor_deal"
+    | "expert_kit",
   targetId: string | null,
   action: string,
   note?: string,
