@@ -14,8 +14,8 @@ export const dynamic = "force-dynamic";
 export async function GET() {
   try {
     const supabase = await createServerSupabase();
-    const { data: userData } = await supabase.auth.getUser();
-    const email = userData.user?.email?.toLowerCase();
+    const { data: claimsData } = await supabase.auth.getClaims();
+    const email = (claimsData?.claims?.email as string | undefined)?.toLowerCase();
     if (!email) {
       return NextResponse.json({ error: "Not signed in." }, { status: 401 });
     }

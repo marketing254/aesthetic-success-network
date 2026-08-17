@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { Box, Chip, Grid, Stack, Typography } from "@mui/material";
 import { getSupabaseAdmin } from "@/lib/supabase/server";
+import { countRows } from "@/lib/supabase/counts";
 import { errMessage } from "@/lib/errMessage";
 
 export const dynamic = "force-dynamic";
@@ -27,10 +28,27 @@ async function loadOverview(): Promise<Overview> {
   try {
     const supabase = getSupabaseAdmin();
     const dayAgo = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
-    const [wl, xp, pt, wlRecent, xpRecent, ptRecent] = await Promise.all([
-      supabase.from("waitlist_signups").select("id, created_at"),
-      supabase.from("expert_applications").select("id, status"),
-      supabase.from("partner_applications").select("id, status"),
+    const PENDING = ["new", "in_review"];
+    // The four headline figures are header-only COUNTs (no rows on the
+    // wire); only the "Latest activity" feed actually fetches rows, and
+    // it's capped at 5 per source.
+    const [
+      waitlistTotal,
+      waitlist24h,
+      expertsTotal,
+      expertsPending,
+      partnersTotal,
+      partnersPending,
+      wlRecent,
+      xpRecent,
+      ptRecent,
+    ] = await Promise.all([
+      countRows(supabase, "waitlist_signups"),
+      countRows(supabase, "waitlist_signups", { gte: { created_at: dayAgo } }),
+      countRows(supabase, "expert_applications"),
+      countRows(supabase, "expert_applications", { in: { status: PENDING } }),
+      countRows(supabase, "partner_applications"),
+      countRows(supabase, "partner_applications", { in: { status: PENDING } }),
       supabase
         .from("waitlist_signups")
         .select("first_name, last_name, email, practice_name, created_at")
@@ -75,14 +93,12 @@ async function loadOverview(): Promise<Overview> {
       .slice(0, 8);
 
     return {
-      waitlistTotal: wl.data?.length ?? 0,
-      waitlist24h: (wl.data ?? []).filter((r) => (r.created_at as string) >= dayAgo).length,
-      expertsTotal: xp.data?.length ?? 0,
-      expertsPending: (xp.data ?? []).filter((r) => r.status === "new" || r.status === "in_review")
-        .length,
-      partnersTotal: pt.data?.length ?? 0,
-      partnersPending: (pt.data ?? []).filter((r) => r.status === "new" || r.status === "in_review")
-        .length,
+      waitlistTotal,
+      waitlist24h,
+      expertsTotal,
+      expertsPending,
+      partnersTotal,
+      partnersPending,
       recent,
       error: null,
     };

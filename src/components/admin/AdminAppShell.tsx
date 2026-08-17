@@ -46,30 +46,6 @@ type QueueCounts = {
   dealsPending: number;
 };
 
-function useCurrentAdmin(): CurrentAdmin | null {
-  const [me, setMe] = useState<CurrentAdmin | null>(null);
-  useEffect(() => {
-    let active = true;
-    (async () => {
-      const supabase = createBrowserSupabase();
-      const { data: userData } = await supabase.auth.getUser();
-      const email = userData.user?.email?.toLowerCase();
-      if (!email) return;
-      const { data } = await supabase
-        .from("admin_users")
-        .select("email, full_name, role")
-        .eq("email", email)
-        .maybeSingle();
-      if (!active) return;
-      setMe(data ?? { email, full_name: email.split("@")[0] ?? "Admin", role: "admin" });
-    })();
-    return () => {
-      active = false;
-    };
-  }, []);
-  return me;
-}
-
 function initials(full: string): string {
   return full
     .split(" ")
@@ -372,8 +348,8 @@ export default function AdminAppShell({ children }: { children: React.ReactNode 
   const [userMenuOpen, setUserMenuOpen] = useState(false);
   const userMenuAnchor = useRef<HTMLDivElement | null>(null);
   const router = useRouter();
-  const me = useCurrentAdmin();
 
+  const [me, setMe] = useState<CurrentAdmin | null>(null);
   const [counts, setCounts] = useState<QueueCounts>({
     expertsPending: 0,
     partnersPending: 0,
@@ -381,16 +357,21 @@ export default function AdminAppShell({ children }: { children: React.ReactNode 
     dealsPending: 0,
   });
 
-  const loadCounts = useCallback(async () => {
+  // One request for both the user chip and the queue badges. This used to
+  // be three: a browser auth.getUser(), an admin_users select, and this
+  // fetch — each a separate round trip on every admin page view.
+  const loadOverview = useCallback(async () => {
     try {
       const res = await fetch("/api/admin/overview", { cache: "no-store" });
       if (!res.ok) return;
       const body = (await res.json()) as {
+        me?: CurrentAdmin;
         experts?: { pending?: number };
         partners?: { pending?: number };
         hotline?: { needsRouting?: number };
         deals?: { pending?: number };
       };
+      if (body.me) setMe(body.me);
       setCounts({
         expertsPending: body.experts?.pending ?? 0,
         partnersPending: body.partners?.pending ?? 0,
@@ -403,10 +384,10 @@ export default function AdminAppShell({ children }: { children: React.ReactNode 
   }, []);
 
   useEffect(() => {
-    void loadCounts();
-    const t = setInterval(() => void loadCounts(), 90_000);
+    void loadOverview();
+    const t = setInterval(() => void loadOverview(), 90_000);
     return () => clearInterval(t);
-  }, [loadCounts]);
+  }, [loadOverview]);
 
   const handleSignOut = async () => {
     setUserMenuOpen(false);

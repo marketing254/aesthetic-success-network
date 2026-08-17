@@ -167,8 +167,10 @@ export async function ensureAuthUser(emailRaw: string): Promise<boolean> {
 /** The signed-in user's portal identity, or null when signed out. */
 export async function currentPortalIdentity(): Promise<PortalIdentity | null> {
   const supabase = await createServerSupabase();
-  const { data } = await supabase.auth.getUser();
-  const email = data.user?.email?.toLowerCase();
+  // getClaims verifies the JWT locally with asymmetric signing keys and
+  // falls back to the same server check getUser() did otherwise.
+  const { data } = await supabase.auth.getClaims();
+  const email = (data?.claims?.email as string | undefined)?.toLowerCase();
   if (!email) return null;
   return resolvePortalRoles(email);
 }
