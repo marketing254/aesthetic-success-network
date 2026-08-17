@@ -56,6 +56,18 @@ const nextConfig = {
   // parent folder (the repo may also contain src/, TD - Member Network/, etc.).
   // This is the usual fix for failures at the "Collecting build traces" step.
   outputFileTracingRoot: __dirname,
+  experimental: {
+    // Next defaults dynamic routes to a 0-second client Router Cache, so
+    // clicking back to a console tab you were just on refetched the whole
+    // page from the server. 30s makes returning to a tab instant.
+    //
+    // Safe for these screens: the admin tables seed useState from the
+    // server payload and own their state from then on (optimistic updates
+    // plus an explicit refresh button), and the two views that do re-read
+    // the server after a mutation — DealsReview and HotlineQueue — call
+    // router.refresh(), which invalidates this cache outright.
+    staleTimes: { dynamic: 30 },
+  },
   async headers() {
     return [{ source: "/:path*", headers: SECURITY_HEADERS }];
   },
