@@ -19,12 +19,29 @@ export const PARTNER_CATEGORIES = [
   "Other",
 ];
 
+export type PartnerFormDefaults = {
+  contactName?: string;
+  email?: string;
+  companyName?: string;
+};
+
 /**
- * Partner application form. Payload keys map 1:1 to POST /api/partner/apply.
- * The logo file is collected for later follow-up but not uploaded in this
- * phase (matches the launch scope — no storage bucket yet).
+ * Partner application form. Payload keys map 1:1 to POST /api/partner/apply
+ * by default. `defaultValues` + `apiEndpoint` + `source` let an invite
+ * page (/invite/[code]) reuse this exact form pre-filled, posting to the
+ * invite-aware accept route instead. The logo file is collected for later
+ * follow-up but not uploaded in this phase (matches the launch scope — no
+ * storage bucket yet).
  */
-export default function PartnerForm() {
+export default function PartnerForm({
+  defaultValues,
+  apiEndpoint = "/api/partner/apply",
+  source = "partners-page",
+}: {
+  defaultValues?: PartnerFormDefaults;
+  apiEndpoint?: string;
+  source?: string;
+}) {
   const [status, setStatus] = useState<Status>("idle");
   const [error, setError] = useState<string | null>(null);
   const [thanksMsg, setThanksMsg] = useState<string | null>(null);
@@ -56,11 +73,11 @@ export default function PartnerForm() {
       bookingLink: String(fd.get("booking") ?? ""),
       billingContact: String(fd.get("billing") ?? ""),
       agreementAccepted: fd.get("terms") === "on",
-      source: "partners-page",
+      source,
     };
 
     try {
-      const res = await fetch("/api/partner/apply", {
+      const res = await fetch(apiEndpoint, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload),
@@ -105,7 +122,7 @@ export default function PartnerForm() {
       <div className="frow">
         <div className="field">
           <label htmlFor="p-company">Company name</label>
-          <input id="p-company" name="company" required autoComplete="organization" />
+          <input id="p-company" name="company" required autoComplete="organization" defaultValue={defaultValues?.companyName} />
         </div>
         <div className="field">
           <label htmlFor="p-website">Website</label>
@@ -115,7 +132,7 @@ export default function PartnerForm() {
       <div className="frow">
         <div className="field">
           <label htmlFor="p-contact">Contact name</label>
-          <input id="p-contact" name="contact" required autoComplete="name" />
+          <input id="p-contact" name="contact" required autoComplete="name" defaultValue={defaultValues?.contactName} />
         </div>
         <div className="field">
           <label htmlFor="p-role">Role</label>
@@ -125,7 +142,7 @@ export default function PartnerForm() {
       <div className="frow">
         <div className="field">
           <label htmlFor="p-email">Email</label>
-          <input id="p-email" type="email" name="email" required autoComplete="email" />
+          <input id="p-email" type="email" name="email" required autoComplete="email" defaultValue={defaultValues?.email} />
         </div>
         <div className="field">
           <label htmlFor="p-phone">Phone</label>

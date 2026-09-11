@@ -5,12 +5,30 @@ import Link from "next/link";
 
 type Status = "idle" | "busy" | "done";
 
+export type ExpertFormDefaults = {
+  firstName?: string;
+  lastName?: string;
+  email?: string;
+  company?: string;
+};
+
 /**
- * Expert application form. Payload keys map 1:1 to POST /api/expert/apply.
- * The headshot file is collected for later follow-up but not uploaded in
- * this phase (matches the launch scope — no storage bucket yet).
+ * Expert application form. Payload keys map 1:1 to POST /api/expert/apply
+ * by default. `defaultValues` + `apiEndpoint` + `source` let an invite
+ * page (/invite/[code]) reuse this exact form pre-filled, posting to the
+ * invite-aware accept route instead. The headshot file is collected for
+ * later follow-up but not uploaded in this phase (matches the launch
+ * scope — no storage bucket yet).
  */
-export default function ExpertForm() {
+export default function ExpertForm({
+  defaultValues,
+  apiEndpoint = "/api/expert/apply",
+  source = "experts-page",
+}: {
+  defaultValues?: ExpertFormDefaults;
+  apiEndpoint?: string;
+  source?: string;
+}) {
   const [status, setStatus] = useState<Status>("idle");
   const [error, setError] = useState<string | null>(null);
   const [thanksMsg, setThanksMsg] = useState<string | null>(null);
@@ -40,11 +58,11 @@ export default function ExpertForm() {
       sampleLink: String(fd.get("sample") ?? ""),
       contentOwnershipConfirmed: fd.get("own") === "on",
       agreementAccepted: fd.get("terms") === "on",
-      source: "experts-page",
+      source,
     };
 
     try {
-      const res = await fetch("/api/expert/apply", {
+      const res = await fetch(apiEndpoint, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload),
@@ -90,17 +108,17 @@ export default function ExpertForm() {
       <div className="frow">
         <div className="field">
           <label htmlFor="x-first">First name</label>
-          <input id="x-first" name="first" required autoComplete="given-name" />
+          <input id="x-first" name="first" required autoComplete="given-name" defaultValue={defaultValues?.firstName} />
         </div>
         <div className="field">
           <label htmlFor="x-last">Last name</label>
-          <input id="x-last" name="last" required autoComplete="family-name" />
+          <input id="x-last" name="last" required autoComplete="family-name" defaultValue={defaultValues?.lastName} />
         </div>
       </div>
       <div className="frow">
         <div className="field">
           <label htmlFor="x-email">Email</label>
-          <input id="x-email" type="email" name="email" required autoComplete="email" />
+          <input id="x-email" type="email" name="email" required autoComplete="email" defaultValue={defaultValues?.email} />
         </div>
         <div className="field">
           <label htmlFor="x-phone">Phone (optional)</label>
@@ -109,7 +127,7 @@ export default function ExpertForm() {
       </div>
       <div className="field">
         <label htmlFor="x-company">Company or practice (optional)</label>
-        <input id="x-company" name="company" autoComplete="organization" />
+        <input id="x-company" name="company" autoComplete="organization" defaultValue={defaultValues?.company} />
       </div>
       <div className="field">
         <label htmlFor="x-topics">Your topics / areas of expertise (3&ndash;4)</label>
