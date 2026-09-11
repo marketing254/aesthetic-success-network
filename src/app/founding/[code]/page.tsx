@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import SiteNav from "@/components/site/SiteNav";
 import SiteFooter from "@/components/site/SiteFooter";
+import PageFx from "@/components/site/PageFx";
 import { getSupabaseAdmin } from "@/lib/supabase/server";
 import FoundingAcceptView from "@/components/founding/FoundingAcceptView";
 
@@ -140,6 +141,8 @@ export default async function FoundingInvitePage({
           { href: "/privacy", label: "Privacy" },
         ]}
       />
+
+      <PageFx revealSelector="section .wrap" />
     </>
   );
 }

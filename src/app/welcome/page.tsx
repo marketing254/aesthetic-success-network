@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import SiteNav from "@/components/site/SiteNav";
 import SiteFooter from "@/components/site/SiteFooter";
+import PageFx from "@/components/site/PageFx";
 import { getStripe } from "@/lib/stripe";
 import { getSupabaseAdmin } from "@/lib/supabase/server";
 import { applySubscriptionToMember } from "@/lib/billing";
@@ -186,6 +187,8 @@ export default async function WelcomePage({
       </header>
 
       <SiteFooter links={[{ href: "/privacy", label: "Privacy" }]} />
+
+      <PageFx revealSelector=".welcome-page-no-reveal-sections" />
     </>
   );
 }
