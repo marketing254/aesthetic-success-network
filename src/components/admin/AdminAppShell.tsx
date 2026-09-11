@@ -33,6 +33,17 @@ import LocalOfferOutlinedIcon from "@mui/icons-material/LocalOfferOutlined";
 import MenuOutlinedIcon from "@mui/icons-material/MenuOutlined";
 import LogoutOutlinedIcon from "@mui/icons-material/LogoutOutlined";
 import KeyboardArrowDownOutlinedIcon from "@mui/icons-material/KeyboardArrowDownOutlined";
+import CardGiftcardOutlinedIcon from "@mui/icons-material/CardGiftcardOutlined";
+import LinkOutlinedIcon from "@mui/icons-material/LinkOutlined";
+import ConfirmationNumberOutlinedIcon from "@mui/icons-material/ConfirmationNumberOutlined";
+import ShareOutlinedIcon from "@mui/icons-material/ShareOutlined";
+import FilterAltOutlinedIcon from "@mui/icons-material/FilterAltOutlined";
+import CampaignOutlinedIcon from "@mui/icons-material/CampaignOutlined";
+import LibraryBooksOutlinedIcon from "@mui/icons-material/LibraryBooksOutlined";
+import ArticleOutlinedIcon from "@mui/icons-material/ArticleOutlined";
+import StarOutlineOutlinedIcon from "@mui/icons-material/StarOutlineOutlined";
+import FeedbackOutlinedIcon from "@mui/icons-material/FeedbackOutlined";
+import QuestionAnswerOutlinedIcon from "@mui/icons-material/QuestionAnswerOutlined";
 import { createBrowserSupabase } from "@/lib/supabase/browser";
 
 const SIDEBAR_W = 264;
@@ -81,6 +92,27 @@ const navSections: { label: string; items: NavItem[] }[] = [
         badgeKey: "hotlineNeedsRouting",
       },
       { href: "/admin/deals", label: "Vendor deals", icon: LocalOfferOutlinedIcon, badgeKey: "dealsPending" },
+      { href: "/admin/feedback", label: "Feedback", icon: FeedbackOutlinedIcon },
+      { href: "/admin/inquiries", label: "Inquiries", icon: QuestionAnswerOutlinedIcon },
+    ],
+  },
+  {
+    label: "GROWTH",
+    items: [
+      { href: "/admin/founding", label: "Founding invites", icon: CardGiftcardOutlinedIcon },
+      { href: "/admin/invites", label: "Invite links", icon: LinkOutlinedIcon },
+      { href: "/admin/promo-codes", label: "Promo codes", icon: ConfirmationNumberOutlinedIcon },
+      { href: "/admin/referrals", label: "Referrals", icon: ShareOutlinedIcon },
+      { href: "/admin/lead-magnets", label: "Lead magnets", icon: FilterAltOutlinedIcon },
+      { href: "/admin/broadcast", label: "Broadcast", icon: CampaignOutlinedIcon },
+    ],
+  },
+  {
+    label: "CONTENT",
+    items: [
+      { href: "/admin/resources", label: "Resources", icon: LibraryBooksOutlinedIcon },
+      { href: "/admin/content", label: "Blog posts", icon: ArticleOutlinedIcon },
+      { href: "/admin/spotlights", label: "Spotlights", icon: StarOutlineOutlinedIcon },
     ],
   },
   {

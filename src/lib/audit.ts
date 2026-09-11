@@ -17,7 +17,17 @@ export async function writeAudit(
     | "admin_user"
     | "hotline_request"
     | "vendor_deal"
-    | "expert_kit",
+    | "expert_kit"
+    | "founding_member_invite"
+    | "invite_link"
+    | "promo_code"
+    | "referral_code"
+    | "member_feedback"
+    | "lead_magnet_lead"
+    | "profile_spotlight"
+    | "resource_inquiry"
+    | "announcement"
+    | "blog_post",
   targetId: string | null,
   action: string,
   note?: string,
