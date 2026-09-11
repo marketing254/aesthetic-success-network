@@ -29,6 +29,12 @@ import AutoStoriesOutlinedIcon from "@mui/icons-material/AutoStoriesOutlined";
 import PersonOutlineOutlinedIcon from "@mui/icons-material/PersonOutlineOutlined";
 import AssignmentOutlinedIcon from "@mui/icons-material/AssignmentOutlined";
 import StorefrontOutlinedIcon from "@mui/icons-material/StorefrontOutlined";
+import InboxOutlinedIcon from "@mui/icons-material/InboxOutlined";
+import GroupsOutlinedIcon from "@mui/icons-material/GroupsOutlined";
+import BadgeOutlinedIcon from "@mui/icons-material/BadgeOutlined";
+import HandshakeOutlinedIcon from "@mui/icons-material/HandshakeOutlined";
+import ChecklistOutlinedIcon from "@mui/icons-material/ChecklistOutlined";
+import CalculateOutlinedIcon from "@mui/icons-material/CalculateOutlined";
 import MenuOutlinedIcon from "@mui/icons-material/MenuOutlined";
 import LogoutOutlinedIcon from "@mui/icons-material/LogoutOutlined";
 import KeyboardArrowDownOutlinedIcon from "@mui/icons-material/KeyboardArrowDownOutlined";
@@ -62,9 +68,15 @@ const PORTALS: Record<
     eyebrow: "Founding member",
     nav: [
       { href: "/dashboard", label: "Overview", icon: DashboardOutlinedIcon },
+      { href: "/dashboard/inbox", label: "Inbox", icon: InboxOutlinedIcon },
       { href: "/dashboard/hotline", label: "Expert Hotline", icon: SupportAgentOutlinedIcon },
+      { href: "/dashboard/network", label: "The Network", icon: GroupsOutlinedIcon },
       { href: "/dashboard/deals", label: "Vendor deals", icon: LocalOfferOutlinedIcon },
       { href: "/dashboard/kits", label: "Expert kits", icon: AutoStoriesOutlinedIcon },
+      { href: "/dashboard/systems", label: "Systems & SOPs", icon: ChecklistOutlinedIcon },
+      { href: "/dashboard/tools", label: "Tools", icon: CalculateOutlinedIcon },
+      { href: "/dashboard/experts", label: "Experts", icon: BadgeOutlinedIcon },
+      { href: "/dashboard/partners", label: "Partners", icon: HandshakeOutlinedIcon },
       { href: "/dashboard/billing", label: "Billing", icon: CreditCardOutlinedIcon },
       { href: "/dashboard/account", label: "Account", icon: PersonOutlineOutlinedIcon },
     ],

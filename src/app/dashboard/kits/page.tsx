@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { Box, Button, Chip, Grid, Paper, Stack, Typography } from "@mui/material";
 import { requirePortalPage } from "@/lib/auth/portal";
 import { listPublishedKits } from "@/lib/portal/data";
@@ -87,8 +88,8 @@ export default async function MemberKitsPage() {
                   <RichText text={featured!.content} />
                 </Box>
               )}
-              {featured!.resource_url && (
-                <Box sx={{ pt: 1 }}>
+              <Stack direction="row" spacing={1.5} sx={{ pt: 1 }}>
+                {featured!.resource_url && (
                   <Button
                     component="a"
                     href={featured!.resource_url}
@@ -99,8 +100,11 @@ export default async function MemberKitsPage() {
                   >
                     Open the resource
                   </Button>
-                </Box>
-              )}
+                )}
+                <Button component={Link} href={`/dashboard/resources/${featured!.id}`} variant="outlined" size="small">
+                  View kit details
+                </Button>
+              </Stack>
             </Stack>
           </SectionCard>
 
@@ -109,8 +113,21 @@ export default async function MemberKitsPage() {
               {rest.map((k) => (
                 <Grid key={k.id} size={{ xs: 12, md: 6, lg: 4 }}>
                   <Paper
+                    component={Link}
+                    href={`/dashboard/resources/${k.id}`}
                     variant="outlined"
-                    sx={{ borderRadius: "20px", p: 3, height: "100%", display: "flex", flexDirection: "column", gap: 1 }}
+                    sx={{
+                      display: "flex",
+                      textDecoration: "none",
+                      color: "inherit",
+                      borderRadius: "20px",
+                      p: 3,
+                      height: "100%",
+                      flexDirection: "column",
+                      gap: 1,
+                      transition: "border-color .2s, transform .2s",
+                      "&:hover": { borderColor: "rgba(217,168,75,0.6)", transform: "translateY(-2px)" },
+                    }}
                   >
                     <Stack direction="row" spacing={1} sx={{ alignItems: "center", flexWrap: "wrap" }}>
                       <Typography
@@ -141,21 +158,12 @@ export default async function MemberKitsPage() {
                       </Typography>
                     )}
                     <Box sx={{ flex: 1 }} />
-                    <Stack direction="row" spacing={1} sx={{ alignItems: "center", pt: 0.5 }}>
-                      {k.resource_url && (
-                        <Button
-                          component="a"
-                          href={k.resource_url}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          variant="outlined"
-                          size="small"
-                        >
-                          Open resource
-                        </Button>
-                      )}
+                    <Stack direction="row" spacing={1} sx={{ alignItems: "center", justifyContent: "space-between", pt: 0.5 }}>
                       <Typography variant="body2" sx={{ fontSize: "0.72rem", color: "text.secondary" }}>
                         {formatDate(k.published_at)}
+                      </Typography>
+                      <Typography variant="body2" sx={{ fontSize: "0.76rem", fontWeight: 700, color: "#A87D2C" }}>
+                        View kit &rarr;
                       </Typography>
                     </Stack>
                   </Paper>
