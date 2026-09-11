@@ -3,6 +3,7 @@ import SiteNav from "@/components/site/SiteNav";
 import SiteFooter from "@/components/site/SiteFooter";
 import PageFx from "@/components/site/PageFx";
 import ExpertForm from "@/components/site/ExpertForm";
+import ExpertDirectory from "@/components/site/ExpertDirectory";
 
 export const metadata: Metadata = {
   title: "Become an Expert",
@@ -104,6 +105,19 @@ export default function ExpertsPage() {
           </span>
         </div>
       </div>
+
+      <section id="bench" style={{ paddingBottom: 0 }}>
+        <div className="wrap center">
+          <span className="kicker">The bench</span>
+          <h2 className="title">
+            Meet the <em>experts</em>.
+          </h2>
+          <p className="lead">
+            The people behind the resource library &mdash; hand-picked, never algorithmic.
+          </p>
+          <ExpertDirectory />
+        </div>
+      </section>
 
       <section id="how">
         <div className="wrap center">

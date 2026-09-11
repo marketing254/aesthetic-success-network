@@ -3,6 +3,7 @@ import SiteNav from "@/components/site/SiteNav";
 import SiteFooter from "@/components/site/SiteFooter";
 import PageFx from "@/components/site/PageFx";
 import PartnerForm from "@/components/site/PartnerForm";
+import PartnerDirectory from "@/components/site/PartnerDirectory";
 
 export const metadata: Metadata = {
   title: "Become a Partner",
@@ -105,6 +106,19 @@ export default function PartnersPage() {
           </span>
         </div>
       </div>
+
+      <section id="directory" style={{ paddingBottom: 0 }}>
+        <div className="wrap center">
+          <span className="kicker">The roster</span>
+          <h2 className="title">
+            Meet the <em>partners</em>.
+          </h2>
+          <p className="lead">
+            Vetted vendors with a genuine member deal, curated by our team.
+          </p>
+          <PartnerDirectory />
+        </div>
+      </section>
 
       <section id="how">
         <div className="wrap center">
