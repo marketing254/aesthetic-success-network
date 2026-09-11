@@ -674,6 +674,146 @@ export async function sendHotlineAnsweredEmail(
   });
 }
 
+// ── Billing ─────────────────────────────────────────────────────────
+
+const ROLE_FROM: Record<"member" | "expert" | "partner", string> = {
+  member: FROM_MEMBERS,
+  expert: FROM_EXPERTS,
+  partner: FROM_PARTNERS,
+};
+const ROLE_REPLY: Record<"member" | "expert" | "partner", string> = {
+  member: REPLY_MEMBERS,
+  expert: REPLY_EXPERTS,
+  partner: REPLY_PARTNERS,
+};
+const ROLE_PORTAL: Record<"member" | "expert" | "partner", string> = {
+  member: "/dashboard/billing",
+  expert: "/expert/billing",
+  partner: "/vendor/billing",
+};
+
+export async function sendMemberSubscriptionConfirmedEmail(to: string, firstName: string, planLabel: string) {
+  const name = escapeHtml(firstName || "there");
+  const { html, text } = renderBranded({
+    subject: "Payment confirmed | Aesthetic Success Network",
+    preview: `Your ${planLabel} subscription is active.`,
+    eyebrow: "Membership · Payment confirmed",
+    headline: `You're all set, ${firstName || "there"}.`,
+    intro: [
+      `Hi ${name},`,
+      `Your payment went through and your <b>${escapeHtml(planLabel)}</b> membership is now active.`,
+    ],
+    sections: [
+      {
+        title: "In your dashboard",
+        bullets: [
+          "The Expert Hotline, the full resource library, and member-only partner deals are unlocked now.",
+          "You can update your card or view invoices any time from your billing page.",
+        ],
+      },
+    ],
+    cta: { label: "Go to your dashboard", url: `${SITE_URL}/dashboard` },
+    closing: "Questions about your billing? Reply to this email.",
+    signoff: ["The Aesthetic Success Network Team", "Powered by Business of Aesthetics"],
+    footerLines: [`Aesthetic Success Network · ${REPLY_MEMBERS} · aestheticsuccessnetwork.com`],
+  });
+  await safeSend("member-subscription-confirmed", {
+    to,
+    subject: "Payment confirmed | Aesthetic Success Network",
+    html,
+    text,
+    from: FROM_MEMBERS,
+    replyTo: REPLY_MEMBERS,
+  });
+}
+
+/**
+ * Sent once, at trial-start, with the signed agreement PDF attached.
+ * Best-effort from the caller's side — a failure here must never roll
+ * back an already-created subscription.
+ */
+export async function sendAgreementSignedEmail(input: {
+  role: "member" | "expert" | "partner";
+  to: string;
+  name: string;
+  planLabel: string;
+  agreementVersion: string;
+  pdfBuffer: Buffer;
+}) {
+  const name = escapeHtml(input.name || "there");
+  const roleLabel = input.role === "member" ? "membership" : `founding ${input.role}`;
+  const { html, text } = renderBranded({
+    subject: "Your agreement is signed | Aesthetic Success Network",
+    preview: `Your ${roleLabel} agreement (v${input.agreementVersion}) is attached for your records.`,
+    eyebrow: "Agreement · Signed",
+    headline: `You're confirmed, ${input.name || "there"}.`,
+    intro: [
+      `Hi ${name},`,
+      `Your ${roleLabel} agreement is signed and your billing trial has started on the <b>${escapeHtml(input.planLabel)}</b> plan. A copy of your signed agreement is attached for your records.`,
+    ],
+    sections: [
+      {
+        title: "What's next",
+        bullets: [
+          "Manage your subscription, update your card, or view invoices any time from your billing page.",
+          "We'll email you before your trial converts to a paid subscription.",
+        ],
+      },
+    ],
+    cta: { label: "Go to your billing page", url: `${SITE_URL}${ROLE_PORTAL[input.role]}` },
+    closing: "Questions? Reply to this email.",
+    signoff: ["The Aesthetic Success Network Team", "Powered by Business of Aesthetics"],
+    footerLines: [`Aesthetic Success Network · ${ROLE_REPLY[input.role]} · aestheticsuccessnetwork.com`],
+  });
+  await safeSend("agreement-signed", {
+    to: input.to,
+    subject: "Your agreement is signed | Aesthetic Success Network",
+    html,
+    text,
+    from: ROLE_FROM[input.role],
+    replyTo: ROLE_REPLY[input.role],
+    attachments: [
+      {
+        filename: `ASN-${input.role}-agreement-v${input.agreementVersion}.pdf`,
+        content: input.pdfBuffer,
+        contentType: "application/pdf",
+      },
+    ],
+  });
+}
+
+export async function sendTrialEndingReminder(input: {
+  role: "expert" | "partner";
+  to: string;
+  name: string;
+  daysLeft: number;
+}) {
+  const name = escapeHtml(input.name || "there");
+  const { html, text } = renderBranded({
+    subject: "Your free waiver period is ending soon",
+    preview: `Your ${input.role} waiver ends in ${input.daysLeft} days — your card will be charged automatically.`,
+    eyebrow: "Billing · Trial ending",
+    headline: "Your free waiver is ending soon",
+    intro: [
+      `Hi ${name},`,
+      `Your free waiver period ends in <b>${input.daysLeft} days</b>. After that, your card on file will be charged automatically at your locked rate.`,
+    ],
+    sections: [],
+    cta: { label: "Review your billing", url: `${SITE_URL}${ROLE_PORTAL[input.role]}` },
+    closing: "No action needed if your card is up to date. Questions? Reply to this email.",
+    signoff: ["The Aesthetic Success Network Team", "Powered by Business of Aesthetics"],
+    footerLines: [`Aesthetic Success Network · ${ROLE_REPLY[input.role]} · aestheticsuccessnetwork.com`],
+  });
+  await safeSend("trial-ending-reminder", {
+    to: input.to,
+    subject: "Your free waiver period is ending soon",
+    html,
+    text,
+    from: ROLE_FROM[input.role],
+    replyTo: ROLE_REPLY[input.role],
+  });
+}
+
 // ── Team notification ───────────────────────────────────────────────
 
 export async function notifyTeam(subject: string, lines: [string, string][]) {

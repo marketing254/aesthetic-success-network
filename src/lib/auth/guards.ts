@@ -2,6 +2,7 @@ import "server-only";
 import { NextResponse, after } from "next/server";
 import { createServerSupabase } from "@/lib/supabase/server-ssr";
 import { getSupabaseAdmin } from "@/lib/supabase/server";
+import { checkBillingAccess, monthsSince, type BillingAccess } from "@/lib/stripe";
 
 /**
  * Auth guards for Route Handlers.
@@ -219,4 +220,61 @@ export async function requirePortalPartner(): Promise<PortalContext | Failure> {
     };
   }
   return { ok: true, userId: user.userId, email: user.email, rowId: row.id as string };
+}
+
+// ── Billing guards (real paywall enforcement) ───────────────────────
+// requirePortal{Expert,Partner}() only check application status. These
+// additionally require a healthy subscription (or an unexpired free
+// waiver) before letting a write through — used on the "publish"-type
+// actions (creating/publishing a kit or submitting a deal for review).
+// BillingGate in the portal shell is UX only; this is the real gate.
+
+function billingFailure(access: Exclude<BillingAccess, { allowed: true }>): Failure {
+  return {
+    ok: false,
+    response: NextResponse.json(
+      { error: access.title, reason: access.reason, message: access.message, cta: access.cta },
+      { status: 402 },
+    ),
+  };
+}
+
+export async function requirePaidExpert(): Promise<PortalContext | Failure> {
+  const guard = await requirePortalExpert();
+  if (!guard.ok) return guard;
+
+  const admin = getSupabaseAdmin();
+  const { data } = await admin
+    .from("expert_applications")
+    .select("subscription_status, stripe_subscription_id, program_started_at")
+    .eq("id", guard.rowId)
+    .maybeSingle();
+
+  const access = checkBillingAccess({
+    monthsInProgram: monthsSince((data?.program_started_at as string) ?? null),
+    subscriptionStatus: (data?.subscription_status as string) ?? null,
+    hasSubscription: Boolean(data?.stripe_subscription_id),
+  });
+  if (!access.allowed) return billingFailure(access);
+  return guard;
+}
+
+export async function requirePaidPartner(): Promise<PortalContext | Failure> {
+  const guard = await requirePortalPartner();
+  if (!guard.ok) return guard;
+
+  const admin = getSupabaseAdmin();
+  const { data } = await admin
+    .from("partner_applications")
+    .select("subscription_status, stripe_subscription_id, program_started_at")
+    .eq("id", guard.rowId)
+    .maybeSingle();
+
+  const access = checkBillingAccess({
+    monthsInProgram: monthsSince((data?.program_started_at as string) ?? null),
+    subscriptionStatus: (data?.subscription_status as string) ?? null,
+    hasSubscription: Boolean(data?.stripe_subscription_id),
+  });
+  if (!access.allowed) return billingFailure(access);
+  return guard;
 }

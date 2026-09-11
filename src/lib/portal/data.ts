@@ -242,3 +242,74 @@ export async function listApprovedExperts(): Promise<ApprovedExpert[]> {
   if (error) throw error;
   return (data ?? []) as ApprovedExpert[];
 }
+
+// ── Billing ─────────────────────────────────────────────────────────
+
+const BILLING_SHADOW_COLS =
+  "stripe_customer_id, stripe_subscription_id, stripe_price_id, subscription_status, subscription_interval, current_period_end, cancel_at_period_end, canceled_at, card_brand, card_last4";
+
+export type MemberBilling = {
+  stripe_customer_id: string | null;
+  stripe_subscription_id: string | null;
+  stripe_price_id: string | null;
+  subscription_status: string | null;
+  subscription_interval: string | null;
+  current_period_end: string | null;
+  cancel_at_period_end: boolean;
+  canceled_at: string | null;
+  card_brand: string | null;
+  card_last4: string | null;
+  tier: string;
+  founding_member_locked: boolean;
+  early_member_locked: boolean;
+};
+
+export async function getMemberBilling(memberId: string): Promise<MemberBilling | null> {
+  const supabase = getSupabaseAdmin();
+  const { data, error } = await supabase
+    .from("members")
+    .select(`${BILLING_SHADOW_COLS}, tier, founding_member_locked, early_member_locked`)
+    .eq("id", memberId)
+    .maybeSingle();
+  if (error) throw error;
+  return (data as MemberBilling) ?? null;
+}
+
+export type BusinessBilling = {
+  stripe_customer_id: string | null;
+  stripe_subscription_id: string | null;
+  stripe_price_id: string | null;
+  subscription_status: string | null;
+  subscription_interval: string | null;
+  current_period_end: string | null;
+  cancel_at_period_end: boolean;
+  canceled_at: string | null;
+  card_brand: string | null;
+  card_last4: string | null;
+  program_started_at: string | null;
+};
+
+export type ExpertBilling = BusinessBilling & { founding_expert_locked: boolean };
+export type PartnerBilling = BusinessBilling & { founding_partner_locked: boolean };
+
+export async function getExpertBilling(expertApplicationId: string): Promise<ExpertBilling | null> {
+  const supabase = getSupabaseAdmin();
+  const { data, error } = await supabase
+    .from("expert_applications")
+    .select(`${BILLING_SHADOW_COLS}, program_started_at, founding_expert_locked`)
+    .eq("id", expertApplicationId)
+    .maybeSingle();
+  if (error) throw error;
+  return (data as ExpertBilling) ?? null;
+}
+
+export async function getPartnerBilling(partnerApplicationId: string): Promise<PartnerBilling | null> {
+  const supabase = getSupabaseAdmin();
+  const { data, error } = await supabase
+    .from("partner_applications")
+    .select(`${BILLING_SHADOW_COLS}, program_started_at, founding_partner_locked`)
+    .eq("id", partnerApplicationId)
+    .maybeSingle();
+  if (error) throw error;
+  return (data as PartnerBilling) ?? null;
+}

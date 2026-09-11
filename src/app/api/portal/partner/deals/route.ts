@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { requirePortalPartner } from "@/lib/auth/guards";
+import { requirePortalPartner, requirePaidPartner } from "@/lib/auth/guards";
 import { getSupabaseAdmin } from "@/lib/supabase/server";
 import { asString } from "@/lib/forms/request";
 import { errMessage } from "@/lib/errMessage";
@@ -93,6 +93,11 @@ export async function POST(req: Request) {
   const invalid = validate(input);
   if (invalid) return NextResponse.json({ error: invalid }, { status: 400 });
 
+  if (input.status === "pending_review") {
+    const paidGuard = await requirePaidPartner();
+    if (!paidGuard.ok) return paidGuard.response;
+  }
+
   try {
     const identity = await resolvePortalRoles(guard.email);
     const companyName = identity.partner?.companyName || guard.email;
@@ -167,6 +172,11 @@ export async function PATCH(req: Request) {
     // changing what members already see.
     const nextStatus =
       existing.status === "published" && input.status !== "archived" ? "pending_review" : input.status;
+
+    if (nextStatus === "pending_review") {
+      const paidGuard = await requirePaidPartner();
+      if (!paidGuard.ok) return paidGuard.response;
+    }
 
     const { error } = await supabase
       .from("vendor_deals")

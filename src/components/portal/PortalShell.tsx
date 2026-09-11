@@ -33,7 +33,10 @@ import MenuOutlinedIcon from "@mui/icons-material/MenuOutlined";
 import LogoutOutlinedIcon from "@mui/icons-material/LogoutOutlined";
 import KeyboardArrowDownOutlinedIcon from "@mui/icons-material/KeyboardArrowDownOutlined";
 import SwapHorizOutlinedIcon from "@mui/icons-material/SwapHorizOutlined";
+import CreditCardOutlinedIcon from "@mui/icons-material/CreditCardOutlined";
 import { createBrowserSupabase } from "@/lib/supabase/browser";
+import { BillingGate } from "@/components/shared/BillingGate";
+import type { BillingAccess } from "@/lib/stripe";
 
 const SIDEBAR_W = 260;
 
@@ -62,6 +65,7 @@ const PORTALS: Record<
       { href: "/dashboard/hotline", label: "Expert Hotline", icon: SupportAgentOutlinedIcon },
       { href: "/dashboard/deals", label: "Vendor deals", icon: LocalOfferOutlinedIcon },
       { href: "/dashboard/kits", label: "Expert kits", icon: AutoStoriesOutlinedIcon },
+      { href: "/dashboard/billing", label: "Billing", icon: CreditCardOutlinedIcon },
       { href: "/dashboard/account", label: "Account", icon: PersonOutlineOutlinedIcon },
     ],
   },
@@ -73,6 +77,7 @@ const PORTALS: Record<
       { href: "/expert", label: "Overview", icon: DashboardOutlinedIcon },
       { href: "/expert/requests", label: "Hotline queue", icon: AssignmentOutlinedIcon },
       { href: "/expert/kits", label: "My kits", icon: AutoStoriesOutlinedIcon },
+      { href: "/expert/billing", label: "Billing", icon: CreditCardOutlinedIcon },
       { href: "/expert/profile", label: "Profile", icon: PersonOutlineOutlinedIcon },
     ],
   },
@@ -83,6 +88,7 @@ const PORTALS: Record<
     nav: [
       { href: "/vendor", label: "Overview", icon: DashboardOutlinedIcon },
       { href: "/vendor/deals", label: "My deals", icon: StorefrontOutlinedIcon },
+      { href: "/vendor/billing", label: "Billing", icon: CreditCardOutlinedIcon },
       { href: "/vendor/profile", label: "Profile", icon: PersonOutlineOutlinedIcon },
     ],
   },
@@ -333,9 +339,12 @@ function SidebarContent({
 
 export default function PortalShell({
   portal,
+  billingAccess,
   children,
 }: {
   portal: PortalKind;
+  /** Expert/partner only — member billing is gated in middleware instead. Blocked access shows a paywall card in place of the page content, except on the portal's own billing route. */
+  billingAccess?: BillingAccess;
   children: React.ReactNode;
 }) {
   const pathname = usePathname();
@@ -377,6 +386,9 @@ export default function PortalShell({
 
   const cfg = PORTALS[portal];
   const name = displayNameFor(portal, me);
+  const billingHref = portal === "expert" ? "/expert/billing" : portal === "partner" ? "/vendor/billing" : "/dashboard/billing";
+  const onOwnBillingPage = pathname === billingHref || pathname.startsWith(`${billingHref}/`);
+  const gated = Boolean(billingAccess && !billingAccess.allowed && !onOwnBillingPage);
 
   return (
     <Box sx={{ minHeight: "100vh", bgcolor: "#F4F0E6", display: "flex" }}>
@@ -545,7 +557,15 @@ export default function PortalShell({
         </AppBar>
 
         <Box component="main" sx={{ py: { xs: 3, md: 5 } }}>
-          <Container maxWidth="xl">{children}</Container>
+          <Container maxWidth="xl">
+            {gated && billingAccess && !billingAccess.allowed ? (
+              <BillingGate access={billingAccess} portalEndpoint={`/api/${portal === "partner" ? "vendor" : "expert"}/billing/portal`} billingHref={billingHref}>
+                {children}
+              </BillingGate>
+            ) : (
+              children
+            )}
+          </Container>
         </Box>
 
         <Divider />

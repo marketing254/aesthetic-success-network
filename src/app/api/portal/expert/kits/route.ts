@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { requirePortalExpert } from "@/lib/auth/guards";
+import { requirePortalExpert, requirePaidExpert } from "@/lib/auth/guards";
 import { getSupabaseAdmin } from "@/lib/supabase/server";
 import { asString } from "@/lib/forms/request";
 import { errMessage } from "@/lib/errMessage";
@@ -66,7 +66,7 @@ export async function GET() {
 
 /** POST /api/portal/expert/kits — create a kit (draft or published). */
 export async function POST(req: Request) {
-  const guard = await requirePortalExpert();
+  const guard = await requirePaidExpert();
   if (!guard.ok) return guard.response;
 
   let json: unknown;
@@ -128,6 +128,11 @@ export async function PATCH(req: Request) {
   const input = readInput(b);
   const invalid = validate(input);
   if (invalid) return NextResponse.json({ error: invalid }, { status: 400 });
+
+  if (input.status === "published") {
+    const paidGuard = await requirePaidExpert();
+    if (!paidGuard.ok) return paidGuard.response;
+  }
 
   try {
     const supabase = getSupabaseAdmin();

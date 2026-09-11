@@ -70,10 +70,21 @@ export async function middleware(req: NextRequest) {
         if (portalRole === "member") {
           const { data: row } = await supabase
             .from("members")
-            .select("id, status")
+            .select("id, status, subscription_status")
             .ilike("email", email)
             .maybeSingle();
-          if (row?.status === "active") return res;
+          if (row?.status === "active") {
+            const billingOk = row.subscription_status === "active" || row.subscription_status === "trialing";
+            if (billingOk) return res;
+            // Active member, no healthy subscription yet — let them reach
+            // the billing page (that's where Subscribe/Manage lives) and
+            // block every other /dashboard/* route until they do.
+            if (pathname === "/dashboard/billing" || pathname.startsWith("/dashboard/billing/")) return res;
+            const target = req.nextUrl.clone();
+            target.pathname = "/dashboard/billing";
+            target.search = "";
+            return NextResponse.redirect(target);
+          }
         } else if (portalRole === "expert") {
           const { data: row } = await supabase
             .from("expert_applications")

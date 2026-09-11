@@ -15,6 +15,12 @@ const FROM_EMAIL =
   process.env.WAITLIST_EMAIL_FROM ??
   "Aesthetic Success Network <support@aestheticsuccessnetwork.com>";
 
+export type SendAttachment = {
+  filename: string;
+  content: Buffer;
+  contentType: string;
+};
+
 export type SendInput = {
   to: string;
   subject: string;
@@ -24,12 +30,13 @@ export type SendInput = {
   /** Per-purpose sender (e.g. members@/experts@/partners@). The SMTP auth
    * account stays the same; Rackspace allows same-domain send-as. */
   from?: string;
+  attachments?: SendAttachment[];
 };
 
 export async function sendEmail(
   input: SendInput,
 ): Promise<{ id?: string; transport: "smtp" | "gmail" | "resend" | "log" }> {
-  const { to, subject, html, text, replyTo } = input;
+  const { to, subject, html, text, replyTo, attachments } = input;
   const from = input.from ?? FROM_EMAIL;
 
   const smtpHost = process.env.SMTP_HOST;
@@ -51,6 +58,7 @@ export async function sendEmail(
       html,
       text,
       replyTo,
+      attachments,
     });
     console.info("[email] sent via SMTP", { to, messageId: info.messageId });
     return { id: info.messageId, transport: "smtp" };
@@ -73,6 +81,7 @@ export async function sendEmail(
       html,
       text,
       replyTo,
+      attachments,
     });
     console.info("[email] sent via Gmail SMTP", { to, messageId: info.messageId });
     return { id: info.messageId, transport: "gmail" };
@@ -90,6 +99,10 @@ export async function sendEmail(
         html,
         text,
         reply_to: replyTo,
+        attachments: attachments?.map((a) => ({
+          filename: a.filename,
+          content: a.content.toString("base64"),
+        })),
       }),
     });
     if (!res.ok) {

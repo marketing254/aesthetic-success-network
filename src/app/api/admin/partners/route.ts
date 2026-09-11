@@ -20,7 +20,7 @@ export async function GET() {
     const { data, error } = await supabase
       .from("partner_applications")
       .select(
-        "id, company_name, website, contact_name, contact_role, contact_email, contact_phone, category, description, member_deal, booking_link, billing_contact, agreement_accepted, source, status, created_at",
+        "id, company_name, website, contact_name, contact_role, contact_email, contact_phone, category, description, member_deal, booking_link, billing_contact, agreement_accepted, source, status, created_at, subscription_status, founding_partner_locked, program_started_at",
       )
       .order("created_at", { ascending: false })
       .limit(500);
@@ -59,14 +59,17 @@ export async function PATCH(req: Request) {
       .eq("id", body.id)
       .maybeSingle();
 
-    const { error } = await supabase
-      .from("partner_applications")
-      .update({
-        status: body.status,
-        reviewed_at: new Date().toISOString(),
-        reviewed_by: guard.email,
-      })
-      .eq("id", body.id);
+    const update: Record<string, unknown> = {
+      status: body.status,
+      reviewed_at: new Date().toISOString(),
+      reviewed_by: guard.email,
+    };
+    // The 6-month free waiver clock starts the moment a partner is approved.
+    if (body.status === "approved" && before && before.status !== "approved") {
+      update.program_started_at = new Date().toISOString();
+    }
+
+    const { error } = await supabase.from("partner_applications").update(update).eq("id", body.id);
     if (error) throw error;
     await writeAudit(guard, "partner_application", body.id, `status:${body.status}`);
 

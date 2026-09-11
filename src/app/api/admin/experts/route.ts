@@ -20,7 +20,7 @@ export async function GET() {
     const { data, error } = await supabase
       .from("expert_applications")
       .select(
-        "id, full_name, first_name, last_name, email, phone, company, topics, bio, booking_link, paid_courses, sample_link, content_ownership_confirmed, agreement_accepted, source, status, created_at",
+        "id, full_name, first_name, last_name, email, phone, company, topics, bio, booking_link, paid_courses, sample_link, content_ownership_confirmed, agreement_accepted, source, status, created_at, subscription_status, founding_expert_locked, program_started_at",
       )
       .order("created_at", { ascending: false })
       .limit(500);
@@ -59,14 +59,17 @@ export async function PATCH(req: Request) {
       .eq("id", body.id)
       .maybeSingle();
 
-    const { error } = await supabase
-      .from("expert_applications")
-      .update({
-        status: body.status,
-        reviewed_at: new Date().toISOString(),
-        reviewed_by: guard.email,
-      })
-      .eq("id", body.id);
+    const update: Record<string, unknown> = {
+      status: body.status,
+      reviewed_at: new Date().toISOString(),
+      reviewed_by: guard.email,
+    };
+    // The 6-month free waiver clock starts the moment an expert is approved.
+    if (body.status === "approved" && before && before.status !== "approved") {
+      update.program_started_at = new Date().toISOString();
+    }
+
+    const { error } = await supabase.from("expert_applications").update(update).eq("id", body.id);
     if (error) throw error;
     await writeAudit(guard, "expert_application", body.id, `status:${body.status}`);
 
