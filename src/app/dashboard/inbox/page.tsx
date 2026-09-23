@@ -3,7 +3,8 @@ import { Box, Stack, Typography } from "@mui/material";
 import { requirePortalPage } from "@/lib/auth/portal";
 import { listMemberAnnouncements, listMemberRequests } from "@/lib/portal/data";
 import { errMessage } from "@/lib/errMessage";
-import { EmptyState, MigrationNotice, PageHeader, SectionCard, StatusChip, formatDateTime } from "@/components/portal/ui";
+import { EmptyState, MigrationNotice, PageHeader, SectionCard, StatusChip } from "@/components/portal/ui";
+import { formatDateTime } from "@/lib/format";
 import AssistantWidget from "./AssistantWidget";
 
 export const dynamic = "force-dynamic";

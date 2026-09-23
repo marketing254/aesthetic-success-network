@@ -4,7 +4,8 @@ import { Box, Chip, Stack, Typography } from "@mui/material";
 import ArrowBackRoundedIcon from "@mui/icons-material/ArrowBackRounded";
 import { requirePortalPage } from "@/lib/auth/portal";
 import { getPublishedSop } from "@/lib/portal/data";
-import { RichText, SectionCard, formatDate } from "@/components/portal/ui";
+import { RichText, SectionCard } from "@/components/portal/ui";
+import { formatDate } from "@/lib/format";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;

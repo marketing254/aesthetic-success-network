@@ -13,7 +13,8 @@ import {
   TextField,
   Typography,
 } from "@mui/material";
-import { SectionCard, StatusChip, formatDate } from "@/components/portal/ui";
+import { SectionCard, StatusChip } from "@/components/portal/ui";
+import { formatDate } from "@/lib/format";
 import type { KitFeedback, KitInquiry } from "@/lib/portal/data";
 
 export default function KitEngagement({

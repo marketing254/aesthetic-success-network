@@ -9,8 +9,8 @@ import {
   PageHeader,
   SectionCard,
   StatusChip,
-  formatDate,
 } from "@/components/portal/ui";
+import { formatDate } from "@/lib/format";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;

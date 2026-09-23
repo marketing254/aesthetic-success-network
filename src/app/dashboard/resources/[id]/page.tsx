@@ -10,7 +10,8 @@ import {
   listMemberKitProgress,
 } from "@/lib/portal/data";
 import { errMessage } from "@/lib/errMessage";
-import { MigrationNotice, PageHeader, RichText, SectionCard, formatDate } from "@/components/portal/ui";
+import { MigrationNotice, PageHeader, RichText, SectionCard } from "@/components/portal/ui";
+import { formatDate } from "@/lib/format";
 import KitEngagement from "./KitEngagement";
 
 export const dynamic = "force-dynamic";

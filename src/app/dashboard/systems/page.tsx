@@ -3,7 +3,8 @@ import { Box, Chip, Grid, Paper, Stack, Typography } from "@mui/material";
 import { requirePortalPage } from "@/lib/auth/portal";
 import { listPublishedSops } from "@/lib/portal/data";
 import { errMessage } from "@/lib/errMessage";
-import { EmptyState, MigrationNotice, PageHeader, SectionCard, formatDate } from "@/components/portal/ui";
+import { EmptyState, MigrationNotice, PageHeader, SectionCard } from "@/components/portal/ui";
+import { formatDate } from "@/lib/format";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;

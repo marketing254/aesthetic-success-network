@@ -2,7 +2,8 @@ import Link from "next/link";
 import { Box, Button, Grid, Stack, Typography } from "@mui/material";
 import { requirePortalPage } from "@/lib/auth/portal";
 import { getSupabaseAdmin } from "@/lib/supabase/server";
-import { PageHeader, SectionCard, StatusChip, formatDate } from "@/components/portal/ui";
+import { PageHeader, SectionCard, StatusChip } from "@/components/portal/ui";
+import { formatDate } from "@/lib/format";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;

@@ -3,7 +3,8 @@
 import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Alert, Box, Button, Chip, Paper, Stack, Tab, Tabs, TextField, Typography } from "@mui/material";
-import { StatusChip, formatDateTime } from "@/components/portal/ui";
+import { StatusChip } from "@/components/portal/ui";
+import { formatDateTime } from "@/lib/format";
 import type { VendorDeal } from "@/lib/portal/data";
 
 const TABS = [

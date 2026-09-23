@@ -2,7 +2,8 @@
 
 import { useEffect, useState } from "react";
 import { Box, Button, Stack, Table, TableBody, TableCell, TableHead, TableRow, Typography } from "@mui/material";
-import { SectionCard, StatusChip, formatDate } from "@/components/portal/ui";
+import { SectionCard, StatusChip } from "@/components/portal/ui";
+import { formatDate } from "@/lib/format";
 
 type Invoice = {
   id: string;

@@ -15,7 +15,8 @@ import {
   TextField,
   Typography,
 } from "@mui/material";
-import { StatusChip, formatDateTime } from "@/components/portal/ui";
+import { StatusChip } from "@/components/portal/ui";
+import { formatDateTime } from "@/lib/format";
 import type { ApprovedExpert, HotlineRequest } from "@/lib/portal/data";
 
 type Props = {

@@ -16,7 +16,8 @@ import {
   TextField,
   Typography,
 } from "@mui/material";
-import { EmptyState, SectionCard, StatusChip, formatDate } from "@/components/portal/ui";
+import { EmptyState, SectionCard, StatusChip } from "@/components/portal/ui";
+import { formatDate } from "@/lib/format";
 import { KIT_CATEGORIES } from "@/lib/portal/constants";
 
 export type KitRow = {

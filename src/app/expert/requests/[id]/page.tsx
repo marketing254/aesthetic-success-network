@@ -10,8 +10,8 @@ import {
   RichText,
   SectionCard,
   StatusChip,
-  formatDateTime,
 } from "@/components/portal/ui";
+import { formatDateTime } from "@/lib/format";
 import AnswerForm from "./AnswerForm";
 
 export const dynamic = "force-dynamic";

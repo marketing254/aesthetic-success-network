@@ -5,7 +5,8 @@ import LaunchRoundedIcon from "@mui/icons-material/LaunchRounded";
 import { requirePortalPage } from "@/lib/auth/portal";
 import { getMemberPartner, listSavedItemIds } from "@/lib/portal/data";
 import { errMessage } from "@/lib/errMessage";
-import { EmptyState, MigrationNotice, PageHeader, SectionCard, formatDate } from "@/components/portal/ui";
+import { EmptyState, MigrationNotice, PageHeader, SectionCard } from "@/components/portal/ui";
+import { formatDate } from "@/lib/format";
 import SaveButton from "@/components/portal/SaveButton";
 
 export const dynamic = "force-dynamic";
