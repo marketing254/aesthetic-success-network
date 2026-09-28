@@ -32,10 +32,10 @@ export const vendorPlans: VendorPlan[] = [
     priceLabel: "$0",
     cadenceLabel: "/mo · waived for months 1 to 6",
     blurb:
-      "Six months free as part of the founding cohort. Then $49/mo for months 7 to 12 and $199/mo from month 13. Founding badge in the directory.",
+      "Six months free as part of the founding cohort. Then $39/mo for months 7 to 12 and $199/mo from month 13. Founding badge in the directory.",
     features: [
       "Months 1 to 6: $0 waiver",
-      "Months 7 to 12: $49/mo locked launch rate",
+      "Months 7 to 12: $39/mo locked launch rate",
       "Month 13 onward: $199/mo Featured Partner rate",
       "Founding Partner badge in the directory",
       "Featured Partner benefits",
@@ -383,7 +383,7 @@ export const vendorCommitments: VendorCommitment[] = [
     number: "05",
     title: "Pay the fee, waived for your first six months.",
     body:
-      "$0 for months 1 to 6 (founding waiver), $49 per month for months 7 to 12 (locked launch rate), and $199 per month from month 13 (Featured Partner rate). Annual prepay earns two months free.",
+      "$0 for months 1 to 6 (founding waiver), $39 per month for months 7 to 12 (locked launch rate), and $199 per month from month 13 (Featured Partner rate). Annual prepay earns two months free.",
   },
 ];
 
@@ -396,7 +396,7 @@ export type FeeScheduleRow = {
 
 export const vendorFeeSchedule: FeeScheduleRow[] = [
   { period: "Months 1 to 6", fee: "$0", note: "Founding waiver, applies automatically" },
-  { period: "Months 7 to 12", fee: "$49", note: "Locked launch rate" },
+  { period: "Months 7 to 12", fee: "$39", note: "Locked launch rate" },
   { period: "Month 13 onward", fee: "$199", note: "Featured Partner rate ($1,990/yr prepaid)" },
 ];
 
@@ -404,7 +404,7 @@ export const vendorFeeSchedule: FeeScheduleRow[] = [
 // 12-month initial term and 30 days' notice come from provider agreement section 08.
 export const vendorAgreementKeyTerms = [
   { label: "Months 1 to 6", value: "$0", sub: "Waived" },
-  { label: "Months 7 to 12", value: "$49", sub: "per month" },
+  { label: "Months 7 to 12", value: "$39", sub: "per month" },
   { label: "Month 13+", value: "$199", sub: "per month" },
   { label: "Commitment", value: "12 mo", sub: "Initial term" },
   { label: "Cancel", value: "30 d", sub: "Written notice" },

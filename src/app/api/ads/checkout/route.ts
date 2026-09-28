@@ -270,7 +270,7 @@ export async function POST(req: Request) {
     // travels through the browser, and it never appears on /start).
     // Single use, must match this buyer's email, expires 48h after email
     // 3 — recoveryGrantForCheckout enforces all three. An expired/invalid
-    // token simply falls through to the normal $49 checkout (per SPEC:
+    // token simply falls through to the normal $29 checkout (per SPEC:
     // it must never fail the checkout).
     let recovery: { rowId: string; code: string } | null = null;
     if (p.resumeToken) {

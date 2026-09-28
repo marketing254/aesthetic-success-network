@@ -139,7 +139,7 @@ export default function TrialStartCard({
         {/* Ramp summary */}
         <Box sx={{ border: `1px solid ${LINE}`, borderRadius: "6px", px: 2, py: 1.25, mb: 2.5 }}>
           <RampLine label="Months 1 to 6" price="$0/mo" bold />
-          <RampLine label="Months 7 to 12" price="$49/mo" />
+          <RampLine label="Months 7 to 12" price="$39/mo" />
           <RampLine label="Month 13 onward" price="$199/mo" />
         </Box>
 

@@ -8,7 +8,7 @@ All prices in USD. Cancel anytime: no contracts, no retention call.
 
 ## Founding Member
 
-- **Price**: $49/month OR $490/year (pay for 10 months, get 12, save $98/year)
+- **Price**: $29/month OR $290/year (pay for 10 months, get 12, save $58/year)
 - **Availability**: first 100 members only
 - **Rate lock**: locked for as long as the membership stays active
 - **Includes**:
@@ -26,7 +26,7 @@ All prices in USD. Cancel anytime: no contracts, no retention call.
 
 ## Standard Member
 
-- **Price**: $199/month OR $1,990/year
+- **Price**: $99/month OR $990/year
 - **Availability**: open enrollment after the founding cap
 - **Rate lock**: none; the standard rate may adjust over time
 - **Includes**: the same membership as above (Hotline, resource library,
@@ -42,7 +42,7 @@ https://www.aestheticsuccessnetwork.com/partners. Same Featured Partner
 benefits at every phase.
 
 - **Months 1 to 6**: $0/month (180-day trial)
-- **Months 7 to 12**: $49/month
+- **Months 7 to 12**: $39/month
 - **Month 13 onward**: $199/month or $1,990/year
 - **Referral**: $50 per referred member, paid after their first payment
 - **Includes (every phase)**: profile and placement in your category,
@@ -60,7 +60,7 @@ https://www.aestheticsuccessnetwork.com/experts. Same Featured Expert
 benefits at every phase.
 
 - **Months 1 to 6**: $0/month (180-day trial)
-- **Months 7 to 12**: $49/month
+- **Months 7 to 12**: $39/month
 - **Month 13 onward**: $199/month or $1,990/year
 - **Course revenue split**: experts keep **70%** of net paid-course
   revenue; the network keeps 30% and runs the platform (checkout,

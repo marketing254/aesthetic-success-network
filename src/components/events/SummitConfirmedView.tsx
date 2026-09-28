@@ -118,7 +118,7 @@ export default function SummitConfirmedView({
               <span className="tick">✓</span>
               <h3>Your trial is active. You&apos;re in.</h3>
               <p>
-                <b>$0 charged today.</b> Your 30-day Aesthetic Success Network trial has started. Your first billing date and the $49/month renewal were shown at checkout, and you can cancel from your portal at any time before then.
+                <b>$0 charged today.</b> Your 30-day Aesthetic Success Network trial has started. Your first billing date and the $29/month renewal were shown at checkout, and you can cancel from your portal at any time before then.
               </p>
               <p>
                 <b>Summit access.</b>{" "}

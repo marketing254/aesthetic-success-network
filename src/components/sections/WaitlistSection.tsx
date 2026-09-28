@@ -363,7 +363,7 @@ export default function WaitlistSection({ lockedRole, sectionId }: WaitlistSecti
               ? "Apply to the expert bench."
               : isVendor
                 ? "Become a Founding Partner."
-                : "Lock the $49 founding rate."}
+                : "Lock the $29 founding rate."}
           </Typography>
           <Typography sx={{ color: "#52525B", fontSize: { xs: "0.95rem", md: "1.02rem" } }}>
             {isExpert

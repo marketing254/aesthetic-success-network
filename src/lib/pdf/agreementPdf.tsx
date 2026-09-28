@@ -258,7 +258,7 @@ const PARTNER_COMMITMENTS = [
     n: "5",
     title: "Pay the fee",
     body:
-      "$0 for months 1 to 6 (founding waiver), $49 per month for months 7 to 12 (locked launch rate), $199 per month from month 13 (Featured Partner rate).",
+      "$0 for months 1 to 6 (founding waiver), $39 per month for months 7 to 12 (locked launch rate), $199 per month from month 13 (Featured Partner rate).",
   },
 ];
 
@@ -270,7 +270,7 @@ const PARTNER_RECEIVES = [
 ];
 
 const EXPERT_TERMS = [
-  "Experts share one recording (up to about one hour) of themselves teaching a topic, plus supporting details. We produce the content kit (training video, action guide, checklist, key takeaways, worksheet, slide deck, wall poster, and extras), and you approve it before it goes live under your profile. You keep ownership of your content and grant ASN a license to produce, host, and distribute the kits to members. Expert access pricing follows the same ramp as partners: $0 for months 1 to 6, then $49 per month, then $199 per month from month 13.",
+  "Experts share one recording (up to about one hour) of themselves teaching a topic, plus supporting details. We produce the content kit (training video, action guide, checklist, key takeaways, worksheet, slide deck, wall poster, and extras), and you approve it before it goes live under your profile. You keep ownership of your content and grant ASN a license to produce, host, and distribute the kits to members. Expert access pricing follows the same ramp as partners: $0 for months 1 to 6, then $39 per month, then $199 per month from month 13.",
   "Paid courses: you may list your own paid courses to members. You keep 70% of net course revenue; the network retains 30%. Payouts are processed monthly. Hotline referrals are routed by fit, never by payment.",
 ];
 
@@ -479,7 +479,7 @@ function AgreementDoc({ input }: { input: AgreementPdfInput }) {
         </View>
         <View style={styles.feeRow}>
           <Text style={[styles.feeCol, { flex: 1 }]}>Months 7 to 12</Text>
-          <Text style={[styles.feeCol, { flex: 0.7 }]}>$49/mo</Text>
+          <Text style={[styles.feeCol, { flex: 0.7 }]}>$39/mo</Text>
           <Text style={[styles.feeCol, { flex: 2 }]}>Locked launch rate</Text>
         </View>
         <View style={styles.feeRow}>

@@ -678,7 +678,7 @@ function FeaturedCard({
               mb: 1,
             }}
           >
-            A growing library of expert kits, the Expert Hotline with written replies in 2 to 3 business days, member-only partner deals, and monthly live AMAs and CE, all in one founding membership at $49/mo.
+            A growing library of expert kits, the Expert Hotline with written replies in 2 to 3 business days, member-only partner deals, and monthly live AMAs and CE, all in one founding membership at $29/mo.
           </Typography>
           <Button
             component={Link}

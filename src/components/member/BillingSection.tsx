@@ -740,10 +740,10 @@ function derivePlanLabel(m: CurrentMember): string {
 
 function derivePriceLabel(m: CurrentMember): string {
   if (m.tier === "founding") {
-    return m.subscription_interval === "year" ? "$490 / year" : "$49 / month";
+    return m.subscription_interval === "year" ? "$290 / year" : "$29 / month";
   }
   if (m.tier === "standard") {
-    return m.subscription_interval === "year" ? "$1,990 / year" : "$199 / month";
+    return m.subscription_interval === "year" ? "$990 / year" : "$99 / month";
   }
   return m.stripe_subscription_id ? "Active plan" : "Not subscribed";
 }

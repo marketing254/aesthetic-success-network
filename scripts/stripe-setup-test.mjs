@@ -27,11 +27,11 @@ const PRODUCTS = [
     statement_descriptor: "ASN MEMBERSHIP",
     metadata: { audience: "member", product: "membership" },
     prices: [
-      { env: "STRIPE_PRICE_FOUNDING_MONTHLY", plan: "founding_monthly", amount: 4900, interval: "month" },
-      { env: "STRIPE_PRICE_FOUNDING_ANNUAL", plan: "founding_annual", amount: 49000, interval: "year" },
-      { env: "STRIPE_PRICE_FOUNDING_ANNUAL_PROMO", plan: "founding_annual_promo", amount: 44100, interval: "year" },
-      { env: "STRIPE_PRICE_STANDARD_MONTHLY", plan: "standard_monthly", amount: 19900, interval: "month" },
-      { env: "STRIPE_PRICE_STANDARD_ANNUAL", plan: "standard_annual", amount: 199000, interval: "year" },
+      { env: "STRIPE_PRICE_FOUNDING_MONTHLY", plan: "founding_monthly", amount: 2900, interval: "month" },
+      { env: "STRIPE_PRICE_FOUNDING_ANNUAL", plan: "founding_annual", amount: 29000, interval: "year" },
+      { env: "STRIPE_PRICE_FOUNDING_ANNUAL_PROMO", plan: "founding_annual_promo", amount: 26100, interval: "year" },
+      { env: "STRIPE_PRICE_STANDARD_MONTHLY", plan: "standard_monthly", amount: 9900, interval: "month" },
+      { env: "STRIPE_PRICE_STANDARD_ANNUAL", plan: "standard_annual", amount: 99000, interval: "year" },
     ],
   },
   {
@@ -42,7 +42,7 @@ const PRODUCTS = [
     statement_descriptor: "ASN COMPANY",
     metadata: { audience: "vendor", product: "company_directory" },
     prices: [
-      { env: "STRIPE_PRICE_PARTNER_GROWTH_MONTHLY", plan: "partner_growth_monthly", amount: 4900, interval: "month" },
+      { env: "STRIPE_PRICE_PARTNER_GROWTH_MONTHLY", plan: "partner_growth_monthly", amount: 3900, interval: "month" },
       { env: "STRIPE_PRICE_PARTNER_STANDARD_MONTHLY", plan: "partner_standard_monthly", amount: 19900, interval: "month" },
       { env: "STRIPE_PRICE_PARTNER_STANDARD_ANNUAL", plan: "partner_standard_annual", amount: 199000, interval: "year" },
     ],
@@ -55,7 +55,7 @@ const PRODUCTS = [
     statement_descriptor: "ASN EXPERT",
     metadata: { audience: "expert", product: "expert_bench" },
     prices: [
-      { env: "STRIPE_PRICE_EXPERT_GROWTH_MONTHLY", plan: "expert_growth_monthly", amount: 4900, interval: "month" },
+      { env: "STRIPE_PRICE_EXPERT_GROWTH_MONTHLY", plan: "expert_growth_monthly", amount: 3900, interval: "month" },
       { env: "STRIPE_PRICE_EXPERT_STANDARD_MONTHLY", plan: "expert_standard_monthly", amount: 19900, interval: "month" },
       { env: "STRIPE_PRICE_EXPERT_STANDARD_ANNUAL", plan: "expert_standard_annual", amount: 199000, interval: "year" },
     ],

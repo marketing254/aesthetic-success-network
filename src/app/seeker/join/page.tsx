@@ -28,7 +28,7 @@ import { JOB_ROLES } from "@/lib/jobs/constants";
  * account work; phone, city and the role they're after are what make the
  * captured list worth having, so they're asked but never enforced.
  *
- * The page also has to answer the unspoken question — "is this the $49
+ * The page also has to answer the unspoken question — "is this the $29
  * thing?" — before it asks for anything. Hence the line under the title.
  */
 

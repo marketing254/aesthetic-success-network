@@ -13,10 +13,10 @@ import {
   PARTNER_PLAN_DISPLAY,
 } from "@/lib/stripe";
 
-// /pricing in the ASN design. Member tiers: Founding ($49/mo or $490/yr,
+// /pricing in the ASN design. Member tiers: Founding ($29/mo or $290/yr,
 // first 100, open/closed from /api/stripe/availability) then Standard
 // ($199/mo or $1,990/yr). There is NO $99 "early" tier. Experts and
-// companies share the provider ramp: $0 months 1 to 6, $49 months 7 to 12,
+// companies share the provider ramp: $0 months 1 to 6, $39 months 7 to 12,
 // $199 from month 13. Every member CTA starts the DMN signup at /join/member.
 
 const SITE = "https://www.aestheticsuccessnetwork.com";
@@ -24,7 +24,7 @@ const SITE = "https://www.aestheticsuccessnetwork.com";
 export const metadata: Metadata = {
   title: "Pricing",
   description:
-    "Aesthetic Success Network pricing: founding membership at $49/mo (first 100) then $199/mo, plus the expert and company programs. No hidden fees, no four-figure coaching upsell.",
+    "Aesthetic Success Network pricing: founding membership at $39/mo (first 100) then $199/mo, plus the expert and company programs. No hidden fees, no four-figure coaching upsell.",
   alternates: { canonical: "/pricing" },
 };
 
@@ -264,7 +264,7 @@ export default function PricingPage() {
             <details>
               <summary>What happens after the founding seats fill?</summary>
               <p>
-                New members join at the standard rate of $199/mo or $1,990/yr. Members who already
+                New members join at the standard rate of $99/mo or $990/yr. Members who already
                 locked in the founding rate keep it, no matter how the cap fills up around them.
               </p>
             </details>
@@ -280,8 +280,8 @@ export default function PricingPage() {
               <summary>Is there a free period for experts and companies?</summary>
               <p>
                 Experts and companies pay nothing for months 1 to 6 from the day they&rsquo;re
-                approved. After that, the launch rate of $49/mo applies through month 12, then the
-                standard rate of $199/mo.
+                approved. After that, the launch rate of $29/mo applies through month 12, then the
+                standard rate of $99/mo.
               </p>
             </details>
           </div>

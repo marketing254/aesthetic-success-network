@@ -44,7 +44,7 @@ export default function ExpertAppliedPage() {
     {
       icon: CalendarTodayOutlinedIcon,
       title: "Add your card on first login, and your free period starts",
-      body: "Once approved, sign in and add your card in the billing tab. That kicks off your 6 months free (Stripe trial). Nothing is charged until month 7: $49/month for months 7 to 12, then $199/month from month 13. Cancel anytime. Questions? Email experts@aestheticsuccessnetwork.com.",
+      body: "Once approved, sign in and add your card in the billing tab. That kicks off your 6 months free (Stripe trial). Nothing is charged until month 7: $29/month for months 7 to 12, then $99/month from month 13. Cancel anytime. Questions? Email experts@aestheticsuccessnetwork.com.",
     },
   ];
 

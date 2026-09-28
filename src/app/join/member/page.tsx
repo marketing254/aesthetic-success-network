@@ -73,8 +73,8 @@ export default async function JoinMemberPage({
               Start your <em>membership</em>.
             </h1>
             <p className="lead">
-              $49 a month or $490 a year, locked for as long as your membership stays active. Then
-              $199 a month for everyone after the first 100. 30-day money-back guarantee.
+              $29 a month or $290 a year, locked for as long as your membership stays active. Then
+              $99 a month for everyone after the first 100. 30-day money-back guarantee.
             </p>
             <Suspense fallback={null}>
               <MemberSignupForm refCtx={refCtx} prefill={prefill} />

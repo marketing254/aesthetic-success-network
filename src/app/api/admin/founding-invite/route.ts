@@ -111,8 +111,8 @@ export async function POST(req: Request) {
   if (role !== "expert" && role !== "partner" && role !== "both") {
     return NextResponse.json({ error: "role must be expert, partner or both." }, { status: 400 });
   }
-  // "ladder" keeps the original $49 → $199 ramp for this one person;
-  // anything else is the flat $49 plan (the default since 2026-09-15).
+  // "ladder" keeps the original $29 → $99 ramp for this one person;
+  // anything else is the flat $29 plan (the default since 2026-09-15).
   const pricingPlan = body.pricing_plan === "ladder" ? "ladder" : "flat_49";
   const fullName = (body.full_name ?? "").trim();
   const email = (body.email ?? "").trim().toLowerCase();

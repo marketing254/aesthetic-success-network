@@ -125,7 +125,7 @@ export default function ToolsPage() {
           </h2>
           <p className="lead2">
             The Expert Hotline turns numbers like these into a written action plan in 2 to 3
-            business days. Founding membership is $49/mo, locked while your membership stays
+            business days. Founding membership is $29/mo, locked while your membership stays
             active.
           </p>
           <div className="cta-row" style={{ display: "flex", justifyContent: "center", gap: 14, flexWrap: "wrap" }}>

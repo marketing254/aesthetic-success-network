@@ -7,8 +7,8 @@ import Link from "next/link";
  * Member pricing cards for /pricing (ASN design). Founding open/closed comes
  * from DMN's GET /api/stripe/availability (founding only: ASN has no $99
  * "early" tier, EARLY_MEMBER_CAP is 0). Prices are the canon values:
- * Founding $49/mo or $490/yr for the first 100, then Standard $199/mo or
- * $1,990/yr. Every CTA starts the DMN signup flow at /join/member.
+ * Founding $29/mo or $290/yr for the first 100, then Standard $99/mo or
+ * $990/yr. Every CTA starts the DMN signup flow at /join/member.
  */
 type TierStat = { cap: number; taken: number; remaining: number; isOpen: boolean };
 
@@ -67,13 +67,13 @@ export default function PricingTiers() {
           </div>
           <div className="tier">Founding rate</div>
           <div className="price">
-            {annual ? "$490" : "$49"}
+            {annual ? "$290" : "$29"}
             <span>{annual ? "/yr" : "/mo"}</span>
           </div>
           <div className="desc">
             {annual
-              ? "Pay for 10 months, get 12, save $98/year. Locked while your membership stays active."
-              : "Locked for as long as your membership stays active. Annual: $490/yr (two months free)."}
+              ? "Pay for 10 months, get 12, save $58/year. Locked while your membership stays active."
+              : "Locked for as long as your membership stays active. Annual: $290/yr (two months free)."}
           </div>
           <ul>
             <li>The Expert Hotline: a written action plan in 2 to 3 business days</li>
@@ -96,7 +96,7 @@ export default function PricingTiers() {
           {!open && <div className="badge">Open now</div>}
           <div className="tier">Standard rate</div>
           <div className="price">
-            {annual ? "$1,990" : "$199"}
+            {annual ? "$990" : "$99"}
             <span>{annual ? "/yr" : "/mo"}</span>
           </div>
           <div className="desc">
@@ -104,7 +104,7 @@ export default function PricingTiers() {
               ? "The rate once the founding 100 seats fill. Same membership, later price."
               : annual
                 ? "Two months free on the annual plan. Same 30-day money-back guarantee."
-                : "Same membership, same 30-day money-back guarantee. Annual: $1,990/yr."}
+                : "Same membership, same 30-day money-back guarantee. Annual: $990/yr."}
           </div>
           <ul>
             <li>Everything in the founding membership</li>

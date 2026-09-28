@@ -14,7 +14,7 @@ import JsonLd from "@/components/seo/JsonLd";
 //
 // Canon rules (ASN-SWAP-CANON.md): the Hotline is a voicemail line with a
 // written reply by text and email in 2 to 3 business days, never live or
-// 24/7; founding $49/mo (first 100) or $490/yr, then $199/mo; no $99 tier;
+// 24/7; founding $29/mo (first 100) or $290/yr, then $99/mo; no $99 tier;
 // worked examples are labelled illustrative; no member directory or
 // community claims; no em dashes in visible copy.
 
@@ -32,7 +32,7 @@ const FAQ_ITEMS: { q: string; a: string }[] = [
   },
   {
     q: "How does the founding rate work?",
-    a: "The first 100 members lock in $49/mo for as long as their membership stays active. After the founding hundred, the standard rate is $199/mo. There is also an annual option: $490/yr for founding members (pay for 10 months, get 12, save $98). Your locked rate never increases while you're a member.",
+    a: "The first 100 members lock in $29/mo for as long as their membership stays active. After the founding hundred, the standard rate is $99/mo. There is also an annual option: $290/yr for founding members (pay for 10 months, get 12, save $58). Your locked rate never increases while you're a member.",
   },
   {
     q: "How do the company deals save me money?",
@@ -92,7 +92,7 @@ export default function HomePage() {
               </a>
             </div>
             <div className="micro">
-              <span>Founding rate $49/mo, locked while active</span>
+              <span>Founding rate $29/mo, locked while active</span>
               <span>30-day money-back guarantee</span>
               <span>Cancel anytime</span>
             </div>
@@ -436,17 +436,17 @@ export default function HomePage() {
         <div className="wrap center">
           <span className="kicker">Founding offer</span>
           <h2 className="title">
-            $49 a month. <em>Locked</em>, for the first 100.
+            $29 a month. <em>Locked</em>, for the first 100.
           </h2>
           <p className="lead">
-            After the founding hundred, the rate is $199/mo. Founding members keep $49 for as long
+            After the founding hundred, the rate is $99/mo. Founding members keep $29 for as long
             as their membership stays active.
           </p>
           <div className="pwrap" style={{ textAlign: "left" }}>
             <div className="pfound">
               <div className="fbadge">Founding &middot; first 100 members</div>
               <div className="price">
-                $49<span>/mo</span>
+                $29<span>/mo</span>
               </div>
               <div className="cap">Locked while your membership stays active.</div>
               <ul>
@@ -463,12 +463,12 @@ export default function HomePage() {
             <div className="pstd">
               <div className="t">After the first 100</div>
               <div className="price">
-                $199<span>/mo</span>
+                $99<span>/mo</span>
               </div>
               <p>The standard rate once founding spots fill. Same membership, later price.</p>
               <div className="ann">
-                <b>Annual:</b> $490/yr for founding members. Pay for 10 months, get 12, save
-                $98/year.
+                <b>Annual:</b> $290/yr for founding members. Pay for 10 months, get 12, save
+                $58/year.
               </div>
             </div>
           </div>

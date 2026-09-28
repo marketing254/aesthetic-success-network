@@ -13,7 +13,7 @@ export const dynamic = "force-dynamic";
  * The first FOUNDING_EXPERT_CAP (20) real experts are free for life:
  * `experts.billing_exempt = true` means they are never charged, never
  * asked for a card, and never see the billing UI. Expert 21 onward runs
- * on the normal ladder ($0 months 1-6 → $49).
+ * on the normal ladder ($0 months 1-6 → $29).
  *
  * Expert-side ONLY. A founding expert who also lists a company keeps
  * paying through their `vendors` row — this endpoint never touches it.

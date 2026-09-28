@@ -289,7 +289,7 @@ export default function WelcomeView({
                     [
                       ["Status", "Active"],
                       ["Billing", monthly ? "Monthly" : "Annual"],
-                      ["Charged today", monthly ? "$49" : "$490"],
+                      ["Charged today", monthly ? "$29" : "$290"],
                       ["Next billing date", "Shown in your portal"],
                     ] as const
                   ).map(([k, v], i, arr) => (
@@ -300,7 +300,7 @@ export default function WelcomeView({
                   ))}
                 </Box>
                 <Typography sx={{ fontFamily: "var(--font-display)", fontWeight: 600, fontSize: "2.8rem", mt: 3, mb: 0.75, lineHeight: 1, color: "#FFFFFF" }}>
-                  {monthly ? "$49" : "$490"}{" "}
+                  {monthly ? "$29" : "$290"}{" "}
                   <Box component="span" sx={{ fontFamily: "var(--font-body), Manrope, sans-serif", fontWeight: 700, fontSize: "0.76rem", color: "rgba(255,255,255,0.65)" }}>
                     {monthly ? "/month" : "/year"}
                   </Box>

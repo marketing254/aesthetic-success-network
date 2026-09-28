@@ -424,7 +424,7 @@ function InviteCard({
           />
           {row.role !== "expert" && (
             <Chip
-              label={row.pricing_plan === "ladder" ? "$49 → $199 ladder" : "$49 flat"}
+              label={row.pricing_plan === "ladder" ? "$29 → $99 ladder" : "$29 flat"}
               size="small"
               sx={{
                 height: 20,

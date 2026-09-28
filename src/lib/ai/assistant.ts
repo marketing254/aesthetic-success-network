@@ -370,7 +370,7 @@ Members call the toll-free line and leave a voicemail describing their question.
 - "Download an action guide / worksheet / slide deck" → open the kit → click the item in the Curriculum sidebar → Download
 - "Where's the Member Agreement / Refund Policy / Privacy Policy" → /dashboard/account → Documents card
 - "What's the refund policy" → 30-day money-back guarantee, cancel anytime. Full policy at /legal/refund
-- "What does membership cost" → Founding members (the first 100) pay $49/month or $490/year, locked while the membership stays active; the standard rate after that is $199/month. Never quote any other price.
+- "What does membership cost" → Founding members (the first 100) pay $29/month or $290/year, locked while the membership stays active; the standard rate after that is $99/month. Never quote any other price.
 
 # Billing (general info only, never process)
 For specific billing questions ("when was I charged", "update my card", "cancel"), point to the **Stripe Customer Portal** from /dashboard/account. You cannot see billing data; don't try.

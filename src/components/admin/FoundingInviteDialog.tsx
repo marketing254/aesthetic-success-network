@@ -31,7 +31,7 @@ export type FoundingInvitePricingValue = "ladder" | "flat_49";
 export type FoundingInviteFormValues = {
   id?: string;
   role: FoundingInviteRoleValue;
-  /** Partner price plan. flat_49 = $49 from month 7 for good; ladder = $49 then $199 from month 13. */
+  /** Partner price plan. flat_49 = $39 from month 7 for good; ladder = $39 then $199 from month 13. */
   pricing_plan: FoundingInvitePricingValue;
   full_name: string;
   email: string;
@@ -54,7 +54,7 @@ export type FoundingInviteFormValues = {
 
 const EMPTY: FoundingInviteFormValues = {
   role: "partner",
-  // Canon: the ladder ($49 months 7 to 12, $199 from month 13) is the default.
+  // Canon: the ladder ($39 months 7 to 12, $199 from month 13) is the default.
   pricing_plan: "ladder",
   full_name: "",
   email: "",
@@ -241,12 +241,12 @@ export default function FoundingInviteDialog({
                 select
                 helperText={
                   v.pricing_plan === "ladder"
-                    ? "Agreement, acceptance page, email and Stripe schedule all show $0 for months 1 to 6, $49 for months 7 to 12 and $199 from month 13."
-                    : "One rate only: $0 for months 1 to 6, then $49 a month with no increase. Nothing they see mentions $199."
+                    ? "Agreement, acceptance page, email and Stripe schedule all show $0 for months 1 to 6, $39 for months 7 to 12 and $199 from month 13."
+                    : "One rate only: $0 for months 1 to 6, then $39 a month with no increase. Nothing they see mentions $199."
                 }
               >
-                <MenuItem value="ladder">$49 → $199 ladder: $0 months 1 to 6, $49 months 7 to 12, then $199/mo from month 13</MenuItem>
-                <MenuItem value="flat_49">$49 flat: $0 months 1 to 6, then $49/mo for good</MenuItem>
+                <MenuItem value="ladder">$39 → $199 ladder: $0 months 1 to 6, $39 months 7 to 12, then $199/mo from month 13</MenuItem>
+                <MenuItem value="flat_49">$39 flat: $0 months 1 to 6, then $39/mo for good</MenuItem>
               </TextField>
             </Grid>
           )}

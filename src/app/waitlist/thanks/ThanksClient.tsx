@@ -28,7 +28,7 @@ const NEXT_STEPS = [
   {
     when: "Two clicks later",
     title: "Pick your tier and pay",
-    body: "Stripe-secure checkout. Founding ($49/mo or $490/yr) for the first 100 members, then Standard ($199/mo or $1,990/yr).",
+    body: "Stripe-secure checkout. Founding ($29/mo or $290/yr) for the first 100 members, then Standard ($99/mo or $990/yr).",
   },
   {
     when: "Portal unlocks instantly",
@@ -129,7 +129,7 @@ export default function ThanksClient() {
               >
                 We just sent your sign-in link. Click it from your inbox, pick your
                 membership plan, and finish payment. Your portal unlocks the moment
-                Stripe confirms the charge. The founding rate stays at $49/month for the
+                Stripe confirms the charge. The founding rate stays at $29/month for the
                 duration of your active membership.
               </Typography>
             </MotionBox>

@@ -14,7 +14,7 @@ import Logo from "@/components/brand/Logo";
  *
  * Deliberately NOT the member AppShell: a candidate is not a member, has
  * no access to member resources, and should never see a sidebar full of
- * things that lead to a $49 paywall. Three links, their email, sign out.
+ * things that lead to a $29 paywall. Three links, their email, sign out.
  */
 
 const INK = "#0A1A2F";

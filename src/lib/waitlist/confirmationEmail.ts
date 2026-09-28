@@ -129,9 +129,9 @@ function normalizeUrl(path: string): string {
 
 // ─────────────────────────────────────────────────────────────────────────
 // DRAFTS. Copy mirrors the ASN launch-phase email set (July 2026) and the
-// ASN canon: $49/month founding (first 100), $490/year, $199/month
+// ASN canon: $29/month founding (first 100), $290/year, $99/month
 // standard, 30-day money-back, hotline written reply in 2 to 3 business
-// days, provider ramp $0 → $49 → $199, courses 70/30. No em-dashes.
+// days, provider ramp $0 → $39 → $199, courses 70/30. No em-dashes.
 // ─────────────────────────────────────────────────────────────────────────
 
 function memberDraft(input: ConfirmationInput): EmailDraft {
@@ -140,7 +140,7 @@ function memberDraft(input: ConfirmationInput): EmailDraft {
     role: "member",
     subject: "Your founding spot is reserved | Aesthetic Success Network",
     preview:
-      "You're on the founding waitlist. $49/month founding rate, locked while active. Nothing to pay today.",
+      "You're on the founding waitlist. $29/month founding rate, locked while active. Nothing to pay today.",
     eyebrow: "Founding Waitlist",
     headline: "You're on the list.",
     accent: BRAND.gold,
@@ -163,7 +163,7 @@ function memberDraft(input: ConfirmationInput): EmailDraft {
       {
         title: "A few things to know",
         items: [
-          "Your founding rate is $49/month (or $490/year, two months free), locked for as long as your membership stays active. After the first 100 members, the standard rate is $199/month.",
+          "Your founding rate is $29/month (or $290/year, two months free), locked for as long as your membership stays active. After the first 100 members, the standard rate is $99/month.",
           "Every membership comes with a 30-day money-back guarantee, and you can cancel anytime.",
           "We'll email you before the doors open with everything you need. No payment happens until you confirm.",
         ],
@@ -643,7 +643,7 @@ function buildVendorApprovalEmail({
     <li>Add your first catalog items: services, products, or courses.</li>
     <li>Attach member offers (discounts, bonuses) to each item.</li>
     <li>Upload your logo, spec sheets, and any supporting documents.</li>
-    <li>The first 6 months are on us. You'll add a payment method ahead of month 7, then it's $49/month for months 7 to 12 and $199/month from month 13.</li>
+    <li>The first 6 months are on us. You'll add a payment method ahead of month 7, then it's $39/month for months 7 to 12 and $199/month from month 13.</li>
   </ul>
   <p style="font-size:13px;line-height:1.65;color:${BRAND.inkMute};margin:32px 0 0;">
     Questions? Reply to this email and our partnerships team will get back to you.<br/>
@@ -663,7 +663,7 @@ What's next:
 - Add your first catalog items (services, products, courses)
 - Attach member offers to each item
 - Upload your logo and supporting documents
-- The first 6 months are on us. You'll add a payment method ahead of month 7, then it's $49/month for months 7 to 12 and $199/month from month 13.
+- The first 6 months are on us. You'll add a payment method ahead of month 7, then it's $39/month for months 7 to 12 and $199/month from month 13.
 
 Questions? Reply to this email.
 ${BRAND_NAME}. Powered by Business of Aesthetics.`;
@@ -806,7 +806,7 @@ const EXPERT_ACCENT = "#2C7A52";
 const EXPERT_ACCENT_LIGHT = "#5DA585";
 
 const PROVIDER_RAMP_LINE =
-  "Months 1 to 6 are free, then $49/month (locked launch rate) for months 7 to 12, then $199/month from month 13.";
+  "Months 1 to 6 are free, then $39/month (locked launch rate) for months 7 to 12, then $199/month from month 13.";
 const COURSE_SPLIT_LINE =
   "Paid courses: you keep 70% of net course revenue; the network retains 30%. You set your own course prices; the network handles the platform, payment processing, and member promotion.";
 const HOTLINE_FIT_LINE = "Expert Hotline referrals are routed by fit, never pay-to-play.";

@@ -23,7 +23,7 @@ type AppliedPromo = { code: string; ownerName: string | null; trialDays: number 
 
 /**
  * /upgrade payment card. ONE card — the tier available right now
- * ($49 founding → $199 standard once the 100 founding seats fill) in the dark
+ * ($29 founding → $99 standard once the 100 founding seats fill) in the dark
  * navy/gold FoundingCard design, with the three-state invitation-code
  * module under the CTA. Arriving via a referral link (?ref= or the
  * asn_ref cookie) auto-applies the owner's promo code when it's active.
@@ -221,7 +221,7 @@ export function SubscribeCard({ firstName }: { firstName: string }) {
   };
 
   // The tier is decided by availability, not by the member: everyone pays
-  // the CURRENT rate ($49 first 100 → $199). The early tier is closed for
+  // the CURRENT rate ($29 first 100 → $99). The early tier is closed for
   // good at ASN, so it is only ever chosen if the API explicitly opens it.
   const activeTier: "founding" | "early" | "standard" =
     (avail?.founding.isOpen ?? true) ? "founding" : (avail?.early.isOpen ?? false) ? "early" : "standard";
@@ -241,7 +241,7 @@ export function SubscribeCard({ firstName }: { firstName: string }) {
 
   const ladder =
     activeTier === "founding"
-      ? "Your rate is locked for life. Once the first 100 seats fill, membership is $199."
+      ? "Your rate is locked for life. Once the first 100 seats fill, membership is $99."
       : null;
 
   const promo: PromoModule = {

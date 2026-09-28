@@ -10,8 +10,8 @@ import { vendorCategories } from "@/lib/vendorData";
 // Copy source: the previous ASN site / _asn-source-copy/partners.html
 // (approved ASN copy). The application form posts to DMN's
 // /api/vendor/signup; the roster reads DMN's /api/directory/partners.
-// Provider ramp per the ASN canon: $0 months 1 to 6, $49 months 7 to 12,
-// $199 from month 13. Referral: $50 per referred member, paid after their
+// Provider ramp per the ASN canon: $0 months 1 to 6, $29 months 7 to 12,
+// $99 from month 13. Referral: $50 per referred member, paid after their
 // first payment.
 
 export const metadata: Metadata = {
@@ -218,17 +218,17 @@ export default function PartnersPage() {
             <div className="pc">
               <div className="tier">Months 7 to 12</div>
               <div className="price">
-                $49<span>/mo</span>
+                $29<span>/mo</span>
               </div>
               <div className="desc">Founding locked rate.</div>
             </div>
             <div className="pc">
               <div className="tier">Month 13+</div>
               <div className="price">
-                $199<span>/mo</span>
+                $99<span>/mo</span>
               </div>
               <div className="desc">
-                Featured Company standard rate, or $1,990/yr annual (two months free).
+                Featured Company standard rate, or $990/yr annual (two months free).
               </div>
             </div>
           </div>

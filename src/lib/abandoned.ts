@@ -38,7 +38,7 @@ const DAY = 24 * HOUR;
 export const RESUME_TOKEN_TTL_DAYS = 14;
 const SEQUENCE_WINDOW_DAYS = 30;
 export const CODE_TTL_HOURS = 48;
-/** One month free, then the founding $49/mo like everyone else. */
+/** One month free, then the founding $29/mo like everyone else. */
 export const RECOVERY_TRIAL_DAYS = 30;
 
 // pending_registrations (migration 0059) isn't in the generated DB
@@ -349,9 +349,9 @@ type SequenceRow = {
   plan?: string | null;
 };
 
-/** Rate wording that matches the plan they were on — never quote $49/month to an annual chooser. */
+/** Rate wording that matches the plan they were on — never quote $29/month to an annual chooser. */
 function rateWords(plan: string | null | undefined): string {
-  return plan === "founding_annual" ? "$490 a year" : "$49 a month";
+  return plan === "founding_annual" ? "$290 a year" : "$29 a month";
 }
 
 function names(row: SequenceRow) {

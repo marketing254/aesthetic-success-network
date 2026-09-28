@@ -10,7 +10,7 @@ import { applyEmailSandbox } from "@/lib/email/sandbox";
  *
  * Copy follows Agreements/ASN_Forms_and_Esign_Spec.md: sender and
  * reply-to support@aestheticsuccessnetwork.com, the ASN legal line, the
- * first $49 charge date and the $199 start date as plain calendar dates
+ * first $39 charge date and the $199 start date as plain calendar dates
  * computed from the trial end, no card details, no em-dashes, and the
  * sign-in email restated (no code is sent from here; the portal login
  * screen sends the 6-digit code once they arrive).
@@ -78,7 +78,7 @@ function addMonths(date: Date, months: number): Date {
 
 export type JoinConfirmationInput = {
   role: "partner" | "expert" | "both";
-  /** Price plan (founding invites, 0066). "ladder" (the default) adds the $199 line; "flat_49" keeps $49 for good. */
+  /** Price plan (founding invites, 0066). "ladder" (the default) adds the $199 line; "flat_49" keeps $39 for good. */
   pricing?: "ladder" | "flat_49" | null;
   to: string;
   contactName: string;
@@ -95,7 +95,7 @@ export type JoinConfirmationInput = {
    * offer. When 2+ entries exist the email lists offers per company instead
    * of the single memberOffer line. */
   companies?: { name: string; category?: string | null; member_offer?: string | null }[] | null;
-  /** ISO date the trial ends / first $49 charge lands. */
+  /** ISO date the trial ends / first $39 charge lands. */
   trialEndsAt?: string | null;
   /** Whether a card was actually saved to Stripe as part of this signup (founding invite accept, portal trial start). Public join/apply flows don't capture a card here, so default false. */
   cardCaptured?: boolean;
@@ -253,7 +253,7 @@ type BuiltOpts = JoinConfirmationInput & {
 
 /**
  * The ASN provider ramp in plain calendar dates: $0 through the day before
- * the trial ends, $49/month from the trial end, $199/month six months
+ * the trial ends, $39/month from the trial end, $199/month six months
  * after that (ladder plan). All computed from the trial end so the email
  * never says "month 7".
  */
@@ -271,7 +271,7 @@ function billingDates(opts: BuiltOpts): { freeThrough: string; firstCharge: stri
 /** The "from then on" billing line, per plan. Ladder is the ASN default. */
 function ongoingBillingLine(opts: BuiltOpts, dates: { standardStart: string }): string {
   return opts.pricing === "flat_49"
-    ? `$49/month from then on, with no increase`
+    ? `$39/month from then on, with no increase`
     : `From ${dates.standardStart}: $199/month standard rate`;
 }
 
@@ -279,7 +279,7 @@ function billingLines(opts: BuiltOpts): string[] {
   const dates = billingDates(opts);
   return [
     `Today through ${dates.freeThrough}: $0 (your 6 founding months)`,
-    `First $49 charge on ${dates.firstCharge}: $49/month`,
+    `First $39 charge on ${dates.firstCharge}: $39/month`,
     ongoingBillingLine(opts, dates),
     `Cancel anytime with 30 days' written notice. We'll remind you 7 days before your free period ends.`,
   ];

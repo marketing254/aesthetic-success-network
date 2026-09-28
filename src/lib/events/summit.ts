@@ -36,7 +36,7 @@ export const SUMMIT = {
   /** ISO start. Placeholder far in the future until an event is scheduled. */
   startsAt: env("SUMMIT_STARTS_AT") || "2099-01-01T19:00:00-05:00",
   zoomWebinarId: env("SUMMIT_ZOOM_WEBINAR_ID"),
-  /** The Stripe offer for this campaign: $0 for 30 days, then $49/month. */
+  /** The Stripe offer for this campaign: $0 for 30 days, then $29/month. */
   plan: "founding_monthly" as const,
   trialDays: 30,
   /** utm_campaign the ads use for this event; defaults to the event id. */

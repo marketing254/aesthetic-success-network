@@ -7,26 +7,26 @@ import Stripe from "stripe";
  * Price IDs are read from env vars so the same code runs against the test
  * sandbox locally and against live prices in production without an edit.
  *
- *   STRIPE_PRICE_FOUNDING_MONTHLY            - $49/mo    — first 100 members, locked while active
- *   STRIPE_PRICE_FOUNDING_ANNUAL             - $490/yr   — "pay for 10 months, get 12"
- *   STRIPE_PRICE_FOUNDING_ANNUAL_PROMO       - $441/yr   — founding annual with a ≥90-day promo code only
+ *   STRIPE_PRICE_FOUNDING_MONTHLY            - $29/mo    — first 100 members, locked while active
+ *   STRIPE_PRICE_FOUNDING_ANNUAL             - $290/yr   — "pay for 10 months, get 12"
+ *   STRIPE_PRICE_FOUNDING_ANNUAL_PROMO       - $261/yr   — founding annual with a ≥90-day promo code only
  *   STRIPE_PRICE_EARLY_MONTHLY / _ANNUAL     - NOT OFFERED. ASN has no "early" tier
  *                                              (EARLY_MEMBER_CAP = 0). The plan keys stay so
  *                                              the webhook never crashes on a legacy metadata
  *                                              value; nothing in the UI can select them.
- *   STRIPE_PRICE_STANDARD_MONTHLY            - $199/mo   — after the founding cap
- *   STRIPE_PRICE_STANDARD_ANNUAL             - $1,990/yr
+ *   STRIPE_PRICE_STANDARD_MONTHLY            - $99/mo   — after the founding cap
+ *   STRIPE_PRICE_STANDARD_ANNUAL             - $990/yr
  *
- *   STRIPE_PRICE_PARTNER_GROWTH_MONTHLY      - $49/mo    — partner months 7–12 (180-day trial first)
+ *   STRIPE_PRICE_PARTNER_GROWTH_MONTHLY      - $39/mo    — partner months 7–12 (180-day trial first)
  *   STRIPE_PRICE_PARTNER_STANDARD_MONTHLY    - $199/mo   — partner month 13 onward
  *   STRIPE_PRICE_PARTNER_STANDARD_ANNUAL     - $1,990/yr
  *
- *   STRIPE_PRICE_EXPERT_GROWTH_MONTHLY       - $49/mo    — expert months 7–12 (180-day trial first)
+ *   STRIPE_PRICE_EXPERT_GROWTH_MONTHLY       - $39/mo    — expert months 7–12 (180-day trial first)
  *   STRIPE_PRICE_EXPERT_STANDARD_MONTHLY     - $199/mo   — expert month 13 onward
  *   STRIPE_PRICE_EXPERT_STANDARD_ANNUAL      - $1,990/yr
  *
  * Provider ramp (experts + partners): $0 months 1–6 (TRIAL_DAYS on the
- * growth price), $49/month months 7–12, $199/month from month 13. The
+ * growth price), $39/month months 7–12, $199/month from month 13. The
  * self-serve trial flow only ever creates the growth subscription; the
  * month-13 step is applied by the founding-invite subscription schedule
  * (pricing_plan "ladder") or by the team from the Stripe dashboard.
@@ -54,7 +54,7 @@ export const EARLY_MEMBER_CAP = 0;
  * Lifetime-free founding EXPERTS. The first 20 experts the team hand-picks
  * are never charged — `experts.billing_exempt`. INTERNAL ONLY: granted by
  * an admin, never offered on a public page, form, email or agreement.
- * Expert 21 onward goes on the normal ramp ($0 months 1–6 → $49 months
+ * Expert 21 onward goes on the normal ramp ($0 months 1–6 → $39 months
  * 7–12 → $199 month 13+), same as partners.
  *
  * This constant is for labels and pre-flight checks only. The cap is
@@ -67,7 +67,7 @@ export const EARLY_MEMBER_CAP = 0;
  */
 export const FOUNDING_EXPERT_CAP = 20;
 
-/** Provider free period: 180 days on the growth price, first $49 charge on day 181. */
+/** Provider free period: 180 days on the growth price, first $39 charge on day 181. */
 export const TRIAL_DAYS = 180;
 
 /**
@@ -130,12 +130,12 @@ export const PLAN_DISPLAY: Record<
   SubscriptionPlanKey,
   { amount: number; per: "mo" | "yr"; tier: SubscriptionTier; label: string }
 > = {
-  founding_monthly: { amount: 49,   per: "mo", tier: "founding", label: "Founding Monthly" },
-  founding_annual:  { amount: 490,  per: "yr", tier: "founding", label: "Founding Annual"  },
-  early_monthly:    { amount: 199,  per: "mo", tier: "early",    label: "Standard Monthly" },
-  early_annual:     { amount: 1990, per: "yr", tier: "early",    label: "Standard Annual"  },
-  standard_monthly: { amount: 199,  per: "mo", tier: "standard", label: "Standard Monthly" },
-  standard_annual:  { amount: 1990, per: "yr", tier: "standard", label: "Standard Annual"  },
+  founding_monthly: { amount: 29,   per: "mo", tier: "founding", label: "Founding Monthly" },
+  founding_annual:  { amount: 290,  per: "yr", tier: "founding", label: "Founding Annual"  },
+  early_monthly:    { amount: 99,  per: "mo", tier: "early",    label: "Standard Monthly" },
+  early_annual:     { amount: 990, per: "yr", tier: "early",    label: "Standard Annual"  },
+  standard_monthly: { amount: 99,  per: "mo", tier: "standard", label: "Standard Monthly" },
+  standard_annual:  { amount: 990, per: "yr", tier: "standard", label: "Standard Annual"  },
 };
 
 /** Plan keys a member can actually pick. Early keys are never offered. */
@@ -194,8 +194,8 @@ export function billingIntervalFor(plan: SubscriptionPlanKey): "month" | "year" 
 // the same 3-phase ramp (ASN canon):
 //
 //   Phase 1 (months 1-6)   $0/mo    "Launch"   — 180-day trial on the growth price
-//   Phase 2 (months 7-12)  $49/mo   "Growth"
-//   Phase 3 (month 13+)    $199/mo  "Standard" ($1,990/yr pre-pay)
+//   Phase 2 (months 7-12)  $39/mo   "Growth"
+//   Phase 3 (month 13+)    $199/mo  "Standard" ($990/yr pre-pay)
 //
 // The "phase" is just the price the customer is paying RIGHT NOW. We move
 // them between prices either by:
@@ -208,12 +208,12 @@ export function billingIntervalFor(plan: SubscriptionPlanKey): "month" | "year" 
 // Phase 1 (months 1-6) is the Stripe trial on the growth price, so the
 // card is on file from day one and the first charge fires on day 181.
 export type PartnerPlanKey =
-  | "partner_growth_monthly"     // $49 months 7-12
+  | "partner_growth_monthly"     // $39 months 7-12
   | "partner_standard_monthly"   // $199 month 13+
   | "partner_standard_annual";   // $1,990/year
 
 export type ExpertPlanKey =
-  | "expert_growth_monthly"      // $49 months 7-12
+  | "expert_growth_monthly"      // $39 months 7-12
   | "expert_standard_monthly"    // $199 month 13+
   | "expert_standard_annual";    // $1,990/year
 
@@ -236,7 +236,7 @@ export const PARTNER_PLAN_DISPLAY: Record<
   PartnerPlanKey,
   { amount: number; per: "mo" | "yr"; phase: PartnerPhase; label: string }
 > = {
-  partner_growth_monthly:   { amount: 49,   per: "mo", phase: "growth",   label: "ASN Partner Growth (months 7-12)" },
+  partner_growth_monthly:   { amount: 39,   per: "mo", phase: "growth",   label: "ASN Partner Growth (months 7-12)" },
   partner_standard_monthly: { amount: 199,  per: "mo", phase: "standard", label: "ASN Partner Standard Monthly" },
   partner_standard_annual:  { amount: 1990, per: "yr", phase: "standard", label: "ASN Partner Standard Annual" },
 };
@@ -245,7 +245,7 @@ export const EXPERT_PLAN_DISPLAY: Record<
   ExpertPlanKey,
   { amount: number; per: "mo" | "yr"; phase: ExpertPhase; label: string }
 > = {
-  expert_growth_monthly:   { amount: 49,   per: "mo", phase: "growth",   label: "ASN Expert Growth (months 7-12)" },
+  expert_growth_monthly:   { amount: 39,   per: "mo", phase: "growth",   label: "ASN Expert Growth (months 7-12)" },
   expert_standard_monthly: { amount: 199,  per: "mo", phase: "standard", label: "ASN Expert Standard Monthly" },
   expert_standard_annual:  { amount: 1990, per: "yr", phase: "standard", label: "ASN Expert Standard Annual" },
 };
@@ -284,7 +284,7 @@ export function expertPriceIdFor(plan: ExpertPlanKey): string {
  * round-tripping to Stripe on every render.
  */
 export function phaseForMonth(monthsInProgram: number): "launch" | "growth" | "standard" {
-  // ASN provider ramp: months 1-6 launch ($0), months 7-12 growth ($49),
+  // ASN provider ramp: months 1-6 launch ($0), months 7-12 growth ($39),
   // month 13 onward standard ($199).
   if (monthsInProgram <= 6) return "launch";
   if (monthsInProgram <= 12) return "growth";
@@ -292,12 +292,12 @@ export function phaseForMonth(monthsInProgram: number): "launch" | "growth" | "s
 }
 
 /**
- * Pretty "$0 / mo" / "$49 / mo" / "$199 / mo" label for the given phase.
+ * Pretty "$0 / mo" / "$29 / mo" / "$99 / mo" label for the given phase.
  */
 export function priceLabelForPhase(phase: "launch" | "growth" | "standard"): string {
   if (phase === "launch") return "$0 / mo";
-  if (phase === "growth") return "$49 / mo";
-  return "$199 / mo";
+  if (phase === "growth") return "$39 / mo";
+  return "$99 / mo";
 }
 
 // =====================================================================
@@ -379,7 +379,7 @@ export function checkBillingAccess(opts: {
       reason: "subscription_required",
       title: "One more step: add your card",
       message:
-        "You're approved. Add a card to activate your 6-month free trial. Nothing is charged today; the first $49 charge fires on day 181.",
+        "You're approved. Add a card to activate your 6-month free trial. Nothing is charged today; the first $39 charge fires on day 181.",
       cta: "Add card & start trial",
     };
   }

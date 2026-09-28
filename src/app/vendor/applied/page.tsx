@@ -48,7 +48,7 @@ export default function VendorAppliedPage() {
     {
       icon: CalendarTodayOutlinedIcon,
       title: "Founding pricing locks in",
-      body: "Six months free, then $49/month for months 7 to 12 and $199/month from month 13. Your portal lets you set up your catalog and offers right away; they go live to members the day your application is approved.",
+      body: "Six months free, then $29/month for months 7 to 12 and $99/month from month 13. Your portal lets you set up your catalog and offers right away; they go live to members the day your application is approved.",
     },
   ];
 

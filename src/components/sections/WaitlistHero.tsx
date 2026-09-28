@@ -216,7 +216,7 @@ export default function WaitlistHero() {
               </Button>
             </Stack>
             <Typography sx={{ mt: 1.5, fontSize: "0.84rem", color: "#71717A" }}>
-              Founding 100 · $49 a month, locked while your membership stays active · cancel anytime
+              Founding 100 · $29 a month, locked while your membership stays active · cancel anytime
             </Typography>
             <Box
               component="a"

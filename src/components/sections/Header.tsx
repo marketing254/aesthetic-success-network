@@ -337,7 +337,7 @@ export default function Header() {
               FOUNDING MEMBERSHIP · FIRST 100
             </Typography>
             <Typography variant="body2" sx={{ color: "#3B4A55", fontSize: "0.86rem", lineHeight: 1.55 }}>
-              The Expert Hotline, member-only partner deals, a curated resource library, and monthly live AMAs and CE. $49/mo founding rate, locked while your membership stays active.
+              The Expert Hotline, member-only partner deals, a curated resource library, and monthly live AMAs and CE. $29/mo founding rate, locked while your membership stays active.
             </Typography>
           </Box>
 

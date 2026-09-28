@@ -9,7 +9,7 @@ import OtpLoginForm from "@/components/auth/OtpLoginForm";
  * Separate from /member/login because the two audiences are different
  * and the copy has to say so. A candidate arriving here has just been
  * asked to make an account to apply for a job, and the one thing they
- * are worried about is whether this is the $49 thing. Say it isn't.
+ * are worried about is whether this is the $29 thing. Say it isn't.
  */
 export default function SeekerLoginPage() {
   return (

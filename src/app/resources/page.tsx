@@ -81,7 +81,7 @@ export default function ResourcesPage() {
             Unlock the full <em>library</em>.
           </h2>
           <p className="lead2">
-            Every kit, every week, included with membership. Founding membership is $49/mo, locked
+            Every kit, every week, included with membership. Founding membership is $29/mo, locked
             while your membership stays active.
           </p>
           <div className="cta-row" style={{ display: "flex", justifyContent: "center" }}>

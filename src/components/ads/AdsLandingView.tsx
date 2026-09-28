@@ -27,7 +27,7 @@ import StorefrontOutlinedIcon from "@mui/icons-material/StorefrontOutlined";
  * DMN prototype "Paid Ads Developer Package - 2026-08-27", ASN copy). One
  * page: pitch → short form → Stripe EMBEDDED checkout → /welcome.
  *
- * ASN rules: founding $49/$490 only (no early tier, no private offer), no
+ * ASN rules: founding $29/$290 only (no early tier, no private offer), no
  * named experts or photos, no em-dashes in rendered copy, and the
  * "Resource library" nav pill + library strip render only when
  * NEXT_PUBLIC_SHOW_JUST_DROPPED === "true".
@@ -193,7 +193,7 @@ export default function AdsLandingView() {
   }, []);
 
   const monthly = plan === "founding_monthly";
-  const priceLabel = monthly ? "$49/month" : "$490/year";
+  const priceLabel = monthly ? "$29/month" : "$290/year";
 
   const canSubmit =
     form.firstName.trim() &&
@@ -447,7 +447,7 @@ export default function AdsLandingView() {
               Start your membership ›
             </Button>
             <Typography sx={{ mt: 1.5, fontSize: { xs: "1.05rem", md: "1.15rem" }, fontWeight: 700, color: INK, lineHeight: 1.3 }}>
-              Membership from $49/month
+              Membership from $29/month
             </Typography>
             <Typography sx={{ mt: 0.4, fontSize: "0.8rem", fontWeight: 600, color: "#5b6570" }}>
               Founding rate · locked while active
@@ -550,9 +550,9 @@ export default function AdsLandingView() {
                   "&&:hover": { bgcolor: "#e4b95f" },
                 }}
               >
-                Join ASN: $49/month
+                Join ASN: $29/month
               </Button>
-              <Typography sx={{ fontSize: "0.76rem", color: MUTED }}>Annual option: $490 · 30-day money-back guarantee</Typography>
+              <Typography sx={{ fontSize: "0.76rem", color: MUTED }}>Annual option: $290 · 30-day money-back guarantee</Typography>
             </Stack>
           </Container>
         </Box>
@@ -643,10 +643,10 @@ export default function AdsLandingView() {
                 "&&:hover": { bgcolor: "#e4b95f" },
               }}
             >
-              Explore membership: $49/month
+              Explore membership: $29/month
             </Button>
             <Typography sx={{ mt: 1.5, fontSize: "0.8rem", color: "rgba(255,255,255,0.62)" }}>
-              Annual option: $490 · 30-day money-back guarantee
+              Annual option: $290 · 30-day money-back guarantee
             </Typography>
           </Stack>
         </Container>
@@ -685,8 +685,8 @@ export default function AdsLandingView() {
               <Box sx={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 1, p: 0.6, border: "1px solid rgba(255,255,255,0.16)", borderRadius: 999, bgcolor: "rgba(255,255,255,0.06)" }}>
                 {(
                   [
-                    ["founding_monthly", "Monthly · $49"],
-                    ["founding_annual", "Annual · $490"],
+                    ["founding_monthly", "Monthly · $29"],
+                    ["founding_annual", "Annual · $290"],
                   ] as const
                 ).map(([key, label]) => (
                   <Box
@@ -719,7 +719,7 @@ export default function AdsLandingView() {
               </Box>
 
               <Typography sx={{ fontFamily: "var(--font-display)", fontWeight: 600, fontSize: "3.4rem", mt: 3.5, mb: 0.75, lineHeight: 1, color: "#FFFFFF" }}>
-                {monthly ? "$49" : "$490"}{" "}
+                {monthly ? "$29" : "$290"}{" "}
                 <Box component="span" sx={{ fontFamily: "var(--font-body), Manrope, sans-serif", fontWeight: 700, fontSize: "0.82rem", color: "rgba(255,255,255,0.68)" }}>
                   {monthly ? "/month" : "/year"}
                 </Box>
@@ -786,7 +786,7 @@ export default function AdsLandingView() {
                   </Typography>
                   {codeState === "active" && (
                     <Box sx={{ mb: 2.5, p: 1.75, borderRadius: "12px", bgcolor: "rgba(44,122,82,0.09)", border: "1px solid rgba(44,122,82,0.35)", color: "#1F5238", fontSize: "0.82rem", fontWeight: 600 }}>
-                      Your first month is free. The code from our email is applied automatically at checkout. After that it is $49 a month, locked while you stay.
+                      Your first month is free. The code from our email is applied automatically at checkout. After that it is $29 a month, locked while you stay.
                     </Box>
                   )}
                   {codeState === "expired" && (

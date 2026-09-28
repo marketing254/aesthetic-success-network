@@ -42,9 +42,9 @@ type Invoice = {
 };
 
 const PLAN_LABELS: Record<string, { name: string; cadenceLabel: string }> = {
-  founding: { name: "Founding Company", cadenceLabel: "Growth rate $49/month, waived months 1 to 6" },
-  growth: { name: "Growth Company", cadenceLabel: "$49/month, months 7 to 12" },
-  standard: { name: "Standard Company", cadenceLabel: "$199/month from month 13 ($1,990/year)" },
+  founding: { name: "Founding Company", cadenceLabel: "Growth rate $29/month, waived months 1 to 6" },
+  growth: { name: "Growth Company", cadenceLabel: "$29/month, months 7 to 12" },
+  standard: { name: "Standard Company", cadenceLabel: "$99/month from month 13 ($990/year)" },
 };
 
 export default function VendorAccountPage() {
@@ -133,7 +133,7 @@ export default function VendorAccountPage() {
   const plan = PLAN_LABELS[vendor.plan_id ?? "founding"] ?? PLAN_LABELS.founding;
   const monthsLeftInWaiver = Math.max(0, 6 - vendor.months_in_program);
   const waiverProgress = Math.min(100, (vendor.months_in_program / 6) * 100);
-  const nextBill = monthsLeftInWaiver > 0 ? "$0.00" : "$49.00";
+  const nextBill = monthsLeftInWaiver > 0 ? "$0.00" : "$29.00";
 
   return (
     <Stack spacing={3}>
@@ -205,7 +205,7 @@ export default function VendorAccountPage() {
                 />
                 <LadderRow
                   period="Month 7 onward"
-                  price="$49/mo"
+                  price="$29/mo"
                   note="Locked launch rate"
                   current={vendor.months_in_program > 6}
                 />

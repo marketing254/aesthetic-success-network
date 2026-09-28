@@ -233,7 +233,7 @@ export default function VendorOverview() {
         </Stack>
         <LinearProgress variant="determinate" value={waiverProgress} />
         <Typography sx={{ ...portalText.meta, mt: 1 }}>
-          From month 7 you bill at $49/mo (launch rate locked).
+          From month 7 you bill at $29/mo (launch rate locked).
         </Typography>
       </SectionCard>
 

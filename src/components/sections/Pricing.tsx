@@ -18,7 +18,7 @@ const MotionBox = motion.create(Box);
 // business days, never "24/7" or "live". No podcasts; the only live benefit
 // is "monthly live AMAs and CE". The value stack lists what a member gets
 // with NO dollar figures (the DMN $/yr rows were unsourced). There is no
-// $99 "early" tier: founding ($49) is followed directly by standard ($199).
+// $99 "early" tier: founding ($29) is followed directly by standard ($99).
 const VALUE_STACK = [
   "The Expert Hotline: written action plans in 2 to 3 business days",
   "Full resource library, new expert kits weekly",
@@ -29,14 +29,14 @@ const VALUE_STACK = [
 
 const FOUNDING_BULLETS = [
   "Everything in the list",
-  "Locked at $49 for as long as your membership stays active",
-  "Annual option: $490/yr for founding members, two months free",
+  "Locked at $29 for as long as your membership stays active",
+  "Annual option: $290/yr for founding members, two months free",
   "30-day money-back guarantee",
 ];
 
 const STANDARD_BULLETS = [
   "Everything in the list",
-  "Annual option: $1,990/yr (two months free)",
+  "Annual option: $990/yr (two months free)",
   "Open enrollment, no waitlist",
   "30-day money-back guarantee",
 ];
@@ -83,8 +83,8 @@ export default function Pricing() {
       ? {
           ribbon: `First 100 only · ${founding.remaining} of ${founding.cap} left`,
           eyebrow: "Founding member",
-          price: "$49",
-          strike: "$199/mo" as string | null,
+          price: "$29",
+          strike: "$99/mo" as string | null,
           afterNote: "after the first 100 spots fill",
           bullets: FOUNDING_BULLETS,
           cta: "Claim a founding spot",
@@ -92,7 +92,7 @@ export default function Pricing() {
       : {
           ribbon: "Open enrollment",
           eyebrow: "Standard member",
-          price: "$199",
+          price: "$99",
           strike: null as string | null,
           afterNote: "founding spots are filled. Same membership, standard rate",
           bullets: STANDARD_BULLETS,
@@ -133,10 +133,10 @@ export default function Pricing() {
               lineHeight: 1.15,
             }}
           >
-            $49 a month. Locked, for the first 100.
+            $29 a month. Locked, for the first 100.
           </Typography>
           <Typography sx={{ color: "#52525B", fontSize: { xs: "0.95rem", md: "1.02rem" } }}>
-            After the founding hundred, the rate is $199/mo. Founding members keep $49 for as long as their membership stays active.
+            After the founding hundred, the rate is $99/mo. Founding members keep $29 for as long as their membership stays active.
           </Typography>
         </Stack>
 

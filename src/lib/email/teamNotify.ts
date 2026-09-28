@@ -263,7 +263,7 @@ async function sendLeadMagnetEmailImpl(opts: LeadMagnetEmailInput): Promise<bool
         <p style="font-size:13px;color:#3B4A55;line-height:1.6;">
           <strong>P.S.</strong> This is one of the kits our members get. New done-for-you kits from working experts are added to the Aesthetic Success Network regularly, alongside the Expert Hotline for the problems a PDF cannot solve. If this was useful,
           <a href="${escapeHtml(SITE_URL)}" style="color:#A07823;font-weight:600;">there is a lot more where it came from</a>.
-          Founding spots are <strong>$49/month</strong>, locked for as long as your membership stays active.
+          Founding spots are <strong>$39/month</strong>, locked for as long as your membership stays active.
         </p>
       </div>
     `;
@@ -288,7 +288,7 @@ async function sendLeadMagnetEmailImpl(opts: LeadMagnetEmailInput): Promise<bool
       "Powered by Business of Aesthetics",
       "",
       `P.S. This is one of the kits our members get. New done-for-you kits from working experts are added to the Aesthetic Success Network regularly, alongside the Expert Hotline for the problems a PDF cannot solve. If this was useful, there is a lot more where it came from: ${SITE_URL}`,
-      "Founding spots are $49/month, locked for as long as your membership stays active.",
+      "Founding spots are $39/month, locked for as long as your membership stays active.",
     ].join("\n");
 
     const smtpHost = process.env.SMTP_HOST;

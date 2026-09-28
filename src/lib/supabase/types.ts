@@ -1049,7 +1049,7 @@ export type LeadMagnetLeadsRow = {
 
 export type FoundingInviteStatus = "draft" | "sent" | "viewed" | "accepted" | "revoked";
 export type FoundingInviteRole = "expert" | "partner" | "both";
-/** Partner price plan chosen per invite (0066). ladder = $49 then $199 from month 13; flat_49 = $49 for good. */
+/** Partner price plan chosen per invite (0066). ladder = $39 then $199 from month 13; flat_49 = $39 for good. */
 export type FoundingInvitePricing = "ladder" | "flat_49";
 
 // Added in 0041_founding_invite_companies.sql. One entry per company on a

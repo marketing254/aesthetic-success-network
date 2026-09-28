@@ -135,7 +135,7 @@ export default function FoundingAccept(props: FoundingAcceptProps) {
           </Stack>
           <Box sx={{ bgcolor: "rgba(217,168,75,0.08)", borderRadius: 1.5, px: 2, py: 1.5, mb: 2.5 }}>
             <RampLine label="Now to month 6" price="$0/mo" bold />
-            <RampLine label="Month 7 onward" price="$49/mo" />
+            <RampLine label="Month 7 onward" price="$39/mo" />
             
           </Box>
 

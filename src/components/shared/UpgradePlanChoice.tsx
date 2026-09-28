@@ -8,8 +8,8 @@ import CheckRoundedIcon from "@mui/icons-material/CheckRounded";
  * UpgradePlanChoice
  *
  * The plan choices a partner or expert can pick to start (or replace)
- * their paid subscription: the $49 growth rate (months 7 to 12) and the
- * $199 standard rate (monthly or annual) from month 13. There is no
+ * their paid subscription: the $29 growth rate (months 7 to 12) and the
+ * $99 standard rate (monthly or annual) from month 13. There is no
  * early tier. Used inside the portal billing page when:
  *
  *   - The expert/partner is still in the founding waiver (they can
@@ -25,7 +25,7 @@ import CheckRoundedIcon from "@mui/icons-material/CheckRounded";
 export type UpgradePlan = {
   key: string;          // Stripe plan key, e.g. "expert_growth_monthly"
   cap: string;          // header band text, e.g. "Months 7 to 12"
-  price: string;        // e.g. "$49"
+  price: string;        // e.g. "$29"
   per: string;          // e.g. "/mo"
   highlight?: string;   // optional ribbon, e.g. "BEST VALUE"
   body: string;         // 1-line description

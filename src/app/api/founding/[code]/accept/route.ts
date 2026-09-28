@@ -16,10 +16,10 @@ export const dynamic = "force-dynamic";
 // of when they accept (the "clock anchors to launch" rule). Verify/adjust
 // the dates if the launch shifts.
 //   • Free ($0)      : acceptance → FOUNDING_TRIAL_END_ISO
-//   • Growth ($49/mo): FOUNDING_TRIAL_END_ISO onward
-//   • Standard ($199): FOUNDING_STANDARD_START_ISO onward — ONLY when the
+//   • Growth ($29/mo): FOUNDING_TRIAL_END_ISO onward
+//   • Standard ($99): FOUNDING_STANDARD_START_ISO onward — ONLY when the
 //     invite's pricing_plan is "ladder" (0066). The flat_49 plan (default
-//     since 2026-09-15) never leaves the $49 phase.
+//     since 2026-09-15) never leaves the $29 phase.
 
 type Body = { setupIntentId?: string; paymentMethodId?: string };
 
@@ -126,8 +126,8 @@ export async function POST(req: Request, ctx: { params: Promise<{ code: string }
 
     // Partner-bearing invites keep ONE Stripe subscription for the paid
     // partner ramp. Expert-only founding invites do not enter Stripe.
-    // The ramp is a phased subscription schedule: $0 (trial) → $49 growth,
-    // and for "ladder" invites a third $199 phase from month 13.
+    // The ramp is a phased subscription schedule: $0 (trial) → $29 growth,
+    // and for "ladder" invites a third $99 phase from month 13.
     const ladder = invite.pricing_plan === "ladder";
     let growthPrice: string;
     let standardPrice: string | null = null;
@@ -161,15 +161,15 @@ export async function POST(req: Request, ctx: { params: Promise<{ code: string }
               ? [
                   // $0 until the free period ends (card on file, no charge).
                   { items: [{ price: growthPrice }], trial: true, end_date: trialEndSec },
-                  // $49/mo growth phase (months 7–12).
+                  // $29/mo growth phase (months 7–12).
                   { items: [{ price: growthPrice }], end_date: standardStartSec },
-                  // $199/mo standard, month 13 onward (open-ended).
+                  // $99/mo standard, month 13 onward (open-ended).
                   { items: [{ price: standardPrice }] },
                 ]
               : [
                   // $0 until the free period ends (card on file, no charge).
                   { items: [{ price: growthPrice }], trial: true, end_date: trialEndSec },
-                  // $49/mo, month 7 onward (open-ended, no increase).
+                  // $29/mo, month 7 onward (open-ended, no increase).
                   { items: [{ price: growthPrice }] },
                 ],
           metadata: { founding_invite: code, role: invite.role, pricing_plan: invite.pricing_plan },

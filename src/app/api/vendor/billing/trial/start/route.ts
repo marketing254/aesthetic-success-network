@@ -17,7 +17,7 @@ export const dynamic = "force-dynamic";
  * paymentMethodId (from the /prepare step's <PaymentElement>
  * confirmation), attaches the card as default, records the agreement
  * acceptance stamp, and creates the subscription with trial_period_days
- * = 180. No $0 catalog item — Stripe zeroes the trial on the $49 price.
+ * = 180. No $0 catalog item — Stripe zeroes the trial on the $29 price.
  */
 
 type Body = { setupIntentId?: string; paymentMethodId?: string; agreementVersion?: string };

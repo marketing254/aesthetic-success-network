@@ -230,7 +230,7 @@ function Inner() {
           {/* Founding-expert slots (INTERNAL ONLY, invite link only). The
               first 20 real experts are free for life; once these run out
               every new expert is billed on the normal ladder ($0 months
-              1 to 6, $49 months 7 to 12, $199 from month 13). */}
+              1 to 6, $29 months 7 to 12, $99 from month 13). */}
           {slots && (
             <Stack direction="row" spacing={1} sx={{ alignItems: "center", mt: 1.5 }}>
               <WorkspacePremiumOutlinedIcon fontSize="small" sx={{ color: slots.remaining > 0 ? "#A07823" : "text.disabled" }} />
@@ -245,7 +245,7 @@ function Inner() {
                 ) : (
                   <>
                     All {slots.cap} founding slots used. New experts are billed on the
-                    normal ladder: $0 months 1 to 6, $49 months 7 to 12, $199 from month 13.
+                    normal ladder: $0 months 1 to 6, $29 months 7 to 12, $99 from month 13.
                   </>
                 )}
               </Typography>

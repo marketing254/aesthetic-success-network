@@ -25,7 +25,7 @@ import VerifiedOutlinedIcon from "@mui/icons-material/VerifiedOutlined";
  * Guardrails:
  *   - Shown at most once per browser session (sessionStorage), never on
  *     /start (the paid-ads page has its own locked offer rules).
- *   - Every claim in the copy is true: 30-day promo trial, founding $49
+ *   - Every claim in the copy is true: 30-day promo trial, founding $29
  *     locked, 30-day guarantee, cancel anytime.
  */
 const SESSION_KEY = "asn_exit_offer_shown";
@@ -156,7 +156,7 @@ function GiftBoxArt() {
 
 const PERKS = [
   { icon: ShieldOutlinedIcon, label: <>Full member<br />access</> },
-  { icon: LocalOfferOutlinedIcon, label: <>$49/month after,<br />locked while active</> },
+  { icon: LocalOfferOutlinedIcon, label: <>$29/month after,<br />locked while active</> },
   { icon: VerifiedOutlinedIcon, label: <>30-day<br />money-back guarantee</> },
 ];
 

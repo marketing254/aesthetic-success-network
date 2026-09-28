@@ -184,11 +184,11 @@ export async function POST(req: Request) {
   }
 
   // FINAL pricing decision (18 Aug 2026): standard founding annual is
-  // $490; with a 3-month code applied the annual becomes $441 — a
+  // $290; with a 3-month code applied the annual becomes $261 — a
   // separate Stripe Price used ONLY here, so the trial converts into
-  // exactly what the card promised ("then $441/yr").
-  // Only 3-month (90-day) codes earn the $441 annual; a 30-day welcome
-  // code keeps the standard $490 annual with its free month up front.
+  // exactly what the card promised ("then $261/yr").
+  // Only 3-month (90-day) codes earn the $261 annual; a 30-day welcome
+  // code keeps the standard $290 annual with its free month up front.
   if (promo && plan === "founding_annual" && promo.trial_days >= 90) {
     const promoAnnual = process.env.STRIPE_PRICE_FOUNDING_ANNUAL_PROMO;
     if (!promoAnnual) {

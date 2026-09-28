@@ -125,7 +125,7 @@ function buildHtml(
   <p style="color:#3B4A55;line-height:1.55;font-size:15px;">
     Your ASN ${escapeHtml(opts.roleLabel)} trial ends on <strong>${escapeHtml(dateStr)}</strong>. On that
     day Stripe will charge the card on file for the first paid month at
-    $49. If the card has expired or changed, update it now so your
+    $39. If the card has expired or changed, update it now so your
     listing doesn't get suspended.
   </p>
   <div style="background:#F7EED9;border:1px solid #D9A84B;border-radius:8px;padding:14px;margin:20px 0;">
@@ -155,7 +155,7 @@ function buildText(
   return `Heads-up, ${opts.firstName}: your free trial ends ${endsWords(opts.daysLeft)}.
 
 Your ASN ${opts.roleLabel} trial ends on ${dateStr}. On that day Stripe will
-charge the card on file for the first paid month at $49. If the card
+charge the card on file for the first paid month at $39. If the card
 has expired or changed, update it now so your listing doesn't get
 suspended.
 

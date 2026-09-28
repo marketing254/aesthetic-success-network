@@ -69,8 +69,8 @@ function loadTemplate(role: FoundingAgreementPdfInput["role"]): Promise<string> 
 export type FoundingAgreementPdfInput = {
   role: "partner" | "expert" | "both";
   /**
-   * Price plan (0066). "ladder" (the ASN default) prints the $0 → $49 →
-   * $199 ramp with the annual pre-pay line; "flat_49" prints the flat $49
+   * Price plan (0066). "ladder" (the ASN default) prints the $0 → $39 →
+   * $199 ramp with the annual pre-pay line; "flat_49" prints the flat $39
    * plan. ASN experts follow the same ramp as partners, so every template
    * carries a {{RAMP_BLOCK}}.
    */
@@ -101,12 +101,12 @@ function rampBlockHtml(pricing: FoundingAgreementPdfInput["pricing"]): string {
   const mo = `<span style="font-size:9pt;color:#5C6B7A;">/mo</span>`;
   if (pricing === "flat_49") {
     return (
-      `<div class="ramp">${step("$0", "Months 1 to 6")}${step(`$49${mo}`, "Month 7 onward")}</div>` +
-      `<p style="font-size:9pt;color:#5C6B7A;">Your rate stays at $49 a month for as long as your membership stays continuously active. You&#39;ll see this on the sign-up page before you pay.</p>`
+      `<div class="ramp">${step("$0", "Months 1 to 6")}${step(`$39${mo}`, "Month 7 onward")}</div>` +
+      `<p style="font-size:9pt;color:#5C6B7A;">Your rate stays at $39 a month for as long as your membership stays continuously active. You&#39;ll see this on the sign-up page before you pay.</p>`
     );
   }
   return (
-    `<div class="ramp">${step("$0", "Months 1 to 6")}${step(`$49${mo}`, "Months 7 to 12")}${step(`$199${mo}`, "Month 13 onward &middot; standard")}</div>` +
+    `<div class="ramp">${step("$0", "Months 1 to 6")}${step(`$39${mo}`, "Months 7 to 12")}${step(`$199${mo}`, "Month 13 onward &middot; standard")}</div>` +
     `<p style="font-size:9pt;color:#5C6B7A;">Annual pre-pay = 2 months free. You&#39;ll see this on the sign-up page before you pay.</p>`
   );
 }

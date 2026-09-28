@@ -34,14 +34,14 @@ export const metadata: Metadata = {
     template: "%s | Aesthetic Success Network",
   },
   description:
-    "A membership network for aesthetic practice owners. The Expert Hotline returns a written action plan in 2 to 3 business days, vetted partners give you member-only deals, and new expert kits arrive weekly. Founding rate $49/mo, locked while your membership stays active.",
+    "A membership network for aesthetic practice owners. The Expert Hotline returns a written action plan in 2 to 3 business days, vetted partners give you member-only deals, and new expert kits arrive weekly. Founding rate $29/mo, locked while your membership stays active.",
   alternates: { canonical: "/" },
   openGraph: {
     type: "website",
     siteName: "Aesthetic Success Network",
     title: "Aesthetic Success Network: Every practice problem, answered in writing",
     description:
-      "Expert Hotline with written action plans in 2 to 3 business days, member-only partner deals, a curated resource library with new kits weekly, and monthly live AMAs and CE. Founding rate $49/mo for the first 100 members.",
+      "Expert Hotline with written action plans in 2 to 3 business days, member-only partner deals, a curated resource library with new kits weekly, and monthly live AMAs and CE. Founding rate $29/mo for the first 100 members.",
     images: [
       {
         url: "/og-image.png",

@@ -29,10 +29,10 @@ export const brand = {
 export const founding = {
   totalSpots: 100,
   spotsClaimed: 0,
-  priceMonthly: 49,
-  priceRegular: 199,
-  priceAnnual: 490,
-  annualNote: "Pay for 10 months, get 12, save $98/year",
+  priceMonthly: 29,
+  priceRegular: 99,
+  priceAnnual: 290,
+  annualNote: "Pay for 10 months, get 12, save $58/year",
 };
 
 // HERO
@@ -56,7 +56,7 @@ export const marqueeBadges = [
   "Curated Resource Library",
   "Proven Systems & SOPs",
   "Monthly Live AMAs & CE",
-  "Founding rate $49/mo, locked while active",
+  "Founding rate $29/mo, locked while active",
 ];
 
 // FEATURES: "Why This Network Works"
@@ -90,7 +90,7 @@ export const features = [
   {
     title: "Founding Pricing",
     summary:
-      "The first 100 founding members lock in $49/month for as long as their membership stays active. After the founding hundred, the standard rate is $199/month.",
+      "The first 100 founding members lock in $29/month for as long as their membership stays active. After the founding hundred, the standard rate is $99/month.",
     icon: "infinity",
   },
 ];
@@ -119,11 +119,11 @@ export const waitlist = {
 export const waitlistByRole = {
   member: {
     eyebrow: "FOUNDING MEMBER",
-    headline: "Lock in the $49/month founding rate. First 100 only.",
+    headline: "Lock in the $29/month founding rate. First 100 only.",
     subtitle:
       "The waitlist is how we onboard the founding cohort before launch. Get a guaranteed spot, the founding rate, and first access to every feature we ship.",
     benefits: [
-      "$49/month founding rate, never increases while your membership stays active",
+      "$29/month founding rate, never increases while your membership stays active",
       "Expert Hotline: leave a voicemail, get a written action plan by text and email within 2 to 3 business days",
       "Member-only company deals from vetted vendors, no per-deal commissions",
       "Cancel anytime, in two clicks, from your account page",
@@ -144,7 +144,7 @@ export const ctaForm = {
   rightSubtitle: "Clear form, real human on the other side.",
   reassurances: [
     "We do not store any patient data. Ever.",
-    "$49/mo founding rate stays as long as your membership is active.",
+    "$29/mo founding rate stays as long as your membership is active.",
     "Cancel anytime, in two clicks, from your account page.",
   ],
 };
@@ -174,7 +174,7 @@ export const faqs = [
   },
   {
     q: "How does the founding rate work?",
-    a: "The first 100 members lock in $49/month for as long as their membership stays active. After the founding hundred, the standard rate is $199/month. There is also an annual option: $490/year for founding members (pay for 10 months, get 12, save $98). Your locked rate never increases while you're a member. Cancel anytime.",
+    a: "The first 100 members lock in $29/month for as long as their membership stays active. After the founding hundred, the standard rate is $99/month. There is also an annual option: $290/year for founding members (pay for 10 months, get 12, save $58). Your locked rate never increases while you're a member. Cancel anytime.",
   },
   {
     q: "How do the company deals save me money?",
@@ -291,7 +291,7 @@ export const pricingSection = {
   eyebrow: "MEMBERSHIP",
   title: "One membership. One price. First 100 get the founding rate.",
   subtitle:
-    "No tiers to decode, no upsell ladder. The first 100 founding members pay $49/month, locked at that rate for as long as their membership stays active. After that, it's $199.",
+    "No tiers to decode, no upsell ladder. The first 100 founding members pay $39/month, locked at that rate for as long as their membership stays active. After that, it's $199.",
   bottomNote:
     "Cancel anytime, in two clicks. Founding-member rate stays as long as your membership is active.",
 };
@@ -300,9 +300,9 @@ export const pricing = [
   {
     tier: "Member",
     audience: "Aesthetic practice owners and practitioners",
-    price: "$49",
+    price: "$29",
     cadence: "/month, founding rate",
-    regularNote: "Regular price will be $199/month after founding spots fill",
+    regularNote: "Regular price will be $99/month after founding spots fill",
     blurb:
       "Full access to every feature in the Aesthetic Success Network. The same membership everyone gets, at a rate that never goes up.",
     features: [
@@ -321,7 +321,7 @@ export const pricing = [
     tier: "Company",
     audience: "Devices, injectables, skincare, software, services",
     price: "Apply",
-    cadence: "Founding cohort: $0 for 6 months, then $49/mo, then $199/mo from month 13",
+    cadence: "Founding cohort: $0 for 6 months, then $39/mo, then $199/mo from month 13",
     blurb:
       "Get in front of aesthetics' most engaged buyers through a trusted shortlist instead of a cold ad. Profile and placement in your category, lead flow, and a Verified Company badge.",
     features: [

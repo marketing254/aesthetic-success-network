@@ -14,13 +14,13 @@ const MotionBox = motion.create(Box);
 
 // Model ported from the approved ASN home page ("Do the math"):
 //   savings = monthly vendor spend x 12 x discount%  +  questions x $150
-//   net     = savings - $588 (founding membership, $49 x 12)
-//   mult    = savings / $588, shown to one decimal
+//   net     = savings - $348 (founding membership, $29 x 12)
+//   mult    = savings / $348, shown to one decimal
 // Defaults ($5,000 / 8% / 4 questions) must render $4,812 and 9.2x. Every
 // assumption is disclosed in visible text below the result, and a negative
 // result is shown as a negative number, never clamped.
 const HOTLINE_VALUE = 150; // estimated consulting value per Hotline question (our assumption)
-const MEMBERSHIP_COST = 588; // $49 x 12
+const MEMBERSHIP_COST = 588; // $29 x 12
 
 function money(n: number) {
   const abs = Math.abs(Math.round(n)).toLocaleString("en-US");
@@ -90,7 +90,7 @@ export default function ROICalculator() {
                 Set your own assumptions. If the deals alone don&apos;t clear the membership cost, don&apos;t join. That&apos;s the honest test.
               </Typography>
               <Typography sx={{ color: "#A8A29E", fontSize: "0.82rem", lineHeight: 1.6, pt: 0.5 }}>
-                How this is calculated: your monthly vendor spend × 12 × your chosen discount, plus ${HOTLINE_VALUE} of estimated consulting value per Hotline question (our assumption, not a promise), minus the ${MEMBERSHIP_COST} annual founding fee ($49 × 12). Estimates only. Actual savings depend on the deals partners commit to and how much you use the network. Results can be negative, and no results are guaranteed.
+                How this is calculated: your monthly vendor spend × 12 × your chosen discount, plus ${HOTLINE_VALUE} of estimated consulting value per Hotline question (our assumption, not a promise), minus the ${MEMBERSHIP_COST} annual founding fee ($29 × 12). Estimates only. Actual savings depend on the deals partners commit to and how much you use the network. Results can be negative, and no results are guaranteed.
               </Typography>
             </Stack>
           </Grid>
@@ -192,7 +192,7 @@ export default function ROICalculator() {
                     {money(net)}
                   </Typography>
                   <Typography sx={{ color: "#A8A29E", fontSize: "0.78rem", mt: 0.75 }}>
-                    vs ${MEMBERSHIP_COST}/yr founding membership ($49 × 12): {mult.toLocaleString("en-US")}× your cost
+                    vs ${MEMBERSHIP_COST}/yr founding membership ($29 × 12): {mult.toLocaleString("en-US")}× your cost
                   </Typography>
                   <Typography sx={{ color: "#71717A", fontSize: "0.72rem", mt: 0.75 }}>
                     Estimate only. Assumes {money(spend)} × 12 × {discount}% in partner savings plus {questions} × ${HOTLINE_VALUE} of Hotline value, minus ${MEMBERSHIP_COST}.

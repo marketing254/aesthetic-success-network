@@ -15,17 +15,17 @@ import type { SvgIconComponent } from "@mui/icons-material";
  * FoundingCard — the member pricing card, built to the 18 Aug 2026 spec
  * ("Pricing card: full build spec"). TWO STATES, never mixed:
  *
- *   State 1 (no code):    anchor price struck, $49/mo or $441/yr, lock
+ *   State 1 (no code):    anchor price struck, $29/mo or $261/yr, lock
  *                         chip, "No trial — 30-day money-back guarantee"
  *                         fine print, CTA "Claim your founding rate".
  *   State 2 (code applied): gold applied chip at the TOP of the price
- *                         block, "$0 due today / then $49/mo from <date>"
+ *                         block, "$0 due today / then $29/mo from <date>"
  *                         with the REAL first-charge date, trial fine
  *                         print, CTA "Start my 3 months free", reminder
  *                         disclosure under the button.
  *
  * Seat counter stays hidden until fewer than 60 of 100 founding seats
- * remain. Annual is $441 (9 months buys 12 — permanent rate, not intro).
+ * remain. Annual is $261 (9 months buys 12 — permanent rate, not intro).
  * No video-tour link anywhere on this card.
  */
 
@@ -89,16 +89,16 @@ const TIER_HEAD: Record<TierKey, { title: string; sub: string }> = {
   standard: { title: "Standard", sub: "Full membership" },
 };
 
-// FINAL pricing decision (18 Aug 2026): standard annual is $490; when a
-// 3-month code is applied the annual becomes $441 after the free months.
-// The $441 Stripe Price lives in STRIPE_PRICE_FOUNDING_ANNUAL_PROMO and
+// FINAL pricing decision (18 Aug 2026): standard annual is $290; when a
+// 3-month code is applied the annual becomes $261 after the free months.
+// The $261 Stripe Price lives in STRIPE_PRICE_FOUNDING_ANNUAL_PROMO and
 // is used ONLY for promo-annual checkouts.
 const PRICES: Record<TierKey, { mo: string; yr: string }> = {
-  founding: { mo: "$49", yr: "$490" },
-  early: { mo: "$199", yr: "$1,990" },
-  standard: { mo: "$199", yr: "$1,990" },
+  founding: { mo: "$29", yr: "$290" },
+  early: { mo: "$99", yr: "$990" },
+  standard: { mo: "$99", yr: "$990" },
 };
-const FOUNDING_PROMO_ANNUAL = "$441";
+const FOUNDING_PROMO_ANNUAL = "$261";
 
 function firstChargeDate(trialDays: number): string {
   const d = new Date(Date.now() + trialDays * 24 * 60 * 60 * 1000);
@@ -134,7 +134,7 @@ export default function FoundingCard({
   // welcome codes vs 90-day partner/expert codes).
   const freeMonths = applied ? Math.max(1, Math.round(applied.trialDays / 30)) : 0;
   const freeLabel = `${freeMonths} month${freeMonths === 1 ? "" : "s"} free`;
-  // The $441 promo-annual price is a 3-month-code deal only.
+  // The $261 promo-annual price is a 3-month-code deal only.
   const promoAnnual = !!applied && applied.trialDays >= 90;
   const finalCta = applied ? (freeMonths === 1 ? "Start my free month" : `Start my ${freeMonths} months free`) : ctaLabel;
   // Scarcity counter only once it means something: under 60 seats left.
@@ -226,7 +226,7 @@ export default function FoundingCard({
               ) : tier === "founding" && promoAnnual ? (
                 <>
                   <Box component="span" sx={{ textDecoration: "line-through", color: TXT_MUTED, mr: 0.75 }}>
-                    $490
+                    $290
                   </Box>
                   then {FOUNDING_PROMO_ANNUAL}/yr from {chargeDate}
                 </>
@@ -243,7 +243,7 @@ export default function FoundingCard({
           <>
             {tier === "founding" && interval === "monthly" && (
               <Typography sx={{ fontSize: "1rem", color: TXT_MUTED, textDecoration: "line-through", textDecorationColor: "rgba(244,241,234,0.45)", mb: 0.25 }}>
-                $199 /mo
+                $99 /mo
               </Typography>
             )}
             <Stack direction="row" spacing={0.75} sx={{ justifyContent: "center", alignItems: "baseline" }}>
@@ -273,8 +273,8 @@ export default function FoundingCard({
                 }}
               >
                 {interval === "monthly"
-                  ? "Locked for life at $49, even when it goes to $199"
-                  : "Locked for life at $490, even when it goes to $199/mo equivalent"}
+                  ? "Locked for life at $29, even when it goes to $99"
+                  : "Locked for life at $290, even when it goes to $99/mo equivalent"}
               </Box>
             )}
             <Typography sx={{ fontSize: "0.76rem", color: TXT_MUTED, mt: 1.5 }}>

@@ -48,7 +48,7 @@ export default function ReviewsPage() {
           <p className="lead">
             The Expert Hotline, the resource library of expert kits, member-only company offers
             and the tools are all listed on the pricing page, with a 30-day money-back guarantee.
-            Founding membership is $49 a month for the first 100 members.
+            Founding membership is $29 a month for the first 100 members.
           </p>
           <div className="cta-row" style={{ display: "flex", justifyContent: "center", gap: 14, flexWrap: "wrap", marginTop: 28 }}>
             <Link className="btn bronze" href="/pricing">

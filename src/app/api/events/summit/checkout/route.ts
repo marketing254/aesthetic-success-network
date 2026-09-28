@@ -18,7 +18,7 @@ export const dynamic = "force-dynamic";
  * price, no promo input, embedded Stripe, webhook-only activation), with
  * three differences:
  *
- *   1. The offer is the campaign's $0 → 30-day trial → $49/month. The
+ *   1. The offer is the campaign's $0 → 30-day trial → $29/month. The
  *      trial is attached SERVER-SIDE from SUMMIT.trialDays; the browser
  *      cannot ask for it, lengthen it, or swap the plan.
  *   2. The Zoom registration questions are collected here and stored on

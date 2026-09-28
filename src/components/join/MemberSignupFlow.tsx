@@ -506,7 +506,7 @@ export default function MemberSignupFlow({
         ) : (
           step === 0 && (
             <Typography sx={{ mt: 2.5, fontSize: "0.8rem", color: SOFT, textAlign: "center" }}>
-              Founding 100 · $49 a month, locked for life · cancel anytime
+              Founding 100 · $29 a month, locked for life · cancel anytime
             </Typography>
           )
         )}
@@ -567,7 +567,7 @@ export default function MemberSignupFlow({
       title: offerN > 0 ? `${monthsPhrase(offerN)} free` : "Your portal opens",
       text:
         offerN > 0
-          ? `Everything unlocks now. $49 a month starts in month ${numberWord(offerN + 1)}.`
+          ? `Everything unlocks now. $29 a month starts in month ${numberWord(offerN + 1)}.`
           : "Everything unlocks as soon as payment is confirmed.",
     },
   ];
@@ -849,8 +849,8 @@ export default function MemberSignupFlow({
           <span>Aesthetic Success Network · Powered by Business of Aesthetics</span>
           <span>
             {offerN > 0
-              ? `$49 a month after ${numberWord(offerN)} month${offerN === 1 ? "" : "s"}. Cancel any time.`
-              : "$49 a month. Cancel any time."}
+              ? `$29 a month after ${numberWord(offerN)} month${offerN === 1 ? "" : "s"}. Cancel any time.`
+              : "$29 a month. Cancel any time."}
           </span>
           <Box component="a" href="mailto:support@aestheticsuccessnetwork.com" sx={{ color: MUTED, textDecoration: "none", "&:hover": { color: INK } }}>
             support@aestheticsuccessnetwork.com

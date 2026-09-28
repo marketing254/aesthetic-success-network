@@ -18,7 +18,7 @@ import { initMetaPixel, trackMeta } from "@/components/ads/metaPixel";
  *
  * The live form collects exactly the Zoom registration questions plus the
  * recurring-billing agreement, then opens Stripe's EMBEDDED checkout for
- * the campaign offer ($0 today, 30-day trial, then $49/month). Nothing
+ * the campaign offer ($0 today, 30-day trial, then $29/month). Nothing
  * here grants access: the server creates the registration as pending,
  * and only the verified Stripe webhook can entitle it and trigger Zoom.
  */
@@ -253,7 +253,7 @@ export default function SummitLandingView({ event = DEFAULT_EVENT }: { event?: S
               <p><span>✓</span> Live summit access</p>
               <p><span>✓</span> ASN Expert Hotline, expert kits and templates</p>
               <p><span>✓</span> Expert and partner directories and member offers</p>
-              <p><span>✓</span> $0 today. Then $49/month unless cancelled</p>
+              <p><span>✓</span> $0 today. Then $29/month unless cancelled</p>
             </div>
             <a className="cta hero-cta" href="#signup">Start my 30-day free trial ↗</a>
             <a className="membership-jump" href="#membership">What is included in my ASN membership? ↓</a>
@@ -266,7 +266,7 @@ export default function SummitLandingView({ event = DEFAULT_EVENT }: { event?: S
               <span className="trial-label">ASN MEMBERSHIP · 30-DAY TRIAL</span>
               <div className="trial-price">$0 <span>today</span></div>
               <p>
-                Then <strong>$49/month</strong>, billed monthly.<br />Cancel before the trial ends to avoid a charge.
+                Then <strong>$29/month</strong>, billed monthly.<br />Cancel before the trial ends to avoid a charge.
               </p>
               <div className="signup-includes">
                 <b>Your trial includes</b>
@@ -279,7 +279,7 @@ export default function SummitLandingView({ event = DEFAULT_EVENT }: { event?: S
                 <>
                   <h3 id="pay-head">Complete your free trial</h3>
                   <p className="pay-head">
-                    {form.email} · $0 today, then $49/month after 30 days.{" "}
+                    {form.email} · $0 today, then $29/month after 30 days.{" "}
                     <button type="button" onClick={() => setClientSecret(null)}>Edit details</button>
                   </p>
                   <div className="stripe-wrap">
@@ -345,7 +345,7 @@ export default function SummitLandingView({ event = DEFAULT_EVENT }: { event?: S
                     <label className="agree">
                       <input type="checkbox" checked={form.agree} onChange={(e) => set("agree", e.target.checked)} />
                       <span>
-                        I agree to the <Link href="/agreement/member" target="_blank" rel="noopener">Member Agreement</Link> and to recurring billing of $49/month after my 30-day trial unless I cancel first.
+                        I agree to the <Link href="/agreement/member" target="_blank" rel="noopener">Member Agreement</Link> and to recurring billing of $29/month after my 30-day trial unless I cancel first.
                       </span>
                     </label>
                     {error && (
@@ -393,7 +393,7 @@ export default function SummitLandingView({ event = DEFAULT_EVENT }: { event?: S
             <div className="membership-close">
               <p>
                 <b>One summit. A full month to explore ASN.</b>
-                <span>After your trial, continue using ASN&apos;s support and resources for $49/month unless cancelled.</span>
+                <span>After your trial, continue using ASN&apos;s support and resources for $29/month unless cancelled.</span>
               </p>
               <a className="cta" href="#signup">Explore ASN with a free trial ↗</a>
             </div>
@@ -432,7 +432,7 @@ export default function SummitLandingView({ event = DEFAULT_EVENT }: { event?: S
             </div>
             <a className="cta" href="#signup">Start my free trial ↗</a>
             <p className="offer-terms">
-              <strong>$0 today.</strong> 30-day ASN trial. Then $49/month.<br />Card required. Cancel before the trial ends to avoid a charge.
+              <strong>$0 today.</strong> 30-day ASN trial. Then $29/month.<br />Card required. Cancel before the trial ends to avoid a charge.
             </p>
           </div>
         </section>
@@ -444,7 +444,7 @@ export default function SummitLandingView({ event = DEFAULT_EVENT }: { event?: S
           </div>
           <div>
             <details><summary>What does ASN membership include?</summary><p>Alongside access to this summit, your trial includes the Expert Hotline, a growing library of expert kits, practical tools and templates, curated expert and partner directories, and confirmed member offers. These ongoing membership benefits continue while your subscription stays active.</p></details>
-            <details><summary>What happens after the 30 days?</summary><p>Your ASN trial is $0 for 30 days, then $49/month unless cancelled before the trial ends. A card is required at checkout. Your exact first billing date is shown before you confirm, and you can cancel from your member portal at any time.</p></details>
+            <details><summary>What happens after the 30 days?</summary><p>Your ASN trial is $0 for 30 days, then $29/month unless cancelled before the trial ends. A card is required at checkout. Your exact first billing date is shown before you confirm, and you can cancel from your member portal at any time.</p></details>
             <details><summary>How do I get my summit access?</summary><p>Once your trial is active we register you for the live session and Zoom emails your personal join link, usually within a few minutes. The link is unique to you, so please don&apos;t forward it.</p></details>
             <details><summary>I&apos;m already an ASN member. Do I pay again?</summary><p>No. Sign in with your member email and we register you for the summit at no charge. Your existing membership is not changed.</p></details>
           </div>

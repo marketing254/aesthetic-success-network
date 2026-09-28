@@ -99,7 +99,7 @@ export default function AdminMembersPage() {
             Members & waitlist
           </Typography>
           <Typography sx={{ color: "text.secondary", maxWidth: 620 }}>
-            Active members appear here as they convert from the waitlist. The founding rate ($49, first 100 members) is locked at signup and never increases; everyone after that is Standard ($199).
+            Active members appear here as they convert from the waitlist. The founding rate ($29, first 100 members) is locked at signup and never increases; everyone after that is Standard ($99).
           </Typography>
         </Box>
       </Stack>
@@ -930,7 +930,7 @@ function Cell({ head, children }: { head?: boolean; children?: React.ReactNode }
 }
 
 function TierChip({ tier }: { tier: string | null }) {
-  // ASN tiers: Founding ($49) and Standard ($199). Any legacy value renders
+  // ASN tiers: Founding ($29) and Standard ($99). Any legacy value renders
   // in the neutral style.
   const raw = tier ?? "";
   const label = raw ? raw.charAt(0).toUpperCase() + raw.slice(1) : "None";

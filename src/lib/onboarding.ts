@@ -131,11 +131,11 @@ function renderWelcome(
   foundingNumber: number | null,
   interval: string | null = null,
 ): { subject: string; html: string } {
-  // Annual founding members pay $490/yr; everyone else on founding is $49/mo.
+  // Annual founding members pay $290/yr; everyone else on founding is $29/mo.
   const isAnnual = interval === "year" || interval === "annual";
   const rateLine = isAnnual
-    ? "Your rate is locked at $490 a year for as long as your membership stays active, even once it goes up for everyone who joins after you."
-    : "Your rate is locked at $49 a month for as long as your membership stays active, even once it goes up for everyone who joins after you.";
+    ? "Your rate is locked at $290 a year for as long as your membership stays active, even once it goes up for everyone who joins after you."
+    : "Your rate is locked at $29 a month for as long as your membership stays active, even once it goes up for everyone who joins after you.";
   const badge =
     foundingNumber !== null && foundingNumber <= 100
       ? `<div style="background:#FBF8F1;border:1px solid #D9A84B;border-radius:10px;padding:14px 18px;margin:0 0 16px;text-align:center;">
@@ -481,7 +481,7 @@ async function postNoMatchToSlack(
 
 function renderTrialReminder(opts: {
   firstName: string;
-  amountLabel: string; // e.g. "$49/mo" or "$441/yr"
+  amountLabel: string; // e.g. "$29/mo" or "$261/yr"
   chargeDate: string; // formatted
 }): { subject: string; html: string } {
   const body = `<p style="margin:0 0 14px;">Hi ${escapeHtml(opts.firstName)},</p>
@@ -507,15 +507,15 @@ ${SIGNATURE}`;
 }
 
 /**
- * Amount label per tier. ASN has two prices: founding ($49/mo, or the
- * $441/yr promo-annual) and standard ($199/mo, $1,990/yr). There is no
+ * Amount label per tier. ASN has two prices: founding ($29/mo, or the
+ * $261/yr promo-annual) and standard ($99/mo, $990/yr). There is no
  * $99 tier; the legacy "early" plan key maps to the standard amounts so
  * an old row can never crash the cron.
  */
 const TIER_AMOUNT: Record<string, { monthly: string; annual: string }> = {
-  founding: { monthly: "$49/mo", annual: "$441/yr" },
-  standard: { monthly: "$199/mo", annual: "$1,990/yr" },
-  early: { monthly: "$199/mo", annual: "$1,990/yr" },
+  founding: { monthly: "$29/mo", annual: "$261/yr" },
+  standard: { monthly: "$99/mo", annual: "$990/yr" },
+  early: { monthly: "$99/mo", annual: "$990/yr" },
 };
 
 /**

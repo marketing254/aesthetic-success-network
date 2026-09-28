@@ -147,7 +147,7 @@ export const planTiers: PlanTier[] = [
       "Everything in Pro",
       "Founding-member badge",
       "Direct line to product team",
-      "$49/mo founding rate, never increases while active",
+      "$29/mo founding rate, never increases while active",
     ],
     highlight: true,
     ctaLabel: "Current plan",
