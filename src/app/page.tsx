@@ -76,7 +76,8 @@ export default function HomePage() {
           <div>
             <span className="eyebrow">For aesthetic practice owners</span>
             <h1>
-              Every practice problem gets a <em>written action plan</em> in 2 to 3 business days.
+              Every practice problem gets a <em>written action plan</em> instantly from a vetted
+              community of experts and companies.
             </h1>
             <p className="sub">
               The Expert Hotline routes your toughest questions to the right people. Vetted
@@ -450,7 +451,7 @@ export default function HomePage() {
               </div>
               <div className="cap">Locked while your membership stays active.</div>
               <ul>
-                <li>The Expert Hotline, with written plans in 2 to 3 business days</li>
+                <li>The Expert Hotline</li>
                 <li>Full resource library, new kits weekly</li>
                 <li>Every member-only company deal</li>
                 <li>Monthly live AMAs and CE</li>
