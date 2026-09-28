@@ -1,197 +1,172 @@
 import { NextResponse } from "next/server";
 import { getSupabaseAdmin } from "@/lib/supabase/server";
 import { requireAdmin } from "@/lib/auth/guards";
-import { writeAudit } from "@/lib/audit";
-import { errMessage } from "@/lib/errMessage";
-import { asString } from "@/lib/forms/request";
+import { apiError, serverError } from "@/lib/api/errorResponse";
+import { ensurePromoCodesForOwners, isMissingPromoTables, promoBaseFromName } from "@/lib/promoCodes";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
-/** Derive an uppercase, alphanumeric-only code from free text, capped at maxLen. */
-function deriveCode(source: string, maxLen = 10): string {
-  const base = source.toUpperCase().replace(/[^A-Z0-9]/g, "").slice(0, maxLen);
-  return base || "CODE";
-}
-
-function randomSuffix(len = 3): string {
-  return Math.random()
-    .toString(36)
-    .toUpperCase()
-    .replace(/[^A-Z0-9]/g, "")
-    .padEnd(len, "X")
-    .slice(0, len);
-}
+/**
+ * Admin console — member promotional codes.
+ *
+ *   GET    → ensure every expert/partner has a code (idempotent sweep),
+ *            then list all codes with owner names + redemption counts.
+ *   POST   → { label, code?, trial_days? } — create a TEAM code (no owner),
+ *            e.g. TEAM10. Starts inactive.
+ *   PATCH  → { id, action: "activate" | "deactivate" }.
+ *
+ * A code only works at member checkout while active. Deactivating takes
+ * effect immediately — the payment page rejects it on the next attempt.
+ */
 
 export async function GET() {
   const guard = await requireAdmin();
   if (!guard.ok) return guard.response;
+  const route = "GET /api/admin/promo-codes";
 
   try {
-    const supabase = getSupabaseAdmin();
-    const [codesRes, expertsRes, partnersRes] = await Promise.all([
-      supabase
-        .from("promo_codes")
-        .select(
-          "id, code, label, discount_description, expert_application_id, partner_application_id, active, expires_at, max_redemptions, redemption_count, created_by, created_at, updated_at",
-        )
-        .order("created_at", { ascending: false })
-        .limit(500),
-      supabase
-        .from("expert_applications")
-        .select("id, full_name, company")
-        .eq("status", "approved"),
-      supabase
-        .from("partner_applications")
-        .select("id, company_name, contact_name")
-        .eq("status", "approved"),
+    const sb = getSupabaseAdmin();
+    const created = await ensurePromoCodesForOwners();
+
+    const { data: codes, error } = await sb
+      .from("member_promo_codes")
+      .select("id, code, label, expert_id, vendor_id, active, trial_days, max_uses, created_at")
+      .order("created_at", { ascending: false });
+    if (error) throw error;
+
+    const expertIds = (codes ?? []).map((c) => c.expert_id).filter(Boolean) as string[];
+    const vendorIds = (codes ?? []).map((c) => c.vendor_id).filter(Boolean) as string[];
+    const [{ data: experts }, { data: vendors }, { data: redemptions }] = await Promise.all([
+      expertIds.length
+        ? sb.from("experts").select("id, display_name, full_name").in("id", expertIds)
+        : Promise.resolve({ data: [] as { id: string; display_name: string | null; full_name: string | null }[] }),
+      vendorIds.length
+        ? sb.from("vendors").select("id, display_name, company_name").in("id", vendorIds)
+        : Promise.resolve({ data: [] as { id: string; display_name: string | null; company_name: string | null }[] }),
+      sb.from("member_promo_redemptions").select("promo_code_id"),
     ]);
-    if (codesRes.error) throw codesRes.error;
-    if (expertsRes.error) throw expertsRes.error;
-    if (partnersRes.error) throw partnersRes.error;
+
+    const expertMap = new Map((experts ?? []).map((e) => [e.id, e.display_name || e.full_name || "(unnamed)"]));
+    const vendorMap = new Map((vendors ?? []).map((v) => [v.id, v.display_name || v.company_name || "(unnamed)"]));
+    const useCounts = new Map<string, number>();
+    for (const r of redemptions ?? []) {
+      useCounts.set(r.promo_code_id, (useCounts.get(r.promo_code_id) ?? 0) + 1);
+    }
 
     return NextResponse.json({
-      rows: codesRes.data ?? [],
-      experts: expertsRes.data ?? [],
-      partners: partnersRes.data ?? [],
+      created,
+      codes: (codes ?? []).map((c) => ({
+        id: c.id,
+        code: c.code,
+        label: c.label,
+        active: c.active,
+        trial_days: c.trial_days,
+        max_uses: c.max_uses,
+        created_at: c.created_at,
+        owner:
+          c.expert_id && c.vendor_id
+            ? {
+                kind: "both" as const,
+                name: `${expertMap.get(c.expert_id) ?? "(expert)"} · ${vendorMap.get(c.vendor_id) ?? "(partner)"}`,
+              }
+            : c.expert_id
+              ? { kind: "expert" as const, name: expertMap.get(c.expert_id) ?? "(unknown expert)" }
+              : c.vendor_id
+                ? { kind: "partner" as const, name: vendorMap.get(c.vendor_id) ?? "(unknown partner)" }
+                : { kind: "team" as const, name: c.label ?? "Team" },
+        uses: useCounts.get(c.id) ?? 0,
+      })),
     });
   } catch (err) {
-    return NextResponse.json({ error: errMessage(err) }, { status: 500 });
+    if (isMissingPromoTables(err)) {
+      return NextResponse.json(
+        { error: "Promo-code tables not found. Run supabase/migrations/0054_member_promo_codes.sql in the Supabase SQL editor first." },
+        { status: 503 },
+      );
+    }
+    return serverError(err, { route });
   }
 }
 
-/**
- * POST — mint a promo code. Body:
- *   { label, code?, discountDescription?, ownerType?: "expert"|"partner"|"team",
- *     ownerId?, expiresAt?, maxRedemptions? }
- * A code is auto-derived from the label when omitted, and de-duplicated
- * case-insensitively against the existing set (promo_codes_code_uidx).
- */
 export async function POST(req: Request) {
   const guard = await requireAdmin();
   if (!guard.ok) return guard.response;
+  const route = "POST /api/admin/promo-codes";
 
-  let body: Record<string, unknown>;
+  let body: { label?: string; code?: string; trial_days?: number };
   try {
-    body = (await req.json()) as Record<string, unknown>;
+    body = (await req.json()) as typeof body;
   } catch {
-    return NextResponse.json({ error: "Invalid JSON." }, { status: 400 });
+    return apiError.badRequest("Invalid JSON.", route);
   }
 
-  const label = asString(body.label);
-  if (label.length < 2) {
-    return NextResponse.json({ error: "Label must be at least 2 characters." }, { status: 400 });
+  const label = (body.label ?? "").trim();
+  if (label.length < 2) return apiError.badRequest("Add a label (who/what this code promotes).", route);
+  const code = (body.code ?? "").trim().toUpperCase() || promoBaseFromName(label);
+  if (!/^[A-Z0-9][A-Z0-9-]{1,15}[A-Z0-9]$/.test(code)) {
+    return apiError.badRequest("Codes are 3 to 17 letters/numbers, hyphens allowed inside (e.g. MAYA or MAYA-GLOW).", route);
   }
-
-  const ownerType = asString(body.ownerType) || "team";
-  if (!["expert", "partner", "team"].includes(ownerType)) {
-    return NextResponse.json({ error: "Invalid owner type." }, { status: 400 });
-  }
-  const ownerId = asString(body.ownerId) || null;
-  if ((ownerType === "expert" || ownerType === "partner") && !ownerId) {
-    return NextResponse.json({ error: "Choose an owner for that owner type." }, { status: 400 });
-  }
-
-  const discountDescription = asString(body.discountDescription) || null;
-
-  const expiresAtRaw = asString(body.expiresAt);
-  let expiresAt: string | null = null;
-  if (expiresAtRaw) {
-    const parsed = new Date(expiresAtRaw);
-    if (Number.isNaN(parsed.getTime())) {
-      return NextResponse.json({ error: "Invalid expiry date." }, { status: 400 });
-    }
-    expiresAt = parsed.toISOString();
-  }
-
-  const maxRedemptionsRaw = body.maxRedemptions;
-  let maxRedemptions: number | null = null;
-  if (maxRedemptionsRaw !== undefined && maxRedemptionsRaw !== null && maxRedemptionsRaw !== "") {
-    const n = Number(maxRedemptionsRaw);
-    if (!Number.isFinite(n) || n < 0) {
-      return NextResponse.json({ error: "Max redemptions must be a positive number." }, {
-        status: 400,
-      });
-    }
-    maxRedemptions = Math.trunc(n);
-  }
+  const trialDays = Number.isFinite(body.trial_days) ? Math.min(Math.max(Number(body.trial_days), 7), 365) : 90;
 
   try {
-    const supabase = getSupabaseAdmin();
-
-    let code = asString(body.code).toUpperCase().replace(/[^A-Z0-9]/g, "");
-    if (!code) code = deriveCode(label);
-
-    let finalCode = code;
-    for (let i = 0; i < 5; i++) {
-      const { data: clash } = await supabase
-        .from("promo_codes")
-        .select("id")
-        .ilike("code", finalCode)
-        .maybeSingle();
-      if (!clash) break;
-      finalCode = `${code}${randomSuffix()}`;
-    }
-
-    const { data: inserted, error } = await supabase
-      .from("promo_codes")
-      .insert({
-        code: finalCode,
-        label,
-        discount_description: discountDescription,
-        expert_application_id: ownerType === "expert" ? ownerId : null,
-        partner_application_id: ownerType === "partner" ? ownerId : null,
-        expires_at: expiresAt,
-        max_redemptions: maxRedemptions,
-        created_by: guard.adminId,
-      })
+    const sb = getSupabaseAdmin();
+    const { data: clash } = await sb
+      .from("member_promo_codes")
       .select("id")
+      .ilike("code", code)
+      .maybeSingle();
+    if (clash) return apiError.badRequest(`Code ${code} is already taken.`, route);
+
+    const { data: row, error } = await sb
+      .from("member_promo_codes")
+      .insert({ code, label, trial_days: trialDays, created_by: guard.adminId })
+      .select("id, code")
       .single();
     if (error) throw error;
-
-    await writeAudit(guard, "promo_code", inserted.id as string, "create", `code ${finalCode}`);
-    return NextResponse.json({ ok: true, id: inserted.id });
+    return NextResponse.json({ ok: true, id: row.id, code: row.code });
   } catch (err) {
-    if ((err as { code?: string })?.code === "23505") {
-      return NextResponse.json({ error: "That code is already taken. Try again." }, {
-        status: 409,
-      });
+    if (isMissingPromoTables(err)) {
+      return NextResponse.json(
+        { error: "Promo-code tables not found. Run migration 0054 first." },
+        { status: 503 },
+      );
     }
-    return NextResponse.json({ error: errMessage(err) }, { status: 500 });
+    return serverError(err, { route });
   }
 }
 
-/** PATCH { id, action: "activate" | "deactivate" } */
 export async function PATCH(req: Request) {
   const guard = await requireAdmin();
   if (!guard.ok) return guard.response;
+  const route = "PATCH /api/admin/promo-codes";
 
   let body: { id?: string; action?: string };
   try {
-    body = await req.json();
+    body = (await req.json()) as typeof body;
   } catch {
-    return NextResponse.json({ error: "Invalid JSON." }, { status: 400 });
+    return apiError.badRequest("Invalid JSON.", route);
   }
-
-  const allowed = ["activate", "deactivate"];
-  if (!body.id || !body.action || !allowed.includes(body.action)) {
-    return NextResponse.json({ error: "id and a valid action are required." }, { status: 400 });
+  if (!body.id || (body.action !== "activate" && body.action !== "deactivate")) {
+    return apiError.badRequest("id and a valid action are required.", route);
   }
 
   try {
-    const supabase = getSupabaseAdmin();
-    const { error } = await supabase
-      .from("promo_codes")
-      .update({
-        active: body.action === "activate",
-        updated_at: new Date().toISOString(),
-      })
+    const sb = getSupabaseAdmin();
+    const { data: existing } = await sb
+      .from("member_promo_codes")
+      .select("id, code")
+      .eq("id", body.id)
+      .maybeSingle();
+    if (!existing) return apiError.notFound(route);
+
+    const { error } = await sb
+      .from("member_promo_codes")
+      .update({ active: body.action === "activate", updated_at: new Date().toISOString() })
       .eq("id", body.id);
     if (error) throw error;
-
-    await writeAudit(guard, "promo_code", body.id, body.action);
     return NextResponse.json({ ok: true });
   } catch (err) {
-    return NextResponse.json({ error: errMessage(err) }, { status: 500 });
+    return serverError(err, { route });
   }
 }

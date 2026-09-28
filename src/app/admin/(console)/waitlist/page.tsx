@@ -1,7 +1,6 @@
 import { Box, Typography } from "@mui/material";
 import { getSupabaseAdmin } from "@/lib/supabase/server";
 import WaitlistTable, { type WaitlistRow, type Counts } from "./WaitlistTable";
-import { errMessage } from "@/lib/errMessage";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
@@ -13,7 +12,7 @@ async function loadData(): Promise<{ rows: WaitlistRow[]; counts: Counts; error:
       supabase
         .from("waitlist_signups")
         .select(
-          "id, email, first_name, last_name, phone, practice_name, practice_role, locations, challenge, agreement_accepted, agreement_accepted_at, source, status, created_at",
+          "id, role, email, full_name, practice_name, phone, city_state, message, source, status, created_at",
         )
         .order("created_at", { ascending: false })
         .limit(500),
@@ -24,14 +23,15 @@ async function loadData(): Promise<{ rows: WaitlistRow[]; counts: Counts; error:
 
     return {
       rows: (rowsRes.data ?? []) as WaitlistRow[],
-      counts: (countsRes.data ?? { total: 0, last_24h: 0, last_7d: 0 }) as Counts,
+      counts: (countsRes.data ?? { total: 0, members: 0, vendors: 0, last_24h: 0 }) as Counts,
       error: null,
     };
   } catch (err) {
+    const message = err instanceof Error ? err.message : "Unknown error";
     return {
       rows: [],
-      counts: { total: 0, last_24h: 0, last_7d: 0 },
-      error: errMessage(err),
+      counts: { total: 0, members: 0, vendors: 0, last_24h: 0 },
+      error: message,
     };
   }
 }
@@ -42,7 +42,7 @@ export default async function AdminWaitlistPage() {
   if (error) {
     return (
       <Box>
-        <Typography variant="overline" sx={{ color: "text.secondary", display: "block" }}>
+        <Typography variant="overline" sx={{ display: "block" }}>
           WAITLIST
         </Typography>
         <Typography variant="h2" sx={{ mt: 0.5, mb: 2, fontSize: { xs: "1.85rem", md: "2.5rem" } }}>
@@ -51,10 +51,10 @@ export default async function AdminWaitlistPage() {
         <Box
           sx={{
             p: 3,
-            borderRadius: "20px",
+            borderRadius: "18px",
             border: "1px solid",
             borderColor: "error.light",
-            bgcolor: "rgba(220,60,60,0.04)",
+            bgcolor: "rgba(140,29,29,0.04)",
           }}
         >
           <Typography sx={{ color: "error.main", fontWeight: 600, mb: 1 }}>
@@ -62,8 +62,8 @@ export default async function AdminWaitlistPage() {
           </Typography>
           <Typography variant="body2" sx={{ color: "text.secondary" }}>
             Set <code>NEXT_PUBLIC_SUPABASE_URL</code> and <code>SUPABASE_SERVICE_ROLE_KEY</code> in
-            <code> .env.local</code>, run the migrations in <code>supabase/migrations/</code>, then
-            restart the dev server. See <code>supabase/README.md</code>.
+            <code> .env.local</code>, then restart the dev server. See <code>SUPABASE_SETUP_GUIDE.md</code> in the
+            repo root for the 5-minute walkthrough.
           </Typography>
           <Typography variant="body2" sx={{ color: "text.disabled", mt: 1.5, fontSize: "0.78rem" }}>
             Detail: {error}

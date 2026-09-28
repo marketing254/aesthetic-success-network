@@ -2,22 +2,9 @@
 
 import { useRef, useState } from "react";
 import Link from "next/link";
+import { vendorCategories } from "@/lib/vendorData";
 
 type Status = "idle" | "busy" | "done";
-
-export const PARTNER_CATEGORIES = [
-  "Injectables & pharmaceuticals",
-  "Devices & equipment (lasers, energy-based)",
-  "Skincare & product lines",
-  "Practice-management software",
-  "Marketing & growth",
-  "Patient financing",
-  "Staffing & HR",
-  "Coaching & consulting",
-  "Continuing education",
-  "Accounting & CFO",
-  "Other",
-];
 
 export type PartnerFormDefaults = {
   contactName?: string;
@@ -26,16 +13,31 @@ export type PartnerFormDefaults = {
 };
 
 /**
- * Partner application form. Payload keys map 1:1 to POST /api/partner/apply
- * by default. `defaultValues` + `apiEndpoint` + `source` let an invite
- * page (/invite/[code]) reuse this exact form pre-filled, posting to the
- * invite-aware accept route instead. The logo file is collected for later
- * follow-up but not uploaded in this phase (matches the launch scope — no
- * storage bucket yet).
+ * Company application form (ASN design). Posts to DMN's POST /api/vendor/signup,
+ * which creates the vendors + vendor_applications rows (status pending_review),
+ * pre-creates the portal auth user and sends the sign-in link.
+ *
+ * Field mapping (see src/app/api/vendor/signup/route.ts):
+ *   company             -> companyName (required)
+ *   website             -> website (optional)
+ *   contact             -> contactName (required) and signatureName
+ *   role                -> signatureTitle (optional)
+ *   email               -> contactEmail (required)
+ *   phone               -> contactPhone (optional)
+ *   category (+other)   -> category ("Other: ..." when Other is chosen)
+ *   description         -> description (optional, up to 2000 chars)
+ *   deal                -> memberOffer (optional, up to 500 chars)
+ *   booking             -> calendarLink (optional)
+ *   billing             -> secondaryEmail (optional billing contact email)
+ *   role                -> contactRole (stored as contact_role)
+ *   terms checkbox      -> agreedToTerms + confirmedAuthority (one ASN checkbox)
+ *   planId              -> "founding" (the launch cohort ramp)
+ *   source              -> "partners-page" (or the value passed in)
+ * The route answers { success, applicationId, magicLinkSent, message } or { error }.
  */
 export default function PartnerForm({
   defaultValues,
-  apiEndpoint = "/api/partner/apply",
+  apiEndpoint = "/api/vendor/signup",
   source = "partners-page",
 }: {
   defaultValues?: PartnerFormDefaults;
@@ -59,20 +61,30 @@ export default function PartnerForm({
     setError(null);
 
     const fd = new FormData(form);
+    const s = (k: string) => String(fd.get(k) ?? "").trim();
+    const cat = s("category");
+    const categoryValue =
+      cat === "Other" && s("categoryOther") ? `Other: ${s("categoryOther")}`.slice(0, 120) : cat;
+
     const payload = {
-      companyName: String(fd.get("company") ?? ""),
-      website: String(fd.get("website") ?? ""),
-      contactName: String(fd.get("contact") ?? ""),
-      contactRole: String(fd.get("role") ?? ""),
-      email: String(fd.get("email") ?? ""),
-      phone: String(fd.get("phone") ?? ""),
-      category: String(fd.get("category") ?? ""),
-      categoryOther: String(fd.get("categoryOther") ?? ""),
-      description: String(fd.get("description") ?? ""),
-      memberDeal: String(fd.get("deal") ?? ""),
-      bookingLink: String(fd.get("booking") ?? ""),
-      billingContact: String(fd.get("billing") ?? ""),
-      agreementAccepted: fd.get("terms") === "on",
+      companyName: s("company"),
+      website: s("website") || undefined,
+      contactName: s("contact"),
+      contactEmail: s("email"),
+      contactPhone: s("phone") || undefined,
+      category: categoryValue || undefined,
+      description: s("description") || undefined,
+      memberOffer: s("deal") || undefined,
+      calendarLink: s("booking") || undefined,
+      secondaryEmail: s("billing") || undefined,
+      signatureName: s("contact"),
+      signatureTitle: s("role") || undefined,
+      contactRole: s("role") || undefined,
+      agreedToTerms: fd.get("terms") === "on",
+      confirmedAuthority: fd.get("terms") === "on",
+      alsoExpert: false,
+      smsConsent: false,
+      planId: "founding",
       source,
     };
 
@@ -83,17 +95,17 @@ export default function PartnerForm({
         body: JSON.stringify(payload),
       });
       const body = (await res.json().catch(() => ({}))) as {
+        success?: boolean;
         ok?: boolean;
-        duplicate?: boolean;
         message?: string;
         error?: string;
       };
-      if (!res.ok || !body.ok) {
+      if (!res.ok || !(body.success || body.ok)) {
         setError(body.error ?? "Could not submit your application. Please try again in a moment.");
         setStatus("idle");
         return;
       }
-      if (body.duplicate && body.message) setThanksMsg(body.message);
+      if (body.message) setThanksMsg(body.message);
       setStatus("done");
       setTimeout(
         () => thanksRef.current?.scrollIntoView({ behavior: "smooth", block: "center" }),
@@ -110,7 +122,7 @@ export default function PartnerForm({
       <div className="thanks" ref={thanksRef}>
         <h3>Application received.</h3>
         <p>
-          {thanksMsg ?? "Thanks! We review every partner for fit, and we'll be in touch soon."}
+          {thanksMsg ?? "Thanks! We review every company for fit, and we'll be in touch soon."}
         </p>
       </div>
     );
@@ -118,11 +130,21 @@ export default function PartnerForm({
 
   return (
     <form className="netform" id="applyForm" noValidate onSubmit={onSubmit}>
-      {error && <div className="formerror" role="alert">{error}</div>}
+      {error && (
+        <div className="formerror" role="alert">
+          {error}
+        </div>
+      )}
       <div className="frow">
         <div className="field">
           <label htmlFor="p-company">Company name</label>
-          <input id="p-company" name="company" required autoComplete="organization" defaultValue={defaultValues?.companyName} />
+          <input
+            id="p-company"
+            name="company"
+            required
+            autoComplete="organization"
+            defaultValue={defaultValues?.companyName}
+          />
         </div>
         <div className="field">
           <label htmlFor="p-website">Website</label>
@@ -132,7 +154,13 @@ export default function PartnerForm({
       <div className="frow">
         <div className="field">
           <label htmlFor="p-contact">Contact name</label>
-          <input id="p-contact" name="contact" required autoComplete="name" defaultValue={defaultValues?.contactName} />
+          <input
+            id="p-contact"
+            name="contact"
+            required
+            autoComplete="name"
+            defaultValue={defaultValues?.contactName}
+          />
         </div>
         <div className="field">
           <label htmlFor="p-role">Role</label>
@@ -142,7 +170,14 @@ export default function PartnerForm({
       <div className="frow">
         <div className="field">
           <label htmlFor="p-email">Email</label>
-          <input id="p-email" type="email" name="email" required autoComplete="email" defaultValue={defaultValues?.email} />
+          <input
+            id="p-email"
+            type="email"
+            name="email"
+            required
+            autoComplete="email"
+            defaultValue={defaultValues?.email}
+          />
         </div>
         <div className="field">
           <label htmlFor="p-phone">Phone</label>
@@ -158,7 +193,7 @@ export default function PartnerForm({
           onChange={(e) => setCategory(e.target.value)}
         >
           <option value="">Select</option>
-          {PARTNER_CATEGORIES.map((c) => (
+          {vendorCategories.map((c) => (
             <option key={c}>{c}</option>
           ))}
         </select>
@@ -176,11 +211,13 @@ export default function PartnerForm({
       )}
       <div className="field">
         <label htmlFor="p-desc">Short company description</label>
-        <textarea id="p-desc" name="description" />
+        <textarea id="p-desc" name="description" maxLength={2000} />
       </div>
       <div className="field">
-        <label htmlFor="p-deal">The member deal you&rsquo;ll offer (discount or exclusive benefit)</label>
-        <textarea id="p-deal" name="deal" />
+        <label htmlFor="p-deal">
+          The member deal you&rsquo;ll offer (discount or exclusive benefit)
+        </label>
+        <textarea id="p-deal" name="deal" maxLength={500} />
       </div>
       <div className="frow">
         <div className="field">
@@ -188,24 +225,24 @@ export default function PartnerForm({
           <input id="p-booking" type="url" name="booking" placeholder="https://" />
         </div>
         <div className="field">
-          <label htmlFor="p-billing">Billing contact (after free period)</label>
-          <input id="p-billing" name="billing" />
+          <label htmlFor="p-billing">Billing contact email (after free period)</label>
+          <input id="p-billing" type="email" name="billing" />
         </div>
       </div>
-      <div className="field">
-        <label htmlFor="p-logo">Logo (optional)</label>
-        <input id="p-logo" type="file" name="logo" accept="image/*" />
-      </div>
       <label className="check">
-        <input type="checkbox" name="terms" required /> I agree to the{" "}
-        <Link href="/provider-agreement">five Partner commitments and the fee terms</Link> after
-        month 6.
+        <input type="checkbox" name="terms" required /> I am authorized to commit my company and I agree to the{" "}
+        <Link href="/agreement/provider">Provider Agreement</Link> (
+        <a href="/agreements/asn-provider-agreement.pdf" target="_blank" rel="noopener noreferrer">
+          PDF
+        </a>
+        ).
       </label>
       <button className="btn bronze" type="submit" disabled={status === "busy"}>
-        {status === "busy" ? "Submitting…" : "Submit partner application"}
+        {status === "busy" ? "Submitting…" : "Submit company application"}
       </button>
       <div className="formnote">
-        Limited per category &middot; We review every partner for fit and reply personally.
+        Limited per category &middot; We review every company for fit and reply personally. Logos
+        are added in your company portal after you sign in.
       </div>
     </form>
   );

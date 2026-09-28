@@ -1,9 +1,12 @@
 import { createServerClient } from "@supabase/ssr";
 import type { NextRequest, NextResponse } from "next/server";
+import type { Database } from "./types";
 
 /**
- * Supabase client for next/middleware. Reads cookies off the incoming
- * request and writes refreshed cookies onto the outgoing response.
+ * Supabase client for use inside next/middleware. Reads cookies off the
+ * incoming request and writes refreshed cookies onto the outgoing
+ * response. Call `supabase.auth.getUser()` from the middleware to
+ * trigger an auto-refresh if the access token is close to expiry.
  */
 export function createMiddlewareSupabase(req: NextRequest, res: NextResponse) {
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
@@ -15,7 +18,7 @@ export function createMiddlewareSupabase(req: NextRequest, res: NextResponse) {
     );
   }
 
-  return createServerClient(url, anonKey, {
+  return createServerClient<Database>(url, anonKey, {
     cookies: {
       getAll() {
         return req.cookies.getAll().map(({ name, value }) => ({ name, value }));

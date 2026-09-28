@@ -1,117 +1,234 @@
-import Link from "next/link";
-import { Box, Chip, Grid, Paper, Stack, Typography } from "@mui/material";
-import { requirePortalPage } from "@/lib/auth/portal";
-import { listPublishedSops } from "@/lib/portal/data";
-import { errMessage } from "@/lib/errMessage";
-import { EmptyState, MigrationNotice, PageHeader, SectionCard } from "@/components/portal/ui";
-import { formatDate } from "@/lib/format";
+"use client";
 
-export const dynamic = "force-dynamic";
-export const revalidate = 0;
+import { useMemo, useState } from "react";
+import Link from "next/link";
+import Image from "next/image";
+import { isSupabaseImage } from "@/lib/images";
+import { Box, Chip, Stack, Typography } from "@mui/material";
+import PictureAsPdfOutlinedIcon from "@mui/icons-material/PictureAsPdfOutlined";
+import ArrowForwardRoundedIcon from "@mui/icons-material/ArrowForwardRounded";
+import { SOPS, type Sop } from "@/lib/sops";
+
+const INK = "#0A1A2F";
+const INK_SOFT = "#3B4A55";
+const INK_MUTED = "#7A8590";
+const GOLD = "#A07823";
+const LINE = "#E6DDCF";
 
 /**
- * /dashboard/systems — "Systems & SOPs".
+ * /dashboard/systems — the Systems tab: expert-approved SOPs and
+ * templates members can print and run with their team immediately.
  *
- * TD's Systems tab turned out to be a small, expert-approved library of
- * standard-operating-procedure documents members can run with their team
- * immediately — shorter and more prescriptive than an expert kit, and a
- * distinct content type from it. TD stores these as a hardcoded array
- * pointing at real uploaded PDFs in TD's own storage bucket, which ASN has
- * no equivalent assets for, so this ports as a real, admin-manageable
- * table (public.system_sops, 0026) seeded with original ASN content
- * instead of copying TD's files or its pdf.js viewer dependency.
+ * Each card is the SOP's approved duotone portal card (title + hook are
+ * part of the artwork, same treatment as kit cards); clicking it opens
+ * the in-portal reader at /dashboard/systems/[slug]. The expert's name
+ * links to their portal profile.
  */
-export default async function MemberSystemsPage() {
-  await requirePortalPage("member");
+export default function MemberSystemsPage() {
+  const [category, setCategory] = useState<string | null>(null);
 
-  let sops;
-  try {
-    sops = await listPublishedSops();
-  } catch (err) {
-    return (
-      <Box>
-        <PageHeader eyebrow="Operating playbooks" title="Systems & SOPs" />
-        <MigrationNotice detail={errMessage(err)} />
-      </Box>
-    );
-  }
-
-  const groups = new Map<string, typeof sops>();
-  for (const s of sops) {
-    const key = s.category ?? "General";
-    const bucket = groups.get(key) ?? [];
-    bucket.push(s);
-    groups.set(key, bucket);
-  }
-  const categories = Array.from(groups.keys()).sort();
+  const categories = useMemo(() => [...new Set(SOPS.map((s) => s.category))], []);
+  const shown = category ? SOPS.filter((s) => s.category === category) : SOPS;
 
   return (
-    <Box>
-      <PageHeader
-        eyebrow="Operating playbooks"
-        title="Systems & SOPs"
-        description="Short, run-it-today standard operating procedures your team can use immediately — scripts, checklists and handoffs, not full kits."
-      />
+    <Box sx={{ maxWidth: 1100, mx: "auto", py: { xs: 3, md: 4 }, px: { xs: 2, md: 0 } }}>
+      <Stack spacing={3.5}>
+        <Box>
+          <Typography
+            sx={{
+              fontSize: "0.7rem",
+              fontWeight: 700,
+              letterSpacing: "0.22em",
+              color: INK_MUTED,
+              textTransform: "uppercase",
+              mb: 1,
+            }}
+          >
+            Systems
+          </Typography>
+          <Typography
+            component="h1"
+            sx={{
+              fontFamily: "var(--font-display)",
+              fontSize: { xs: "1.9rem", md: "2.4rem" },
+              fontWeight: 500,
+              color: INK,
+              lineHeight: 1.1,
+              letterSpacing: "-0.02em",
+              mb: 1,
+            }}
+          >
+            SOPs and templates you can run on Monday morning.
+          </Typography>
+          <Typography sx={{ color: INK_SOFT, fontSize: "0.98rem", maxWidth: 640, lineHeight: 1.55 }}>
+            Written from each expert&apos;s own session and approved by them. Open one, print it,
+            and put it in front of your team.
+          </Typography>
+        </Box>
 
-      {sops.length === 0 ? (
-        <SectionCard padded>
-          <EmptyState title="No SOPs published yet" description="The first playbooks are being written now." />
-        </SectionCard>
-      ) : (
-        <Stack spacing={4}>
-          {categories.map((cat) => (
-            <Box key={cat}>
-              <Typography
-                sx={{ fontSize: "0.7rem", fontWeight: 700, letterSpacing: "0.14em", textTransform: "uppercase", color: "text.secondary", mb: 1.5 }}
-              >
-                {cat}
-              </Typography>
-              <Grid container spacing={2}>
-                {groups.get(cat)!.map((s) => (
-                  <Grid key={s.id} size={{ xs: 12, sm: 6, md: 4 }}>
-                    <Paper
-                      component={Link}
-                      href={`/dashboard/systems/${s.slug}`}
-                      variant="outlined"
-                      sx={{
-                        display: "block",
-                        borderRadius: "16px",
-                        p: 2.5,
-                        height: "100%",
-                        textDecoration: "none",
-                        color: "inherit",
-                        transition: "border-color .2s, transform .2s",
-                        "&:hover": { borderColor: "rgba(217,168,75,0.6)", transform: "translateY(-2px)" },
-                      }}
-                    >
-                      {s.expert_name && (
-                        <Stack direction="row" spacing={1} sx={{ alignItems: "center", mb: 1 }}>
-                          <Chip
-                            label={s.expert_name}
-                            size="small"
-                            sx={{ fontSize: "0.64rem", height: 20, bgcolor: "rgba(217,168,75,0.14)", color: "#A87D2C" }}
-                          />
-                        </Stack>
-                      )}
-                      <Typography sx={{ fontFamily: "var(--font-display)", fontSize: "1.05rem", lineHeight: 1.25 }}>
-                        {s.title}
-                      </Typography>
-                      {s.summary && (
-                        <Typography variant="body2" sx={{ fontSize: "0.82rem", mt: 0.5 }}>
-                          {s.summary}
-                        </Typography>
-                      )}
-                      <Typography variant="body2" sx={{ fontSize: "0.72rem", mt: 1.5 }}>
-                        {formatDate(s.published_at)}
-                      </Typography>
-                    </Paper>
-                  </Grid>
-                ))}
-              </Grid>
-            </Box>
-          ))}
+        {categories.length > 1 && (
+          <Stack direction="row" spacing={1} sx={{ flexWrap: "wrap", rowGap: 1 }}>
+            {[null, ...categories].map((cat) => {
+              const active = category === cat;
+              return (
+                <Chip
+                  key={cat ?? "all"}
+                  label={cat ?? "All systems"}
+                  clickable
+                  onClick={() => setCategory(cat)}
+                  sx={{
+                    fontWeight: 700,
+                    fontSize: "0.78rem",
+                    borderRadius: 999,
+                    bgcolor: active ? INK : "#FFFFFF",
+                    color: active ? "#F6F1E7" : INK_SOFT,
+                    border: `1px solid ${active ? INK : LINE}`,
+                    "&:hover": { bgcolor: active ? INK : "rgba(217,168,75,0.1)" },
+                  }}
+                />
+              );
+            })}
+          </Stack>
+        )}
+
+        {shown.length === 0 ? (
+          <Box
+            sx={{
+              py: 8,
+              textAlign: "center",
+              borderTop: `1px solid ${LINE}`,
+              borderBottom: `1px solid ${LINE}`,
+            }}
+          >
+            <Typography sx={{ fontFamily: "var(--font-display)", fontSize: "1.2rem", color: INK, mb: 0.5 }}>
+              No systems published yet
+            </Typography>
+            <Typography sx={{ fontSize: "0.9rem", color: INK_MUTED }}>
+              Expert-approved SOPs and templates will appear here as soon as the ASN content team adds them.
+            </Typography>
+          </Box>
+        ) : (
+          <Box
+            sx={{
+              display: "grid",
+              gridTemplateColumns: {
+                xs: "1fr",
+                sm: "repeat(2, 1fr)",
+                md: "repeat(3, 1fr)",
+                lg: "repeat(4, 1fr)",
+              },
+              gap: 2.5,
+            }}
+          >
+            {shown.map((sop) => (
+              <SopCard key={sop.slug} sop={sop} />
+            ))}
+          </Box>
+        )}
+      </Stack>
+    </Box>
+  );
+}
+
+function SopCard({ sop }: { sop: Sop }) {
+  return (
+    <Box
+      sx={{
+        display: "flex",
+        flexDirection: "column",
+        borderRadius: 3,
+        overflow: "hidden",
+        border: `1px solid ${LINE}`,
+        bgcolor: "#FFFFFF",
+        transition:
+          "transform 260ms cubic-bezier(0.16,1,0.3,1), border-color 260ms ease, box-shadow 260ms ease",
+        "&:hover": {
+          transform: "translateY(-4px)",
+          borderColor: "#D9A84B",
+          boxShadow: "0 24px 48px -22px rgba(10,26,47,0.3)",
+        },
+        "&:focus-within": { outline: `2px solid ${GOLD}`, outlineOffset: 3 },
+      }}
+    >
+      {/* The approved duotone card IS the artwork — 3:4, same treatment
+          as kit cards. Clicking it opens the in-portal reader. */}
+      <Box
+        component={Link}
+        href={`/dashboard/systems/${sop.slug}`}
+        aria-label={`Open SOP: ${sop.title} by ${sop.expert.name}`}
+        sx={{ position: "relative", display: "block", aspectRatio: "3 / 4" }}
+      >
+        <Image
+          src={sop.cardUrl}
+          alt={`${sop.title}, SOP by ${sop.expert.name}`}
+          fill
+          sizes="(max-width: 600px) 100vw, (max-width: 900px) 50vw, 25vw"
+          unoptimized={!isSupabaseImage(sop.cardUrl)}
+          style={{ objectFit: "cover" }}
+        />
+      </Box>
+
+      <Box sx={{ p: 1.75 }}>
+        <Typography
+          sx={{
+            fontSize: "0.64rem",
+            fontWeight: 800,
+            letterSpacing: "0.14em",
+            textTransform: "uppercase",
+            color: GOLD,
+            mb: 0.5,
+          }}
+        >
+          {sop.category}
+        </Typography>
+        <Typography
+          component={Link}
+          href={`/dashboard/experts/${sop.expert.id}`}
+          sx={{
+            display: "inline-block",
+            fontSize: "0.82rem",
+            fontWeight: 700,
+            color: INK,
+            textDecoration: "none",
+            borderBottom: "1px solid rgba(217,168,75,0.5)",
+            "&:hover": { color: GOLD },
+          }}
+        >
+          {sop.expert.name}
+        </Typography>
+
+        <Stack
+          direction="row"
+          sx={{
+            mt: 1.25,
+            pt: 1.25,
+            borderTop: `1px solid ${LINE}`,
+            alignItems: "center",
+            justifyContent: "space-between",
+          }}
+        >
+          <Stack direction="row" spacing={0.6} sx={{ alignItems: "center", color: INK_MUTED }}>
+            <PictureAsPdfOutlinedIcon sx={{ fontSize: 15 }} />
+            <Typography sx={{ fontSize: "0.7rem", fontWeight: 700 }}>PDF</Typography>
+          </Stack>
+          <Box
+            component={Link}
+            href={`/dashboard/systems/${sop.slug}`}
+            sx={{
+              display: "inline-flex",
+              alignItems: "center",
+              gap: 0.5,
+              fontSize: "0.78rem",
+              fontWeight: 700,
+              color: GOLD,
+              textDecoration: "none",
+              "&:hover": { color: "#7A5B12" },
+            }}
+          >
+            Open SOP <ArrowForwardRoundedIcon sx={{ fontSize: 14 }} />
+          </Box>
         </Stack>
-      )}
+      </Box>
     </Box>
   );
 }

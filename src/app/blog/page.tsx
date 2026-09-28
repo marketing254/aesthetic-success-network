@@ -1,47 +1,63 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import SitePage from "@/components/site/SitePage";
 import SiteNav from "@/components/site/SiteNav";
 import SiteFooter from "@/components/site/SiteFooter";
 import PageFx from "@/components/site/PageFx";
-import { getPublishedPosts } from "@/lib/blog";
+import JsonLd from "@/components/seo/JsonLd";
+import { PUBLISHED_BLOG_ARTICLES, BLOG_INDEX_HEADING, BLOG_INDEX_STANDFIRST } from "@/lib/blog";
 
-export const dynamic = "force-dynamic";
-export const revalidate = 0;
+/**
+ * /blog: the ASN blog index (phase-one holdback: not in the nav or the
+ * sitemap). Fed by the in-repo registry in src/lib/blog.ts, which ships
+ * empty; the page renders an honest "no articles yet" state and never
+ * crashes on an empty list.
+ */
+const SITE = "https://www.aestheticsuccessnetwork.com";
 
 export const metadata: Metadata = {
-  title: "Blog",
-  description:
-    "Straight-talk articles on pricing, staffing, marketing and operations for aesthetic practice owners, from the Aesthetic Success Network team and its experts.",
+  title: "Blog: Aesthetic Practice Growth, Operations and Leadership",
+  description: BLOG_INDEX_STANDFIRST,
+  alternates: { canonical: "/blog" },
+  openGraph: {
+    type: "website",
+    title: `${BLOG_INDEX_HEADING} | Aesthetic Success Network`,
+    description: BLOG_INDEX_STANDFIRST,
+    url: `${SITE}/blog`,
+    // Empty registry at launch: fall back to the site OG image.
+    images: [PUBLISHED_BLOG_ARTICLES[0]?.hero.src ?? "/og-image.png"],
+  },
 };
 
-function formatDate(iso: string | null): string | null {
-  if (!iso) return null;
+const BLOG_JSONLD = {
+  "@context": "https://schema.org",
+  "@type": "Blog",
+  "@id": `${SITE}/blog#blog`,
+  url: `${SITE}/blog`,
+  name: BLOG_INDEX_HEADING,
+  description: BLOG_INDEX_STANDFIRST,
+  publisher: { "@id": `${SITE}/#organization` },
+  inLanguage: "en-US",
+  blogPost: PUBLISHED_BLOG_ARTICLES.map((a) => ({
+    "@type": "BlogPosting",
+    "@id": `${SITE}/blog/${a.slug}#article`,
+    headline: a.title,
+    url: `${SITE}/blog/${a.slug}`,
+  })),
+};
+
+function formatDate(iso: string): string {
   return new Intl.DateTimeFormat("en-US", { month: "short", day: "numeric", year: "numeric" }).format(
     new Date(iso),
   );
 }
 
-export default async function BlogIndexPage() {
-  let posts: Awaited<ReturnType<typeof getPublishedPosts>> = [];
-  let loadFailed = false;
-  try {
-    posts = await getPublishedPosts();
-  } catch (err) {
-    console.error("[blog] failed to load posts:", err);
-    loadFailed = true;
-  }
-
+export default function BlogIndexPage() {
+  const posts = PUBLISHED_BLOG_ARTICLES;
   return (
-    <>
-      <SiteNav
-        links={[
-          { href: "/", label: "For Members" },
-          { href: "/blog", label: "Blog", active: true },
-          { href: "/resources", label: "Resources" },
-          { href: "/pricing", label: "Pricing" },
-        ]}
-        cta={{ href: "/#join", label: "Join the waitlist" }}
-      />
+    <SitePage>
+      <JsonLd data={BLOG_JSONLD} />
+      <SiteNav />
 
       <header className="hero hero--home" id="top" style={{ paddingBottom: 40 }}>
         <div className="wrap center" style={{ display: "block" }}>
@@ -50,52 +66,56 @@ export default async function BlogIndexPage() {
             Practice growth, <em>without</em> the fluff.
           </h1>
           <p className="sub" style={{ margin: "0 auto" }}>
-            Pricing, staffing, marketing and operations articles written for owners who are
-            actually running a practice, not chasing another framework.
+            {BLOG_INDEX_STANDFIRST}
           </p>
         </div>
       </header>
 
       <section>
         <div className="wrap">
-          {loadFailed && (
-            <p className="lead" style={{ margin: "0 0 24px" }}>
-              We couldn&rsquo;t load the blog right now. Please check back shortly.
+          {posts.length === 0 && (
+            <p className="lead" style={{ margin: "0 auto", textAlign: "center" }}>
+              No articles are published yet. The first approved articles will appear here; until
+              then, the expert kits inside the membership are where the guidance lives.
             </p>
           )}
-          {!loadFailed && posts.length === 0 && (
-            <p className="lead" style={{ margin: "0 0 24px" }}>
-              New articles are coming soon. Join the waitlist and we&rsquo;ll let you know when the
-              first one lands.
-            </p>
+          {posts.length > 0 && (
+            <div className="feature-grid--cards blog-grid" style={{ marginTop: 0 }}>
+              {posts.map((post) => (
+                <Link key={post.slug} className="feat blog-card" href={`/blog/${post.slug}`}>
+                  <div className="blog-meta">
+                    <span className="blog-cat">{post.category}</span>
+                    <span className="blog-date">{formatDate(post.datePublished)}</span>
+                  </div>
+                  <h3>{post.title}</h3>
+                  <p>{post.excerpt}</p>
+                  <span className="blog-readmore">Read the article &rarr;</span>
+                </Link>
+              ))}
+            </div>
           )}
-          <div className="feature-grid--cards blog-grid">
-            {posts.map((post) => (
-              <Link key={post.slug} className="feat blog-card" href={`/blog/${post.slug}`}>
-                <div className="blog-meta">
-                  {post.category ? <span className="blog-cat">{post.category}</span> : null}
-                  {formatDate(post.publishedAt) ? (
-                    <span className="blog-date">{formatDate(post.publishedAt)}</span>
-                  ) : null}
-                </div>
-                <h3>{post.title}</h3>
-                <p>{post.excerpt}</p>
-                <span className="blog-readmore">Read the article &rarr;</span>
-              </Link>
-            ))}
+        </div>
+      </section>
+
+      <section className="final" id="join">
+        <div className="wrap">
+          <h2>
+            The full guidance lives <em>inside</em>.
+          </h2>
+          <p className="lead2">
+            Every kit, the Expert Hotline and the partner deals, included with membership.
+          </p>
+          <div className="cta-row" style={{ display: "flex", justifyContent: "center" }}>
+            <Link className="btn bronze" href="/join/member">
+              Start your membership
+            </Link>
           </div>
         </div>
       </section>
 
-      <SiteFooter
-        links={[
-          { href: "/resources", label: "Resources" },
-          { href: "/pricing", label: "Pricing" },
-          { href: "/privacy", label: "Privacy" },
-        ]}
-      />
+      <SiteFooter />
 
-      <PageFx revealSelector="section .kicker, .feature-grid--cards .feat" grids={[".blog-grid"]} />
-    </>
+      <PageFx revealSelector="section .kicker, .feature-grid--cards .feat, .final h2, .final .lead2" grids={[".blog-grid"]} />
+    </SitePage>
   );
 }

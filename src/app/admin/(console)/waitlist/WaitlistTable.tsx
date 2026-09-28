@@ -1,15 +1,17 @@
 "use client";
 import { useMemo, useState, useTransition } from "react";
 import {
-  Alert,
   Box,
   Button,
+  Chip,
   Grid,
   IconButton,
   InputAdornment,
   MenuItem,
   Select,
   Stack,
+  Tab,
+  Tabs,
   TextField,
   Tooltip,
   Typography,
@@ -18,30 +20,28 @@ import SearchOutlinedIcon from "@mui/icons-material/SearchOutlined";
 import DownloadOutlinedIcon from "@mui/icons-material/DownloadOutlined";
 import EmailOutlinedIcon from "@mui/icons-material/EmailOutlined";
 import RefreshOutlinedIcon from "@mui/icons-material/RefreshOutlined";
-import PersonAddAltOutlinedIcon from "@mui/icons-material/PersonAddAltOutlined";
+import StoreOutlinedIcon from "@mui/icons-material/StoreOutlined";
+import PersonOutlineOutlinedIcon from "@mui/icons-material/PersonOutlineOutlined";
 
 export type WaitlistRow = {
   id: string;
+  role: "member" | "vendor"; // "vendor" kept for legacy rows but no longer accepted at submit time
   email: string;
-  first_name: string;
-  last_name: string;
-  phone: string | null;
+  full_name: string;
   practice_name: string | null;
-  practice_role: string | null;
-  locations: string | null;
-  challenge: string | null;
-  agreement_accepted: boolean | null;
-  agreement_accepted_at: string | null;
+  phone: string | null;
+  city_state: string | null;
+  message: string | null;
   source: string | null;
   status: "new" | "contacted" | "converted" | "declined";
   created_at: string;
 };
 
-export type Counts = { total: number; last_24h: number; last_7d: number };
+export type Counts = { total: number; members: number; vendors: number; last_24h: number };
 
 const STATUS_COLOR: Record<WaitlistRow["status"], { bg: string; fg: string }> = {
   new: { bg: "rgba(217,168,75,0.14)", fg: "#7A5B17" },
-  contacted: { bg: "rgba(84,113,138,0.14)", fg: "#33475C" },
+  contacted: { bg: "rgba(34,108,165,0.12)", fg: "#0E4471" },
   converted: { bg: "rgba(46,138,87,0.12)", fg: "#1F5C39" },
   declined: { bg: "rgba(120,120,120,0.14)", fg: "#4A4A4A" },
 };
@@ -56,16 +56,13 @@ function csvEscape(s: string | null | undefined): string {
 function exportCSV(rows: WaitlistRow[]) {
   const headers = [
     "id",
+    "role",
     "email",
-    "first_name",
-    "last_name",
-    "phone",
+    "full_name",
     "practice_name",
-    "practice_role",
-    "locations",
-    "challenge",
-    "agreement_accepted",
-    "agreement_accepted_at",
+    "phone",
+    "city_state",
+    "message",
     "source",
     "status",
     "created_at",
@@ -74,7 +71,7 @@ function exportCSV(rows: WaitlistRow[]) {
     headers.join(","),
     ...rows.map((r) =>
       headers
-        .map((h) => csvEscape((r as unknown as Record<string, string | boolean | null>)[h] as string | null))
+        .map((h) => csvEscape((r as unknown as Record<string, string | null>)[h]))
         .join(","),
     ),
   ];
@@ -82,7 +79,7 @@ function exportCSV(rows: WaitlistRow[]) {
   const url = URL.createObjectURL(blob);
   const a = document.createElement("a");
   a.href = url;
-  a.download = `asn-waitlist-${new Date().toISOString().slice(0, 10)}.csv`;
+  a.download = `waitlist-${new Date().toISOString().slice(0, 10)}.csv`;
   document.body.appendChild(a);
   a.click();
   a.remove();
@@ -90,7 +87,8 @@ function exportCSV(rows: WaitlistRow[]) {
 }
 
 function formatDate(iso: string): string {
-  return new Date(iso).toLocaleString("en-US", {
+  const d = new Date(iso);
+  return d.toLocaleString("en-US", {
     month: "short",
     day: "numeric",
     hour: "numeric",
@@ -108,40 +106,22 @@ export default function WaitlistTable({
   const [rows, setRows] = useState<WaitlistRow[]>(initialRows);
   const [counts] = useState<Counts>(initialCounts);
   const [q, setQ] = useState("");
-  const [err, setErr] = useState<string | null>(null);
-  const [notice, setNotice] = useState<string | null>(null);
+  const [tab, setTab] = useState<"all" | "member">("all");
   const [isPending, startTransition] = useTransition();
-
-  const activateMember = async (row: WaitlistRow) => {
-    setErr(null);
-    setNotice(null);
-    const res = await fetch("/api/admin/members", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ waitlistSignupId: row.id }),
-    });
-    const body = (await res.json().catch(() => ({}))) as { ok?: boolean; error?: string };
-    if (!res.ok || !body.ok) {
-      setErr(body.error ?? "Could not activate this signup as a member.");
-      return;
-    }
-    setRows((r) => r.map((x) => (x.id === row.id ? { ...x, status: "converted" } : x)));
-    setNotice(
-      `${row.first_name} ${row.last_name} activated as a founding member — see the Members page.`,
-    );
-  };
 
   const filtered = useMemo(() => {
     const lc = q.trim().toLowerCase();
-    if (!lc) return rows;
-    return rows.filter(
-      (r) =>
-        `${r.first_name} ${r.last_name}`.toLowerCase().includes(lc) ||
+    return rows.filter((r) => {
+      if (tab !== "all" && r.role !== tab) return false;
+      if (!lc) return true;
+      return (
+        r.full_name.toLowerCase().includes(lc) ||
         r.email.toLowerCase().includes(lc) ||
         (r.practice_name ?? "").toLowerCase().includes(lc) ||
-        (r.practice_role ?? "").toLowerCase().includes(lc),
-    );
-  }, [rows, q]);
+        (r.city_state ?? "").toLowerCase().includes(lc)
+      );
+    });
+  }, [rows, q, tab]);
 
   const updateStatus = (id: string, status: WaitlistRow["status"]) => {
     setRows((r) => r.map((row) => (row.id === id ? { ...row, status } : row)));
@@ -150,12 +130,9 @@ export default function WaitlistTable({
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ id, status }),
     }).catch(() => {
+      // Optimistic update, rollback on failure.
       setRows((r) =>
-        r.map((row) =>
-          row.id === id
-            ? { ...row, status: initialRows.find((x) => x.id === id)?.status ?? "new" }
-            : row,
-        ),
+        r.map((row) => (row.id === id ? { ...row, status: initialRows.find((x) => x.id === id)?.status ?? "new" } : row)),
       );
     });
   };
@@ -172,22 +149,17 @@ export default function WaitlistTable({
 
   return (
     <Stack spacing={3.5}>
-      <Stack
-        direction={{ xs: "column", sm: "row" }}
-        spacing={2}
-        sx={{ justifyContent: "space-between", alignItems: { sm: "flex-end" } }}
-      >
+      <Stack direction={{ xs: "column", sm: "row" }} spacing={2} sx={{ justifyContent: "space-between", alignItems: { sm: "flex-end" } }}>
         <Box>
-          <Typography variant="overline" sx={{ color: "text.secondary", display: "block" }}>
+          <Typography variant="overline" sx={{ display: "block" }}>
             WAITLIST
           </Typography>
           <Typography variant="h2" sx={{ mt: 0.5, mb: 1, fontSize: { xs: "1.85rem", md: "2.5rem" } }}>
             Launch waitlist
           </Typography>
           <Typography sx={{ color: "text.secondary", maxWidth: 620 }}>
-            {counts.total.toLocaleString("en-US")} signups
+            {counts.total.toLocaleString("en-US")} signups · {counts.members} members · {counts.vendors} companies
             {counts.last_24h > 0 ? ` · ${counts.last_24h} in the last 24h` : ""}
-            {counts.last_7d > 0 ? ` · ${counts.last_7d} this week` : ""}
           </Typography>
         </Box>
         <Stack direction="row" spacing={1}>
@@ -208,34 +180,31 @@ export default function WaitlistTable({
         </Stack>
       </Stack>
 
+      {/* Counter cards */}
       <Grid container spacing={2}>
         {[
-          { label: "Total signups", value: counts.total, accent: false },
-          { label: "Last 24 hours", value: counts.last_24h, accent: true },
-          { label: "Last 7 days", value: counts.last_7d, accent: false },
+          { label: "Total signups", value: counts.total, icon: null, accent: false },
+          { label: "Practice owners", value: counts.members, icon: <PersonOutlineOutlinedIcon fontSize="small" />, accent: false },
+          { label: "Companies", value: counts.vendors, icon: <StoreOutlinedIcon fontSize="small" />, accent: false },
+          { label: "Last 24 hours", value: counts.last_24h, icon: null, accent: true },
         ].map((card) => (
-          <Grid key={card.label} size={{ xs: 6, md: 4 }}>
+          <Grid key={card.label} size={{ xs: 6, md: 3 }}>
             <Box
               sx={{
                 p: 2.25,
-                borderRadius: "16px",
+                borderRadius: "18px",
                 border: "1px solid",
                 borderColor: card.accent ? "rgba(217,168,75,0.4)" : "divider",
                 bgcolor: card.accent ? "rgba(217,168,75,0.05)" : "common.white",
               }}
             >
-              <Typography variant="overline" sx={{ fontSize: "0.65rem", color: "text.secondary" }}>
-                {card.label}
-              </Typography>
-              <Typography
-                sx={{
-                  fontFamily: "var(--font-display)",
-                  fontSize: { xs: "1.8rem", md: "2.1rem" },
-                  lineHeight: 1,
-                  color: "text.primary",
-                  mt: 0.5,
-                }}
-              >
+              <Stack direction="row" spacing={1} sx={{ alignItems: "center", color: "text.secondary", mb: 0.75 }}>
+                {card.icon}
+                <Typography variant="overline" sx={{ fontSize: "0.65rem", color: "text.secondary" }}>
+                  {card.label}
+                </Typography>
+              </Stack>
+              <Typography sx={{ fontFamily: "var(--font-display)", fontSize: { xs: "1.8rem", md: "2.1rem" }, lineHeight: 1, color: "text.primary" }}>
                 {card.value.toLocaleString("en-US")}
               </Typography>
             </Box>
@@ -243,36 +212,40 @@ export default function WaitlistTable({
         ))}
       </Grid>
 
-      {err && (
-        <Alert severity="error" onClose={() => setErr(null)}>
-          {err}
-        </Alert>
-      )}
-      {notice && (
-        <Alert severity="success" onClose={() => setNotice(null)}>
-          {notice}
-        </Alert>
-      )}
+      {/* Filters */}
+      <Stack direction={{ xs: "column", sm: "row" }} spacing={2} sx={{ alignItems: { sm: "center" } }}>
+        <Tabs
+          value={tab}
+          onChange={(_, v) => setTab(v)}
+          sx={{
+            minHeight: 36,
+            "& .MuiTab-root": { minHeight: 36, textTransform: "none", fontWeight: 600, fontSize: "0.85rem", py: 0.5 },
+          }}
+        >
+          <Tab value="all" label={`All (${rows.length})`} />
+          <Tab value="member" label={`Practice owners (${rows.filter((r) => r.role === "member").length})`} />
+        </Tabs>
+        <TextField
+          placeholder="Search name, email, practice…"
+          value={q}
+          onChange={(e) => setQ(e.target.value)}
+          slotProps={{
+            input: {
+              startAdornment: (
+                <InputAdornment position="start">
+                  <SearchOutlinedIcon sx={{ color: "text.secondary", fontSize: 20 }} />
+                </InputAdornment>
+              ),
+            },
+          }}
+          sx={{ maxWidth: 420, flex: 1 }}
+        />
+      </Stack>
 
-      <TextField
-        placeholder="Search name, email, practice, role…"
-        value={q}
-        onChange={(e) => setQ(e.target.value)}
-        slotProps={{
-          input: {
-            startAdornment: (
-              <InputAdornment position="start">
-                <SearchOutlinedIcon sx={{ color: "text.secondary", fontSize: 20 }} />
-              </InputAdornment>
-            ),
-          },
-        }}
-        sx={{ maxWidth: 420 }}
-      />
-
+      {/* Table */}
       <Box
         sx={{
-          borderRadius: "20px",
+          borderRadius: "18px",
           border: "1px solid",
           borderColor: "divider",
           bgcolor: "common.white",
@@ -287,7 +260,7 @@ export default function WaitlistTable({
             <Typography variant="body2" sx={{ color: "text.secondary" }}>
               {rows.length === 0
                 ? "Once the waitlist form goes live, entries will appear here in real time."
-                : "Try clearing the search."}
+                : "Try clearing the search or switching to All."}
             </Typography>
           </Box>
         ) : (
@@ -324,10 +297,9 @@ export default function WaitlistTable({
               <Box component="thead">
                 <Box component="tr">
                   <Box component="th">Person</Box>
-                  <Box component="th">Practice</Box>
                   <Box component="th">Role</Box>
-                  <Box component="th">Locations</Box>
-                  <Box component="th">Challenge</Box>
+                  <Box component="th">Practice / Company</Box>
+                  <Box component="th">Location</Box>
                   <Box component="th">Status</Box>
                   <Box component="th">Joined</Box>
                   <Box component="th"></Box>
@@ -340,50 +312,44 @@ export default function WaitlistTable({
                     <Box component="tr" key={row.id}>
                       <Box component="td">
                         <Typography sx={{ fontWeight: 600, color: "text.primary" }}>
-                          {row.first_name} {row.last_name}
+                          {row.full_name}
                         </Typography>
-                        <Typography
-                          variant="body2"
-                          sx={{ color: "text.secondary", fontSize: "0.78rem", mt: 0.25 }}
-                        >
+                        <Typography variant="body2" sx={{ color: "text.secondary", fontSize: "0.78rem", mt: 0.25 }}>
                           {row.email}
                         </Typography>
                         {row.phone && (
-                          <Typography
-                            variant="body2"
-                            sx={{ color: "text.disabled", fontSize: "0.74rem", mt: 0.25 }}
-                          >
+                          <Typography variant="body2" sx={{ color: "text.disabled", fontSize: "0.74rem", mt: 0.25 }}>
                             {row.phone}
                           </Typography>
                         )}
                       </Box>
                       <Box component="td">
-                        <Typography
-                          variant="body2"
-                          sx={{ color: row.practice_name ? "text.primary" : "text.disabled" }}
-                        >
+                        <Chip
+                          icon={
+                            row.role === "vendor" ? (
+                              <StoreOutlinedIcon sx={{ fontSize: 13 }} />
+                            ) : (
+                              <PersonOutlineOutlinedIcon sx={{ fontSize: 13 }} />
+                            )
+                          }
+                          label={row.role === "vendor" ? "Partner" : "Practice owner"}
+                          size="small"
+                          sx={{
+                            fontSize: "0.7rem",
+                            height: 22,
+                            bgcolor: row.role === "vendor" ? "rgba(34,108,165,0.08)" : "rgba(14,42,61,0.05)",
+                            color: row.role === "vendor" ? "#0E4471" : "#0E2A3D",
+                          }}
+                        />
+                      </Box>
+                      <Box component="td">
+                        <Typography variant="body2" sx={{ color: row.practice_name ? "text.primary" : "text.disabled" }}>
                           {row.practice_name ?? ""}
                         </Typography>
                       </Box>
                       <Box component="td">
-                        <Typography
-                          variant="body2"
-                          sx={{ color: row.practice_role ? "text.secondary" : "text.disabled" }}
-                        >
-                          {row.practice_role ?? ""}
-                        </Typography>
-                      </Box>
-                      <Box component="td">
-                        <Typography variant="body2" sx={{ color: "text.secondary" }}>
-                          {row.locations ?? ""}
-                        </Typography>
-                      </Box>
-                      <Box component="td" sx={{ maxWidth: 260 }}>
-                        <Typography
-                          variant="body2"
-                          sx={{ color: row.challenge ? "text.secondary" : "text.disabled", fontSize: "0.78rem" }}
-                        >
-                          {row.challenge ?? ""}
+                        <Typography variant="body2" sx={{ color: row.city_state ? "text.secondary" : "text.disabled" }}>
+                          {row.city_state ?? ""}
                         </Typography>
                       </Box>
                       <Box component="td">
@@ -419,19 +385,12 @@ export default function WaitlistTable({
                           {formatDate(row.created_at)}
                         </Typography>
                       </Box>
-                      <Box component="td" sx={{ whiteSpace: "nowrap" }}>
+                      <Box component="td">
                         <Tooltip title={`Email ${row.email}`}>
                           <IconButton component="a" href={`mailto:${row.email}`} size="small">
                             <EmailOutlinedIcon fontSize="small" />
                           </IconButton>
                         </Tooltip>
-                        {row.status !== "converted" && (
-                          <Tooltip title="Activate as founding member">
-                            <IconButton size="small" onClick={() => activateMember(row)}>
-                              <PersonAddAltOutlinedIcon fontSize="small" />
-                            </IconButton>
-                          </Tooltip>
-                        )}
                       </Box>
                     </Box>
                   );

@@ -1,149 +1,177 @@
 import { NextResponse } from "next/server";
-import { createClient } from "@supabase/supabase-js";
+import { createServerSupabase } from "@/lib/supabase/server-ssr";
 import { getSupabaseAdmin } from "@/lib/supabase/server";
-import { checkRateLimit } from "@/lib/forms/rateLimit";
-import { asString, clientIp, isValidEmail } from "@/lib/forms/request";
-import { sendAdminCodeEmail } from "@/lib/email/templates";
+import { checkRateLimit } from "@/lib/waitlist/rateLimit";
+import { apiError, serverError } from "@/lib/api/errorResponse";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
 /**
- * POST /api/admin/login — DMN-pattern OTP request.
- * Looks up admin_users FIRST (refuses unknown/inactive emails before any
- * email is sent), then sends the 6-digit code:
- *   1. PRIMARY — Supabase Auth (`signInWithOtp`): the code is emailed by
- *      Supabase through its dashboard SMTP (Rackspace support@ mailbox;
- *      the Magic Link template must contain {{ .Token }}).
- *   2. FALLBACK — if Supabase can't send, the code is generated via the
- *      Admin API (`generateLink`) and emailed through the app's own
- *      Rackspace transport, so admins are never locked out.
- * Completed by POST /api/admin/verify-otp (accepts both code types).
+ * POST /api/admin/login
+ *
+ * Sends a 6-digit OTP to an email on the admin allow-list. Uses
+ * shouldCreateUser:false so unknown emails get a generic 404 — no
+ * silent allow-list creation. Verification happens at
+ * /api/admin/verify-otp.
+ *
+ * DELETE clears the Supabase session cookie.
  */
+
+function clientIp(req: Request): string {
+  const fwd = req.headers.get("x-forwarded-for");
+  if (fwd) return fwd.split(",")[0]!.trim();
+  return req.headers.get("x-real-ip")?.trim() ?? "0.0.0.0";
+}
+
 export async function POST(req: Request) {
-  let body: Record<string, unknown>;
+  const route = "POST /api/admin/login";
+
+  let body: { email?: string };
   try {
-    body = (await req.json()) as Record<string, unknown>;
+    body = await req.json();
   } catch {
-    return NextResponse.json({ error: "Invalid JSON." }, { status: 400 });
+    return apiError.badRequest();
   }
 
-  const email = asString(body.email).toLowerCase();
-  if (!isValidEmail(email)) {
-    return NextResponse.json({ error: "Enter a valid email address." }, { status: 400 });
+  const email = (body.email ?? "").trim().toLowerCase();
+  if (!email || !email.includes("@")) {
+    return apiError.validation("Enter a valid email address.");
   }
 
-  const rl = checkRateLimit(`admin-otp:${clientIp(req)}:${email}`);
-  if (!rl.allowed) {
-    return NextResponse.json(
-      { error: "Too many attempts. Try again in a few minutes." },
-      { status: 429, headers: { "Retry-After": String(rl.retryAfterSec ?? 60) } },
-    );
-  }
+  const ip = clientIp(req);
+  const rl = await checkRateLimit(`admin-otp-send:${ip}:${email}`);
+  if (!rl.allowed) return apiError.rateLimited(route);
 
-  // Gate on the allow-list before any email goes out.
-  let admin;
+  // Pre-check the admin allow-list so the 404 message is accurate even
+  // if Supabase's signInWithOtp returns a generic error.
   try {
-    admin = getSupabaseAdmin();
-  } catch (err) {
-    console.error("[admin:login] supabase not configured:", err);
-    return NextResponse.json(
-      { error: "Sign-in is unavailable: Supabase env vars are missing on the server." },
-      { status: 503 },
-    );
-  }
-
-  const { data: row } = await admin
-    .from("admin_users")
-    .select("id, active")
-    .ilike("email", email)
-    .maybeSingle();
-
-  if (!row || !row.active) {
-    return NextResponse.json(
-      {
-        error:
-          "That email isn't on the admin allow-list. Ask an owner-role admin to add you, then try again.",
-      },
-      { status: 403 },
-    );
-  }
-
-  // ── PRIMARY: Supabase sends the code (dashboard SMTP → Rackspace) ──
-  const anon = createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-    { auth: { persistSession: false, autoRefreshToken: false } },
-  );
-  const { error: otpErr } = await anon.auth.signInWithOtp({
-    email,
-    options: { shouldCreateUser: false },
-  });
-
-  if (!otpErr) {
-    return NextResponse.json({ ok: true, sentVia: "supabase" });
-  }
-
-  // Supabase's own resend throttle (~60s per email) — surface it clearly
-  // instead of falling back and double-sending.
-  if (otpErr.status === 429 || /security purposes|once every/i.test(otpErr.message ?? "")) {
-    return NextResponse.json(
-      { error: "A code was sent recently. Wait a minute, then request a new one." },
-      { status: 429 },
-    );
-  }
-
-  console.error(
-    "[admin:login] supabase otp send failed, using fallback transport:",
-    otpErr.status,
-    otpErr.message,
-  );
-
-  // ── FALLBACK: generate the code ourselves, email via our transport ──
-  // The auth user must be pre-created in Supabase → Authentication → Users.
-  const { data: linkData, error: linkErr } = await admin.auth.admin.generateLink({
-    type: "magiclink",
-    email,
-  });
-
-  if (linkErr) {
-    console.error("[admin:login] generateLink failed:", linkErr.status, linkErr.message);
-    if (/not found/i.test(linkErr.message ?? "") || linkErr.status === 404 || linkErr.status === 422) {
+    const admin = getSupabaseAdmin();
+    const { data: adminRow } = await admin
+      .from("admin_users")
+      .select("id, active")
+      .eq("email", email)
+      .maybeSingle();
+    if (!adminRow || !adminRow.active) {
+      try {
+        await admin.from("auth_audit").insert({
+          event: "otp_send_denied",
+          email,
+          user_type: "admin",
+          metadata: { reason: "not_on_allowlist" },
+        });
+      } catch {
+        /* audit best-effort */
+      }
       return NextResponse.json(
         {
           error:
-            "This admin email has no auth user yet. Create it in Supabase → Authentication → Users, then try again.",
+            "That email isn't on the admin allow-list. Ask an owner-role admin to add you.",
         },
-        { status: 403 },
+        { status: 404 },
       );
     }
-    return NextResponse.json(
-      { error: "Could not create a sign-in code. Please try again." },
-      { status: 500 },
-    );
-  }
 
-  const otp = linkData?.properties?.email_otp;
-  if (!otp) {
-    console.error("[admin:login] generateLink returned no email_otp");
-    return NextResponse.json(
-      { error: "Could not create a sign-in code. Please try again." },
-      { status: 500 },
-    );
-  }
+    const supabase = await createServerSupabase();
+    const { error } = await supabase.auth.signInWithOtp({
+      email,
+      options: { shouldCreateUser: false },
+    });
+    let sentVia: "supabase" | "fallback" = "supabase";
+    if (error) {
+      const msg = error.message ?? "";
+      // Supabase's own resend throttle (about 60 s per address).
+      if (error.status === 429 || /security purposes|once every/i.test(msg)) {
+        return NextResponse.json(
+          { error: "A code was sent recently. Wait a minute, then request a new one." },
+          { status: 429 },
+        );
+      }
+      const isUserNotFound =
+        /not allowed|not found|invalid/i.test(msg) || error.status === 422 || error.status === 400;
+      if (isUserNotFound) {
+        return NextResponse.json(
+          {
+            error:
+              "This admin email exists in the allow-list but not in Supabase Auth yet. Ask another admin to create the auth user.",
+          },
+          { status: 404 },
+        );
+      }
 
-  try {
-    await sendAdminCodeEmail(email, otp);
+      // FALLBACK: Supabase could not send the email (usually its SMTP).
+      // Generate the code with the Admin API and email it ourselves.
+      console.error("[admin:login] supabase otp send failed, using fallback transport:", error.status, msg);
+      const { data: linkData, error: linkErr } = await admin.auth.admin.generateLink({
+        type: "magiclink",
+        email,
+      });
+      if (linkErr) {
+        console.error("[admin:login] generateLink failed:", linkErr.status, linkErr.message);
+        if (/not found/i.test(linkErr.message ?? "") || linkErr.status === 404 || linkErr.status === 422) {
+          return NextResponse.json(
+            {
+              error:
+                "This admin email has no auth user yet. Create it in Supabase → Authentication → Users, then try again.",
+            },
+            { status: 404 },
+          );
+        }
+        return serverError(linkErr, { route, extra: { stage: "generate_link" } });
+      }
+      const otp = linkData?.properties?.email_otp;
+      if (!otp) {
+        return serverError(new Error("generateLink returned no email_otp"), { route, extra: { stage: "generate_link" } });
+      }
+      try {
+        const { sendAdminCodeEmail } = await import("@/lib/email/adminCode");
+        await sendAdminCodeEmail(email, otp);
+      } catch (mailErr) {
+        console.error("[admin:login] fallback code email failed:", mailErr);
+        return NextResponse.json(
+          { error: "Could not send the code email. Check the SMTP settings in the server env." },
+          { status: 502 },
+        );
+      }
+      sentVia = "fallback";
+    }
+
+    try {
+      await admin.from("auth_audit").insert({
+        event: "otp_issued",
+        email,
+        user_type: "admin",
+        metadata: { provider: sentVia },
+      });
+      await admin.from("email_events").insert({
+        template: "admin_login_otp",
+        recipient: email,
+        provider: "supabase_auth",
+        status: "queued",
+        subject: "Your ASN admin sign-in code",
+      });
+    } catch (err) {
+      if (process.env.NODE_ENV !== "production")
+        console.error("[admin:login] audit log failed:", err);
+    }
+
+    return NextResponse.json({
+      ok: true,
+      sent: true,
+      message: "We sent a 6-digit code to your inbox. It expires in 5 minutes.",
+    });
   } catch (err) {
-    console.error("[admin:login] code email failed:", err);
-    return NextResponse.json(
-      {
-        error:
-          "Could not send the code email. Check the SMTP_* / GMAIL_* settings in the server env.",
-      },
-      { status: 502 },
-    );
+    return serverError(err, { route });
   }
+}
 
-  return NextResponse.json({ ok: true, sentVia: "fallback" });
+export async function DELETE() {
+  try {
+    const supabase = await createServerSupabase();
+    await supabase.auth.signOut();
+  } catch (err) {
+    if (process.env.NODE_ENV !== "production")
+      console.error("[admin:logout] signOut failed:", err);
+  }
+  return NextResponse.json({ ok: true });
 }

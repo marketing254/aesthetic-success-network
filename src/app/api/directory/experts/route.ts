@@ -1,41 +1,61 @@
 import { NextResponse } from "next/server";
 import { getSupabaseAdmin } from "@/lib/supabase/server";
+import { serverError } from "@/lib/api/errorResponse";
+import { sortExpertsHouseFirst } from "@/lib/houseOrder";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
 /**
- * GET /api/directory/experts — PUBLIC. Powers the "Meet the experts"
- * directory section on /experts and the /experts/[id] detail pages.
+ * GET /api/directory/experts?page=1&pageSize=6
  *
- * Publish-ready gate: status = 'approved' AND bio is filled in. Never
- * returns email, phone, or billing fields.
+ * PUBLIC — powers the founding-experts directory on the marketing site.
+ * Only ACTIVE experts (i.e. accepted / provisioned) are listed, and only
+ * public-safe fields are returned: never email, phone, or billing.
+ * Paginated so the landing page stays light as the bench grows.
  */
-export async function GET() {
+export async function GET(req: Request) {
   try {
-    const supabase = getSupabaseAdmin();
-    const { data, error } = await supabase
-      .from("expert_applications")
-      .select("id, full_name, display_name, company, topics, bio, headshot_url, website, booking_link")
-      .eq("status", "approved")
+    const url = new URL(req.url);
+    const page = Math.max(1, Number(url.searchParams.get("page")) || 1);
+    const pageSize = Math.min(24, Math.max(1, Number(url.searchParams.get("pageSize")) || 6));
+    const from = (page - 1) * pageSize;
+
+    const sb = getSupabaseAdmin();
+    // PUBLISH-READY gate: active AND has a headshot AND a bio. Half-set or
+    // internal test rows (no profile assets) never reach the public site.
+    // booking_link deliberately excluded — schedulers are a member benefit
+    // and never surface on the public site.
+    // Fetch the whole (small) bench once, sort house-first, then slice the
+    // page in memory — a DB range can't express the house-anchor ordering.
+    const { data, error } = await sb
+      .from("experts")
+      .select("id, display_name, full_name, specialty, company_name, bio, headshot_url, website")
+      .eq("status", "active")
+      .not("headshot_url", "is", null)
       .not("bio", "is", null)
-      .order("full_name", { ascending: true });
+      .order("display_name", { ascending: true, nullsFirst: false });
     if (error) throw error;
 
-    const experts = (data ?? []).map((e) => ({
-      id: e.id as string,
-      name: (e.display_name as string) || (e.full_name as string) || "Network expert",
-      company: (e.company as string) ?? null,
-      topics: (e.topics as string) ?? null,
-      bio: (e.bio as string) ?? null,
-      headshotUrl: (e.headshot_url as string) ?? null,
-      website: (e.website as string) ?? null,
-      bookingLink: (e.booking_link as string) ?? null,
-    }));
+    const sorted = sortExpertsHouseFirst(data ?? [], (e) => e.display_name || e.full_name);
+    const count = sorted.length;
+    const pageRows = sorted.slice(from, from + pageSize);
 
-    return NextResponse.json({ experts, total: experts.length });
+    return NextResponse.json({
+      experts: pageRows.map((e) => ({
+        id: e.id,
+        name: e.display_name || e.full_name || "(unnamed expert)",
+        specialty: e.specialty,
+        company_name: e.company_name,
+        bio: e.bio,
+        headshot_url: e.headshot_url,
+        website: e.website,
+      })),
+      total: count ?? 0,
+      page,
+      pageSize,
+    });
   } catch (err) {
-    console.error("[directory:experts] failed:", err);
-    return NextResponse.json({ error: "Could not load experts right now." }, { status: 500 });
+    return serverError(err, { route: "GET /api/directory/experts" });
   }
 }

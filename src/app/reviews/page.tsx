@@ -1,118 +1,62 @@
 import type { Metadata } from "next";
+import Link from "next/link";
+import SitePage from "@/components/site/SitePage";
 import SiteNav from "@/components/site/SiteNav";
 import SiteFooter from "@/components/site/SiteFooter";
 import PageFx from "@/components/site/PageFx";
-import { getSupabaseAdmin } from "@/lib/supabase/server";
 
-export const dynamic = "force-dynamic";
-export const revalidate = 0;
-
+/**
+ * /reviews: honest empty state in the ASN design.
+ *
+ * ASN canon: no review may be reused from Ekwa, Business of Aesthetics or
+ * any other source, and none may be invented. Until verified member reviews
+ * exist, this page says exactly that. When the first verified reviews
+ * arrive, add a REVIEWS array here and render it; never seed placeholders.
+ */
 export const metadata: Metadata = {
   title: "Member Reviews",
   description:
-    "What aesthetic practice owners say about the Expert Hotline, the resource library and the partner deals inside the Aesthetic Success Network.",
+    "Aesthetic Success Network publishes only verified member reviews. None are published yet; this page will carry them as the network grows.",
+  alternates: { canonical: "/reviews" },
 };
 
-type Review = {
-  id: string;
-  author_name: string;
-  practice_name: string | null;
-  role: string | null;
-  quote: string;
-  rating: number;
-  featured: boolean;
-};
-
-async function getPublishedReviews(): Promise<Review[]> {
-  const supabase = getSupabaseAdmin();
-  const { data, error } = await supabase
-    .from("member_reviews")
-    .select("id, author_name, practice_name, role, quote, rating, featured")
-    .eq("status", "published")
-    .order("featured", { ascending: false })
-    .order("published_at", { ascending: false, nullsFirst: false });
-  if (error) throw error;
-  return (data ?? []) as Review[];
-}
-
-function Stars({ rating }: { rating: number }) {
+export default function ReviewsPage() {
   return (
-    <div className="stars" aria-label={`${rating} out of 5 stars`}>
-      {Array.from({ length: 5 }, (_, i) => (
-        <span key={i} className={i < rating ? "star on" : "star"}>
-          &#9733;
-        </span>
-      ))}
-    </div>
-  );
-}
-
-export default async function ReviewsPage() {
-  let reviews: Review[] = [];
-  let loadFailed = false;
-  try {
-    reviews = await getPublishedReviews();
-  } catch (err) {
-    console.error("[reviews] failed to load:", err);
-    loadFailed = true;
-  }
-
-  const avg =
-    reviews.length > 0
-      ? Math.round((reviews.reduce((sum, r) => sum + r.rating, 0) / reviews.length) * 10) / 10
-      : null;
-
-  return (
-    <>
-      <SiteNav
-        links={[
-          { href: "/", label: "For Members" },
-          { href: "/reviews", label: "Reviews", active: true },
-          { href: "/pricing", label: "Pricing" },
-        ]}
-        cta={{ href: "/#join", label: "Join the waitlist" }}
-      />
+    <SitePage>
+      <SiteNav active="/reviews" />
 
       <header className="hero hero--home" id="top" style={{ paddingBottom: 40 }}>
         <div className="wrap center" style={{ display: "block" }}>
           <span className="eyebrow">Member Reviews</span>
           <h1>
-            What members say, <em>unedited</em>.
+            Verified member reviews will appear here <em>once we have them</em>.
           </h1>
           <p className="sub" style={{ margin: "0 auto" }}>
-            {avg
-              ? `An average of ${avg} out of 5 across ${reviews.length} member reviews.`
-              : "Real feedback from the practice owners inside the network."}
+            Aesthetic Success Network publishes only verified reviews from active members. The
+            network is new and none are published yet. We will not borrow reviews from other
+            companies or programs, and we will not invent any.
           </p>
         </div>
       </header>
 
       <section>
-        <div className="wrap">
-          {loadFailed && (
-            <p className="lead" style={{ margin: "0 0 24px" }}>
-              We couldn&rsquo;t load reviews right now. Please check back shortly.
-            </p>
-          )}
-          {!loadFailed && reviews.length === 0 && (
-            <p className="lead" style={{ margin: "0 0 24px" }}>
-              We&rsquo;re just getting started &mdash; member reviews will appear here as the
-              founding cohort settles in.
-            </p>
-          )}
-          <div className="feature-grid--cards review-grid">
-            {reviews.map((r) => (
-              <div key={r.id} className="feat review-card">
-                <Stars rating={r.rating} />
-                <p className="review-quote">&ldquo;{r.quote}&rdquo;</p>
-                <div className="review-byline">
-                  <span className="review-name">{r.author_name}</span>
-                  <span className="review-role">
-                    {[r.role, r.practice_name].filter(Boolean).join(" · ")}
-                  </span>
-                </div>
-              </div>
-            ))}
+        <div className="wrap center">
+          <span className="kicker">In the meantime</span>
+          <h2 className="title">
+            Judge the membership on <em>what it includes</em>.
+          </h2>
+          <p className="lead">
+            The Expert Hotline, the resource library of expert kits, member-only company offers
+            and the tools are all listed on the pricing page, with a 30-day money-back guarantee.
+            Founding membership is $49 a month for the first 100 members.
+          </p>
+          <div className="cta-row" style={{ display: "flex", justifyContent: "center", gap: 14, flexWrap: "wrap", marginTop: 28 }}>
+            <Link className="btn bronze" href="/pricing">
+              See membership pricing
+            </Link>
+            <Link className="btn ghost" href="/#join">
+              Join the waitlist
+            </Link>
           </div>
         </div>
       </section>
@@ -124,24 +68,19 @@ export default async function ReviewsPage() {
           </h2>
           <p className="lead2">
             Join now and tell us how it&rsquo;s going once you&rsquo;ve put the network to work.
+            As members share their experience, their reviews will be added to this page.
           </p>
-          <div className="cta-row" style={{ justifyContent: "center" }}>
-            <a className="btn bronze" href="/#join">
-              Join the founding waitlist
-            </a>
+          <div className="cta-row" style={{ display: "flex", justifyContent: "center" }}>
+            <Link className="btn bronze" href="/join/member">
+              Start your membership
+            </Link>
           </div>
         </div>
       </section>
 
-      <SiteFooter
-        links={[
-          { href: "/pricing", label: "Pricing" },
-          { href: "/blog", label: "Blog" },
-          { href: "/privacy", label: "Privacy" },
-        ]}
-      />
+      <SiteFooter />
 
-      <PageFx revealSelector="section .kicker, .feature-grid--cards .feat, .final h2, .final .lead2" grids={[".review-grid"]} />
-    </>
+      <PageFx revealSelector="section .kicker, h2.title, .lead, .final h2, .final .lead2" />
+    </SitePage>
   );
 }

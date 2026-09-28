@@ -1,0 +1,35 @@
+-- =====================================================================
+-- ASN — Local admin seed TEMPLATE
+--
+-- Copy this file to  supabase/seed.local.sql  (that name is gitignored)
+-- and fill in real rows. Then paste the copy into
+-- Supabase Dashboard → SQL Editor → New query → Run.
+--
+-- The three production admins are already seeded by
+-- migrations/0005_admin_seed.sql. Use this file only for EXTRA admins
+-- (a developer's personal address, a temporary reviewer, a local test
+-- project). Never commit seed.local.sql.
+--
+-- Two steps make an admin work:
+--   1. A row here (the allow-list the app checks at /admin/login).
+--   2. An auth user with the SAME email:
+--      Dashboard → Authentication → Users → Add user → Create new user
+--      → email, tick "Auto Confirm User", leave the password empty.
+--      The app links auth_user_id to this row on the first sign-in.
+--
+-- role is one of: owner, admin, reviewer, support.
+-- Re-running is harmless (on conflict do nothing).
+-- =====================================================================
+
+-- insert into public.admin_users (email, full_name, role, active)
+-- values
+--   ('you@example.com',          'Your Name',        'admin',    true),
+--   ('reviewer@example.com',     'Reviewer Name',    'reviewer', true)
+-- on conflict (email) do nothing;
+
+-- To deactivate an admin without deleting history:
+-- update public.admin_users set active = false where email = 'you@example.com';
+
+-- Confirm with:
+--   select email, full_name, role, active, auth_user_id, last_active_at
+--   from public.admin_users order by created_at;

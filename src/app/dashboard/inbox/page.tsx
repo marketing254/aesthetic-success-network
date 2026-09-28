@@ -1,107 +1,142 @@
-import Link from "next/link";
-import { Box, Stack, Typography } from "@mui/material";
-import { requirePortalPage } from "@/lib/auth/portal";
-import { listMemberAnnouncements, listMemberRequests } from "@/lib/portal/data";
-import { errMessage } from "@/lib/errMessage";
-import { EmptyState, MigrationNotice, PageHeader, SectionCard, StatusChip } from "@/components/portal/ui";
-import { formatDateTime } from "@/lib/format";
-import AssistantWidget from "./AssistantWidget";
+"use client";
 
-export const dynamic = "force-dynamic";
-export const revalidate = 0;
+import { useEffect, useState } from "react";
+import { Box, Button, Chip, CircularProgress, Stack, Typography } from "@mui/material";
+import PictureAsPdfRoundedIcon from "@mui/icons-material/PictureAsPdfRounded";
+import MarkEmailReadRoundedIcon from "@mui/icons-material/MarkEmailReadRounded";
+import InboxRoundedIcon from "@mui/icons-material/InboxRounded";
 
-/**
- * /dashboard/inbox — a unified notification feed.
- *
- * TD's inbox is fed entirely by its AI assistant's escalations — a
- * feature that's explicitly out of scope this phase (needs an
- * OPENAI_API_KEY the team hasn't approved yet). With that feeder gone,
- * an inbox with nothing but hotline history would just duplicate
- * /dashboard/hotline, so this repurposes it as the member-facing side
- * of the admin Broadcast tool (0022, announcements) plus a quick
- * pointer at recently-answered Hotline questions — the "member in-app
- * notifications system" that 0022's own migration note flagged as
- * Phase 3 scope.
- */
-export default async function MemberInboxPage() {
-  const identity = await requirePortalPage("member");
-  const member = identity.member!;
+const INK = "#0A1A2F";
+const INK_SOFT = "#3B4A55";
+const INK_MUTED = "#7A8590";
+const GOLD = "#A07823";
+const LINE = "#E6DDCF";
 
-  let announcements, requests;
-  try {
-    [announcements, requests] = await Promise.all([listMemberAnnouncements(), listMemberRequests(member.id)]);
-  } catch (err) {
-    return (
-      <Box>
-        <PageHeader eyebrow="Inbox" title="Updates" />
-        <MigrationNotice detail={errMessage(err)} />
-      </Box>
-    );
-  }
+type InboxItem = {
+  id: string;
+  question: string;
+  status: "pending" | "emailed" | "in_progress" | "resolved" | "closed";
+  pdf_url: string | null;
+  pdf_sent_at: string | null;
+  member_seen_at: string | null;
+  created_at: string;
+};
 
-  const recentlyAnswered = requests.filter((r) => r.status === "answered" || r.status === "closed").slice(0, 5);
+const STATUS_META: Record<InboxItem["status"], { label: string; bg: string; fg: string }> = {
+  pending: { label: "With the team", bg: "rgba(160,120,35,0.14)", fg: "#7A5B12" },
+  emailed: { label: "Pack sent", bg: "rgba(34,108,78,0.14)", fg: "#1F5C40" },
+  in_progress: { label: "In progress", bg: "rgba(31,58,92,0.14)", fg: "#1B3A5C" },
+  resolved: { label: "Resolved", bg: "rgba(34,108,78,0.14)", fg: "#1F5C40" },
+  closed: { label: "Closed", bg: "rgba(122,133,144,0.16)", fg: INK_MUTED },
+};
+
+function fmt(iso: string): string {
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return "";
+  return new Intl.DateTimeFormat("en-US", { month: "short", day: "numeric", year: "numeric" }).format(d);
+}
+
+export default function MemberInboxPage() {
+  const [rows, setRows] = useState<InboxItem[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    let active = true;
+    (async () => {
+      try {
+        const res = await fetch("/api/member/inbox", { cache: "no-store" });
+        if (!active) return;
+        if (res.ok) {
+          const body = (await res.json()) as { rows?: InboxItem[] };
+          setRows(body.rows ?? []);
+        }
+      } finally {
+        if (active) setLoading(false);
+      }
+      // Mark everything seen once the inbox is open.
+      void fetch("/api/member/inbox", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action: "mark_seen" }),
+      });
+    })();
+    return () => {
+      active = false;
+    };
+  }, []);
 
   return (
-    <Box>
-      <PageHeader eyebrow="Inbox" title="Updates" description="Announcements from the ASN team, plus a quick look at anything the Hotline just answered." />
+    <Box sx={{ maxWidth: 820, mx: "auto", py: { xs: 3, md: 4 }, px: { xs: 2, md: 0 } }}>
+      <Typography sx={{ fontSize: "0.7rem", fontWeight: 700, letterSpacing: "0.14em", color: INK_MUTED, textTransform: "uppercase", mb: 1 }}>
+        Inbox
+      </Typography>
+      <Typography component="h1" sx={{ fontFamily: "var(--font-display)", fontSize: { xs: "1.9rem", md: "2.3rem" }, fontWeight: 500, color: INK, lineHeight: 1.1, mb: 0.75 }}>
+        Your requests &amp; packs
+      </Typography>
+      <Typography sx={{ fontSize: "0.95rem", color: INK_SOFT, mb: 3.5, maxWidth: 620 }}>
+        When you ask Beacon something the team needs to handle, it lands here, along with the ASN pack we send you.
+      </Typography>
 
-      <Stack spacing={3}>
-        <AssistantWidget />
-
-        <SectionCard title="Hotline activity" padded={recentlyAnswered.length === 0}>
-          {recentlyAnswered.length === 0 ? (
-            <EmptyState
-              title="No answered questions yet"
-              description="Ask the Hotline a question and we'll surface the answer here as soon as an expert responds."
-              actionLabel="Ask the Hotline"
-              actionHref="/dashboard/hotline/new"
-            />
-          ) : (
-            <Stack divider={<Box sx={{ borderBottom: "1px solid", borderColor: "divider" }} />}>
-              {recentlyAnswered.map((r) => (
-                <Box
-                  key={r.id}
-                  component={Link}
-                  href={`/dashboard/hotline/${r.id}`}
-                  sx={{ display: "block", px: 3, py: 2, textDecoration: "none", color: "inherit", "&:hover": { bgcolor: "rgba(217,168,75,0.05)" } }}
-                >
-                  <Stack direction="row" spacing={1.5} sx={{ alignItems: "center", justifyContent: "space-between" }}>
-                    <Box sx={{ minWidth: 0 }}>
-                      <Typography sx={{ fontWeight: 600, fontSize: "0.92rem" }}>{r.subject}</Typography>
-                      <Typography variant="body2" sx={{ fontSize: "0.78rem" }}>
-                        Answered {formatDateTime(r.answered_at)}
-                      </Typography>
-                    </Box>
-                    <StatusChip status={r.status} />
+      {loading ? (
+        <Stack sx={{ alignItems: "center", py: 8 }}>
+          <CircularProgress size={22} sx={{ color: GOLD }} />
+        </Stack>
+      ) : rows.length === 0 ? (
+        <Box sx={{ textAlign: "center", py: 8, border: `1px dashed ${LINE}`, borderRadius: 3 }}>
+          <Box sx={{ width: 52, height: 52, borderRadius: "50%", bgcolor: "rgba(217,168,75,0.14)", color: GOLD, display: "grid", placeItems: "center", mx: "auto", mb: 1.5 }}>
+            <InboxRoundedIcon sx={{ fontSize: 26 }} />
+          </Box>
+          <Typography sx={{ fontSize: "1.05rem", fontWeight: 600, color: INK, mb: 0.5 }}>Nothing here yet</Typography>
+          <Typography sx={{ fontSize: "0.9rem", color: INK_MUTED, maxWidth: 420, mx: "auto" }}>
+            Ask Beacon (bottom-right) anything. If it needs the team, your request and pack will show up here.
+          </Typography>
+        </Box>
+      ) : (
+        <Stack spacing={1.5}>
+          {rows.map((r) => {
+            const st = STATUS_META[r.status];
+            const unseen = r.member_seen_at === null;
+            return (
+              <Box
+                key={r.id}
+                sx={{
+                  position: "relative",
+                  border: `1px solid ${unseen ? "rgba(160,120,35,0.4)" : LINE}`,
+                  borderRadius: 2,
+                  bgcolor: "#FFFFFF",
+                  p: { xs: 2, sm: 2.5 },
+                }}
+              >
+                <Stack direction="row" spacing={1} sx={{ alignItems: "center", mb: 1, flexWrap: "wrap", gap: 0.75 }}>
+                  <Chip label={st.label} size="small" sx={{ height: 20, fontSize: "0.62rem", fontWeight: 800, letterSpacing: "0.04em", textTransform: "uppercase", bgcolor: st.bg, color: st.fg }} />
+                  <Typography sx={{ fontSize: "0.75rem", color: INK_MUTED }}>{fmt(r.created_at)}</Typography>
+                </Stack>
+                <Typography sx={{ fontSize: "0.95rem", color: INK, lineHeight: 1.5, mb: r.pdf_url ? 1.5 : 0 }}>
+                  {r.question}
+                </Typography>
+                {r.pdf_url ? (
+                  <Button
+                    component="a"
+                    href={r.pdf_url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    variant="outlined"
+                    startIcon={<PictureAsPdfRoundedIcon sx={{ fontSize: 17 }} />}
+                    sx={{ textTransform: "none", borderRadius: 999, borderColor: LINE, color: INK, fontWeight: 600 }}
+                  >
+                    Download your ASN pack
+                  </Button>
+                ) : r.status === "pending" ? (
+                  <Stack direction="row" spacing={0.6} sx={{ alignItems: "center", color: INK_MUTED }}>
+                    <MarkEmailReadRoundedIcon sx={{ fontSize: 15 }} />
+                    <Typography sx={{ fontSize: "0.82rem" }}>The team will reply within 2 to 3 business days.</Typography>
                   </Stack>
-                </Box>
-              ))}
-            </Stack>
-          )}
-        </SectionCard>
-
-        <SectionCard title="Announcements" padded={announcements.length === 0}>
-          {announcements.length === 0 ? (
-            <EmptyState title="Nothing here yet" description="Team announcements will show up here as they're sent." />
-          ) : (
-            <Stack divider={<Box sx={{ borderBottom: "1px solid", borderColor: "divider" }} />}>
-              {announcements.map((a) => (
-                <Box key={a.id} sx={{ px: 3, py: 2.25 }}>
-                  <Stack direction="row" spacing={1.5} sx={{ alignItems: "center", justifyContent: "space-between", mb: 0.5 }}>
-                    <Typography sx={{ fontWeight: 700, fontSize: "0.95rem" }}>{a.title}</Typography>
-                    <Typography variant="body2" sx={{ fontSize: "0.75rem" }}>
-                      {formatDateTime(a.sent_at ?? a.created_at)}
-                    </Typography>
-                  </Stack>
-                  <Typography variant="body2" sx={{ fontSize: "0.88rem", whiteSpace: "pre-line" }}>
-                    {a.body}
-                  </Typography>
-                </Box>
-              ))}
-            </Stack>
-          )}
-        </SectionCard>
-      </Stack>
+                ) : null}
+              </Box>
+            );
+          })}
+        </Stack>
+      )}
     </Box>
   );
 }

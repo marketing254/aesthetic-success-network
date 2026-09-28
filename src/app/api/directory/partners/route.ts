@@ -1,41 +1,64 @@
 import { NextResponse } from "next/server";
 import { getSupabaseAdmin } from "@/lib/supabase/server";
+import { serverError } from "@/lib/api/errorResponse";
+import { sortPartnersHouseFirst } from "@/lib/houseOrder";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
 /**
- * GET /api/directory/partners — PUBLIC. Powers the "Meet the partners"
- * directory section on /partners and the /partners/[id] detail pages.
+ * GET /api/directory/partners?page=1&pageSize=6
  *
- * Publish-ready gate: status = 'approved' AND description is filled in.
- * Never returns contact email, phone, or billing fields.
+ * PUBLIC — powers the founding-partners directory on the marketing site.
+ * Only live partners (approved + verified) are listed; a covered company
+ * (multi-company partner) shows only while its paying partner is live.
+ * Public-safe fields only — never contact email/phone or billing.
  */
-export async function GET() {
+export async function GET(req: Request) {
   try {
-    const supabase = getSupabaseAdmin();
-    const { data, error } = await supabase
-      .from("partner_applications")
-      .select("id, company_name, display_name, category, description, member_deal, logo_url, website, booking_link")
+    const url = new URL(req.url);
+    const page = Math.max(1, Number(url.searchParams.get("page")) || 1);
+    const pageSize = Math.min(24, Math.max(1, Number(url.searchParams.get("pageSize")) || 6));
+
+    const sb = getSupabaseAdmin();
+    // Fetch all live partners once (small set), filter covered companies whose
+    // parent isn't live, then paginate in memory so the covered-parent rule
+    // can't be broken by range math.
+    // PUBLISH-READY gate: approved+verified AND has a logo AND a description.
+    // Internal test vendors (no profile assets) never reach the public site.
+    const { data, error } = await sb
+      .from("vendors")
+      .select("id, company_name, display_name, category, description, logo_url, avatar_url, website, billing_parent_id")
       .eq("status", "approved")
+      .eq("verified", true)
+      .not("logo_url", "is", null)
       .not("description", "is", null)
-      .order("company_name", { ascending: true });
+      .order("display_name", { ascending: true, nullsFirst: false });
     if (error) throw error;
 
-    const partners = (data ?? []).map((p) => ({
-      id: p.id as string,
-      name: (p.display_name as string) || (p.company_name as string) || "Network partner",
-      category: (p.category as string) ?? null,
-      description: (p.description as string) ?? null,
-      memberDeal: (p.member_deal as string) ?? null,
-      logoUrl: (p.logo_url as string) ?? null,
-      website: (p.website as string) ?? null,
-      bookingLink: (p.booking_link as string) ?? null,
-    }));
+    const liveIds = new Set((data ?? []).map((v) => v.id));
+    const visible = sortPartnersHouseFirst(
+      (data ?? []).filter((v) => !v.billing_parent_id || liveIds.has(v.billing_parent_id)),
+      (v) => v.display_name || v.company_name,
+    );
 
-    return NextResponse.json({ partners, total: partners.length });
+    const from = (page - 1) * pageSize;
+    const pageRows = visible.slice(from, from + pageSize);
+
+    return NextResponse.json({
+      partners: pageRows.map((v) => ({
+        id: v.id,
+        name: v.display_name || v.company_name || "(unnamed partner)",
+        category: v.category,
+        description: v.description,
+        logo_url: v.logo_url ?? v.avatar_url ?? null,
+        website: v.website,
+      })),
+      total: visible.length,
+      page,
+      pageSize,
+    });
   } catch (err) {
-    console.error("[directory:partners] failed:", err);
-    return NextResponse.json({ error: "Could not load partners right now." }, { status: 500 });
+    return serverError(err, { route: "GET /api/directory/partners" });
   }
 }

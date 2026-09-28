@@ -1,0 +1,370 @@
+/* ASN summit page (placeholder) — Option 3 compact-signup design, scoped under .summit.
+   Colours and layout unchanged from the source design (options.css + membership.css)
+   with the private comparison chrome and unused variants removed. Fonts are
+   loaded with next/font (DM Sans + Libre Caslon Display) and exposed as
+   --summit-sans / --summit-serif on the wrapper. */
+.summit{--ink:#152b43;--navy:#132c4b;--gold:#dfb649;--cream:#f8f5ed;--muted:#5f6b74;--line:#d9deda;--serif:var(--summit-serif),Georgia,serif;--sans:var(--summit-sans),Arial,sans-serif;margin:0;color:var(--ink);background:var(--cream);font:16px/1.65 var(--sans);min-height:100vh}
+.summit .container{max-width:1280px;margin:0 auto;padding:0 40px;min-width:0}
+/* form additions for the live form (select, textarea, radios, checkbox) */
+.summit select,.summit textarea{display:block;width:100%;min-width:0;font:inherit;font-size:16px;margin-top:6px;min-height:48px;padding:10px 12px;color:var(--ink);border:1px solid #c3ccd2;border-radius:4px;background:#fff}
+.summit textarea{min-height:76px;resize:vertical}
+.summit select:focus,.summit textarea:focus{outline:2px solid #b68b2a;outline-offset:1px}
+.summit .radio-group{margin:0 0 14px}
+.summit .radio-group>span{font-size:13px;font-weight:600;display:block;margin-bottom:6px}
+.summit .radio-group label{display:flex;align-items:center;gap:9px;font-weight:500;font-size:14px;margin:0 0 6px;cursor:pointer}
+.summit .radio-group input{width:18px;height:18px;min-height:0;margin:0;accent-color:#b68b2a}
+.summit .agree{display:flex;align-items:flex-start;gap:9px;font-size:12px;font-weight:500;line-height:1.5;margin:4px 0 12px;cursor:pointer}
+.summit .agree input{width:16px;height:16px;min-height:0;margin:3px 0 0;flex-shrink:0;accent-color:#b68b2a}
+.summit .agree a{color:#8b681c;font-weight:600}
+.summit .form-error{background:#fdf0ee;color:#8a2f24;border-radius:6px;padding:11px 13px;font-size:13px;margin:0 0 12px;line-height:1.5}
+.summit .form-error a{color:#8a2f24;font-weight:700}
+.summit .stripe-wrap{width:100%;max-width:100%;min-width:0;margin-top:6px}
+.summit .stripe-wrap>div{width:100%;max-width:100%}
+.summit .stripe-wrap iframe{width:100%!important;max-width:100%}
+.summit .pay-head{font-size:12px;color:#53616c;margin:0 0 14px;line-height:1.6;overflow-wrap:anywhere}
+.summit .pay-head button{background:none;border:0;padding:0;font:inherit;color:#8b681c;font-weight:700;text-decoration:underline;cursor:pointer}
+.summit .member-card{background:#f2f5ef;border:1px solid #dae2d5;border-radius:6px;padding:16px 18px;margin:0 0 16px;font-size:13px;line-height:1.55}
+.summit .member-card b{display:block;font-size:14px;margin-bottom:4px}
+.summit .success-card{text-align:center;padding:10px 0 4px}
+.summit .success-card h3{font-size:22px;margin:12px 0 10px}
+.summit .success-card p{font-size:14px;color:#53616c;line-height:1.65;margin:0 0 12px}
+.summit .success-card .tick{width:54px;height:54px;border-radius:50%;background:#e4f1e4;color:#1b5e20;display:inline-flex;align-items:center;justify-content:center;font-size:28px;font-weight:700}
+.summit .c-form .signup-card{position:sticky;top:20px}
+.summit .site-links{display:flex;gap:18px;flex-wrap:wrap;font-size:12px}
+.summit .site-links a{color:#616d77;text-decoration:none}
+.summit .site-links a:hover{text-decoration:underline}
+@media(max-width:1100px){.summit .c-form .signup-card{position:static}}
+@media(max-width:359px){.summit .c-hero{padding-left:0;padding-right:0}.summit .c-form .signup-card{border-radius:0;padding-left:14px;padding-right:14px}}
+.summit *{box-sizing:border-box}
+.summit{margin:0;color:var(--ink);background:var(--cream);font:16px/1.65 var(--sans)}
+.summit img{max-width:100%;display:block}
+.summit h1,.summit h2,.summit h3,.summit p{margin:0 0 20px}
+.summit h1,.summit h2{font-family:var(--serif);font-weight:400;line-height:1.04;letter-spacing:-.035em}
+.summit h1{font-size:70px}
+.summit h2{font-size:48px}
+.summit h3{font-size:20px;line-height:1.25}
+.summit em{color:#97721e;font-weight:400}
+.summit a{color:inherit}
+.summit button,.summit input{font:inherit}
+.summit a:focus-visible,.summit button:focus-visible,.summit summary:focus-visible{outline:3px solid #b0811e;outline-offset:5px}
+.summit button,.summit a,.summit summary{-webkit-tap-highlight-color:transparent}
+.summit .container{max-width:1280px;margin:0 auto;padding:0 40px;min-width:0}
+.summit .event-header{display:flex;align-items:center;gap:25px;height:102px}
+.summit .asn-logo{width:194px;height:62px;object-fit:contain}
+.summit .brand-partner{display:flex;align-items:center;gap:12px;border-left:1px solid #c3c8c8;padding-left:25px;font-size:10px;letter-spacing:.1em;color:#6d747b}
+.summit .brand-partner b{font-size:24px;letter-spacing:.1em;color:var(--navy)}
+.summit .event-header nav{display:flex;align-items:center;gap:26px;margin-left:auto;font-size:14px;font-weight:600}
+.summit .event-header nav a{text-decoration:none}
+.summit .small-cta{border:1px solid #172f4a;padding:10px 16px;border-radius:4px}
+.summit .eyebrow{display:block;font-size:12px;font-weight:700;line-height:1.6;letter-spacing:.13em;color:#8b681c;margin-bottom:19px}
+.summit .cta,.summit .button{display:inline-flex;align-items:center;justify-content:center;gap:28px;background:var(--gold);color:#102b48;min-height:55px;padding:15px 24px;border-radius:4px;border:0;text-decoration:none;font-size:16px;font-weight:700;line-height:1.35;cursor:pointer;transition:background .15s}
+.summit .cta:hover,.summit .button:hover{background:#ecc869}
+.summit .offer-terms{font-size:12px;line-height:1.65;color:#67727b;margin:13px 0 0}
+.summit .section{padding-top:78px;padding-bottom:78px}
+.summit .heading-row{display:flex;align-items:flex-end;justify-content:space-between;gap:75px;margin-bottom:35px}
+.summit .heading-row h2{margin:0}
+.summit .heading-row>p{max-width:330px;color:var(--muted);margin-bottom:4px}
+.summit .facts{display:flex;gap:30px;margin:25px 0}
+.summit .facts>div{padding-right:30px;border-right:1px solid var(--line)}
+.summit .facts>div:last-child{padding-right:0;border:0}
+.summit .facts span{display:block;font-size:10px;font-weight:600;letter-spacing:.1em;color:var(--muted);margin-bottom:6px}
+.summit .facts b{font-size:17px;line-height:1.4;display:block}
+.summit .program-grid{display:grid;grid-template-columns:1fr 1fr;gap:26px}
+.summit .program-grid article{padding:32px 34px;background:#fffdf8;border:1px solid var(--line);border-radius:5px}
+.summit .chapter{font-size:12px;color:#9b7725;font-weight:700;letter-spacing:.1em}
+.summit .program-grid h3{font-family:var(--serif);font-weight:400;line-height:1.03;font-size:38px;margin:23px 0 17px}
+.summit .program-grid p{font-size:16px;color:var(--muted)}
+.summit .program-grid ul{list-style:none;padding:0;margin:23px 0}
+.summit .program-grid li{padding:8px 0 8px 25px;position:relative;font-size:15px}
+.summit .program-grid li:before{content:'✓';position:absolute;left:0;color:#9b7725}
+.summit .byline{border-top:1px solid var(--line);padding-top:20px;font-size:13px;font-weight:500;color:#5b6670}
+.summit .ce-disclosure{font-size:12px;color:#737980;line-height:1.6;margin:20px 0 0}
+.summit .person{min-width:0}
+.summit .person img{width:100%;height:auto;aspect-ratio:.82;object-fit:cover;object-position:50% 23%;background:#e2e7e9;border-radius:5px}
+.summit .person h3{font-size:14px;margin:12px 0 5px;line-height:1.35}
+.summit .person p{font-size:12px;color:var(--muted);line-height:1.5;margin:0}
+.summit .signup-card{background:#fff;border:1px solid #d7dde1;border-radius:7px;padding:29px 30px;color:var(--ink);box-shadow:0 12px 32px #102e4510;min-width:0}
+.summit .trial-label{font-size:11px;letter-spacing:.09em;color:#8b6b20;font-weight:700}
+.summit .trial-price{font:76px/1 var(--serif);letter-spacing:-.025em;margin:18px 0 10px}
+.summit .trial-price span{font:16px var(--sans);color:var(--muted);letter-spacing:0}
+.summit .signup-card>p{font-size:13px;color:#53616c;line-height:1.6;margin-bottom:16px}
+.summit .divider{height:1px;background:var(--line);margin:24px 0}
+.summit .signup-card h3{font-size:20px;margin:0 0 17px}
+.summit .form-row{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.summit label{font-size:13px;font-weight:600;display:block;margin-bottom:14px}
+.summit input{display:block;width:100%;min-width:0;font-size:16px;margin-top:6px;min-height:48px;padding:10px 12px;color:var(--ink);border:1px solid #c3ccd2;border-radius:4px;background:#fff}
+.summit input:focus{outline:2px solid #b68b2a;outline-offset:1px}
+.summit form .button{width:100%;margin:3px 0 0}
+.summit .signup-card .form-note{font-size:12px;margin:13px 0;line-height:1.6}
+.summit .text-link{font-size:14px;font-weight:600;background:none;border:0;padding:0;text-decoration:underline;text-underline-offset:4px;cursor:pointer;color:var(--ink)}
+.summit .existing{display:block;margin:15px auto;font-size:13px}
+.summit .signup-card .demo-note{font-size:11px;text-align:center;color:#68717a;margin:12px 0 0}
+.summit .faq{display:grid;grid-template-columns:.8fr 1.2fr;gap:80px}
+.summit .faq h2{margin:0}
+.summit .faq details{border-bottom:1px solid var(--line);padding:20px 0}
+.summit .faq details:first-child{padding-top:0}
+.summit .faq summary{list-style:none;cursor:pointer;display:flex;justify-content:space-between;gap:20px;font-weight:600;font-size:16px}
+.summit .faq summary:after{content:'+';font-weight:400;color:#967021;font-size:23px;line-height:1.1}
+.summit .faq details[open] summary:after{content:'−'}
+.summit .faq details p{color:var(--muted);font-size:14px;margin:15px 20px 0 0}
+.summit .event-footer{display:flex;justify-content:space-between;align-items:center;gap:30px;border-top:1px solid var(--line);padding-top:28px;padding-bottom:28px}
+.summit .event-footer img{width:160px}
+.summit .event-footer p,.summit .event-footer a{font-size:12px;color:#616d77;margin:0}
+.summit .intro{font-size:18px;line-height:1.6;max-width:510px;color:#c9d2df}
+.summit{background:#f1f4f5}
+.summit .event-header{height:88px}
+.summit .event-header nav a:not(.small-cta){display:none}
+.summit .c-hero{display:grid;grid-template-columns:1.3fr .95fr;gap:68px;padding-top:29px;padding-bottom:50px;align-items:center}
+.summit .c-overview h1{font:600 53px/1.06 var(--sans);letter-spacing:-.055em;margin-bottom:21px}
+.summit .c-overview h1 em{font-family:var(--serif);font-size:1.14em;letter-spacing:-.02em}
+.summit .c-overview .intro{font-size:17px;color:#5d6a74;max-width:540px}
+.summit .c-overview .facts{gap:17px;margin:25px 0}
+.summit .c-overview .facts>div{padding-right:17px}
+.summit .c-overview .facts span{font-size:9px;letter-spacing:.05em}
+.summit .c-overview .facts b{font-size:14px}
+.summit .c-checks{border-top:1px solid #d4dce0;padding-top:20px;margin:0 0 28px}
+.summit .c-checks p{font-size:14px;margin:8px 0}
+.summit .c-checks span{color:#9a7020;margin-right:10px}
+.summit .c-faces{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:9px}
+.summit .c-faces img{border-radius:50%;aspect-ratio:1;object-position:50% 20%}
+.summit .c-faces h3{font-size:9px;text-align:center;font-weight:500;line-height:1.35;margin:7px 0 0}
+.summit .c-form .signup-card{border-top:4px solid #d1a03a;padding:26px 27px 23px;box-shadow:0 18px 50px #183a5814}
+.summit .c-form .trial-price{font-size:64px;margin:14px 0 8px}
+.summit .c-form .divider{margin:19px 0}
+.summit .c-form .signup-card>p{font-size:12px}
+.summit .c-form .signup-card h3{font-size:18px;margin-bottom:15px}
+.summit .c-form .demo-note{font-size:10px}
+.summit .c-form .form-note{font-size:11px}
+.summit .c-program{background:white;max-width:none;padding-left:max(40px,calc((100vw - 1200px)/2));padding-right:max(40px,calc((100vw - 1200px)/2));padding-top:50px;padding-bottom:50px}
+.summit .c-program h2{font-family:var(--sans);font-size:34px;font-weight:600;letter-spacing:-.045em}
+.summit .c-program .heading-row{gap:50px;margin-bottom:25px}
+.summit .c-program .heading-row>p{font-size:14px}
+.summit .c-program .program-grid article{padding:25px 28px;background:#f7f9fa}
+.summit .c-program .program-grid h3{font-size:32px;margin:17px 0 13px}
+.summit .c-program .program-grid p,.summit .c-program .program-grid li{font-size:14px}
+.summit .c-program .program-grid ul{margin:18px 0}
+.summit .c-program .byline{font-size:12px}
+.summit .c-next{padding:43px 0;background:#142f4c;color:white}
+.summit .c-next .eyebrow{color:#e9c266}
+.summit .c-steps{display:grid;grid-template-columns:repeat(3,1fr);gap:45px;margin:24px 0 26px}
+.summit .c-steps article>span{color:#dabc6c;font-family:var(--serif);font-size:30px}
+.summit .c-steps h3{font-size:18px;margin:9px 0}
+.summit .c-steps p{font-size:14px;color:#c2cddb;margin:0}
+.summit .c-next .offer-terms{color:#bdcbd8}
+.summit .faq{padding-top:50px;padding-bottom:50px}
+.summit .faq h2{font-size:39px}
+@media(max-width:1100px){
+.summit .container{padding-left:28px;padding-right:28px}
+.summit .c-hero{gap:35px;grid-template-columns:1.2fr 1fr}
+.summit .c-overview h1{font-size:43px}
+.summit .c-overview .facts{gap:10px}
+.summit .c-overview .facts>div{padding-right:10px}
+.summit .c-overview .facts b{font-size:13px}
+.summit .event-header nav{gap:17px;font-size:12px}
+}
+@media(max-width:760px){
+.summit .container{padding-left:22px;padding-right:22px}
+.summit .event-header,.summit .event-header{height:79px;gap:17px}
+.summit .asn-logo{width:146px;height:52px}
+.summit .brand-partner{padding-left:16px;gap:8px;font-size:8px}
+.summit .brand-partner b{font-size:21px}
+.summit .event-header nav{display:none}
+.summit .eyebrow{font-size:10px;margin-bottom:16px}
+.summit h1{font-size:49px}
+.summit h2{font-size:39px}
+.summit .section{padding-top:48px;padding-bottom:48px}
+.summit .heading-row{display:block;margin-bottom:26px}
+.summit .heading-row>p{max-width:none;margin:19px 0 0;font-size:15px}
+.summit .program-grid{grid-template-columns:1fr;gap:18px}
+.summit .program-grid article{padding:27px}
+.summit .program-grid h3{font-size:34px;margin:18px 0 16px}
+.summit .program-grid p,.summit .program-grid li{font-size:14px}
+.summit .byline{font-size:12px}
+.summit .ce-disclosure{font-size:11px}
+.summit .signup-card{padding:27px 23px}
+.summit .trial-price{font-size:68px}
+.summit .faq{grid-template-columns:1fr;gap:30px}
+.summit .faq summary{font-size:15px}
+.summit .faq p{font-size:14px}
+.summit .event-footer{flex-wrap:wrap;gap:22px;padding-top:25px;padding-bottom:25px}
+.summit .event-footer img{width:137px}
+.summit .event-footer p,.summit .event-footer a{font-size:11px}
+.summit .c-hero{grid-template-columns:1fr;gap:27px;padding-top:25px;padding-bottom:37px}
+.summit .c-overview h1{font-size:43px;margin-bottom:18px}
+.summit .c-overview .intro{font-size:15px;margin-bottom:20px}
+.summit .c-overview .facts{gap:10px;margin:20px 0}
+.summit .c-overview .facts>div{padding-right:10px}
+.summit .c-overview .facts span{font-size:8px;line-height:1.6}
+.summit .c-overview .facts b{font-size:12px}
+.summit .c-checks{padding-top:15px;margin-bottom:23px}
+.summit .c-checks p{font-size:12px;margin:8px 0}
+.summit .c-faces{gap:6px}
+.summit .c-faces h3{font-size:8px}
+.summit .c-form .signup-card{padding:25px 23px}
+.summit .c-form .demo-note{font-size:11px}
+.summit .c-program{padding-left:22px;padding-right:22px;padding-top:37px;padding-bottom:37px}
+.summit .c-program h2{font-size:31px}
+.summit .c-program .heading-row>p{font-size:13px}
+.summit .c-program .program-grid article{padding:24px}
+.summit .c-next{padding:36px 0}
+.summit .c-steps{grid-template-columns:1fr;gap:24px;margin-bottom:29px}
+.summit .c-steps article{display:grid;grid-template-columns:40px 1fr;gap:0 14px}
+.summit .c-steps article>span{grid-row:1/3;font-size:30px}
+.summit .c-steps h3{font-size:17px;margin:2px 0 8px}
+.summit .c-steps p{font-size:14px}
+.summit .c-next .cta{width:100%}
+.summit .faq{padding-top:40px;padding-bottom:40px}
+}
+@media(max-width:360px){
+.summit .container{padding-left:18px;padding-right:18px}
+.summit .c-overview h1{font-size:37px}
+.summit .form-row{grid-template-columns:1fr;gap:0}
+}
+@media(prefers-reduced-motion:reduce){
+.summit *{transition:none!important}
+}
+.summit .c-faces h3{font-size:12px}
+@media(max-width:760px){
+.summit .c-faces{grid-template-columns:repeat(4,minmax(0,1fr));gap:18px 12px}
+.summit .c-faces h3{font-size:12px}
+.summit .c-faces .person img{max-width:80px;margin:auto}
+}
+@media(min-width:761px) and (max-width:1100px){
+.summit .c-faces{grid-template-columns:repeat(4,minmax(0,1fr));gap:15px}
+.summit .c-faces .person img{max-width:65px;margin:auto}
+}
+.summit .membership-section{padding:70px 0;background:#eeeae0;border-top:1px solid #d9d4c5;border-bottom:1px solid #d9d4c5;scroll-margin-top:15px;margin-top:50px}
+.summit .membership-heading{display:grid;grid-template-columns:1.55fr 1fr;gap:65px;align-items:end;margin-bottom:32px}
+.summit .membership-heading h2{font-size:44px;line-height:1.1;margin:0}
+.summit .membership-heading>p{font-size:16px;line-height:1.7;color:#52616b;margin:0 0 3px}
+.summit .benefit-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:18px}
+.summit .benefit-grid article{padding:25px 23px;background:#fffdf7;border:1px solid #d8d2c2;border-radius:5px;min-width:0}
+.summit .benefit-label{font-size:10px;letter-spacing:.08em;font-weight:700;color:#856015;display:block;margin-bottom:25px}
+.summit .benefit-grid h3{font-size:19px;line-height:1.35;letter-spacing:-.015em;margin:0 0 16px}
+.summit .benefit-grid p{font-size:14px;line-height:1.7;color:#54616a;margin:0}
+.summit .library-preview{margin-top:35px;padding-top:30px;border-top:1px solid #ccc5b6}
+.summit .library-heading{display:flex;align-items:end;justify-content:space-between;gap:30px;margin-bottom:22px}
+.summit .library-heading .eyebrow{font-size:10px;margin-bottom:8px}
+.summit .library-heading h3{font-size:21px;line-height:1.4;margin:0;font-weight:500}
+.summit .library-heading>p{font-size:13px;color:#626d72;margin:0 0 3px}
+.summit .kit-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:20px}
+.summit .kit-grid article{display:flex;gap:19px;align-items:center;padding:14px;background:#f9f7f0;border:1px solid #d8d2c2;border-radius:5px;min-width:0}
+.summit .kit-grid img{width:110px;height:110px;object-fit:contain;border-radius:2px;flex-shrink:0}
+.summit .kit-grid span{display:block;font-size:9px;font-weight:700;letter-spacing:.06em;color:#7c622b;line-height:1.5;margin-bottom:8px}
+.summit .kit-grid h4{font-size:16px;font-weight:600;line-height:1.3;margin:0 0 7px}
+.summit .kit-grid p{font-size:12px;color:#57656d;margin:0}
+.summit .membership-close{margin-top:32px;display:flex;justify-content:space-between;align-items:center;gap:36px}
+.summit .membership-close p{margin:0;max-width:615px}
+.summit .membership-close b{display:block;font-size:17px;margin-bottom:5px}
+.summit .membership-close p span{display:block;font-size:13px;color:#57656d;line-height:1.6}
+.summit .membership-close .cta{flex-shrink:0;font-size:14px;padding:15px 20px}
+.summit .offer-bridge{border-left:2px solid #ba8d29;padding-left:14px;margin:0 0 21px;line-height:1.5}
+.summit .offer-bridge b{font-size:14px;display:block;margin-bottom:5px}
+.summit .offer-bridge span{font-size:12px;display:block;color:#52616b}
+.summit .offer-bridge a{display:inline-block;font-size:12px;text-underline-offset:4px;margin-top:7px;font-weight:500}
+.summit .signup-includes{background:#f2f5ef;border:1px solid #dae2d5;border-radius:4px;padding:13px 15px;margin:18px 0 0}
+.summit .signup-includes b{font-size:12px;display:block;color:#64744e;margin-bottom:4px}
+.summit .signup-includes span{font-size:13px;line-height:1.45;display:block;font-weight:600}
+.summit .signup-includes small{font-size:11px;line-height:1.6;display:block;color:#58666e;margin-top:6px}
+.summit .membership-jump{display:inline-block;font-size:13px;font-weight:600;text-underline-offset:4px;margin:-5px 0 24px}
+.summit .speaker-caption{display:block;font-size:10px;font-weight:700;letter-spacing:.09em;color:#806120;margin-bottom:14px}
+.summit .speaker-roles{margin-top:16px;font-size:12px}
+.summit .speaker-roles summary{display:flex;justify-content:space-between;gap:15px;align-items:center;cursor:pointer;list-style:none;padding:10px 0;border-bottom:1px solid #d0d8dd;font-weight:600}
+.summit .speaker-roles summary::-webkit-details-marker{display:none}
+.summit .speaker-roles summary>span{font-size:22px;line-height:1;transition:transform .15s}
+.summit .speaker-roles[open] summary>span{transform:rotate(45deg)}
+.summit .speaker-roles ul{list-style:none;padding:3px 0 0;margin:0;display:grid;grid-template-columns:1fr 1fr;gap:0 20px}
+.summit .speaker-roles li{padding:12px 0;border-bottom:1px solid #d4dce0}
+.summit .speaker-roles li b{display:block;font-size:13px;font-weight:600}
+.summit .speaker-roles li span{display:block;color:#576771;margin-top:3px;line-height:1.55}
+.summit .membership-section{background:#fffaf0;margin-top:0;padding:55px 0;border-color:#e3dcca}
+.summit .membership-heading h2{font-family:var(--sans);font-size:35px;font-weight:600;letter-spacing:-.045em}
+.summit .membership-heading h2 em{font-family:var(--serif);font-size:1.18em;letter-spacing:-.02em}
+.summit .benefit-grid article{background:white}
+.summit .kit-grid article{background:#fff}
+.summit .c-hero{align-items:start}
+.summit .c-overview{padding-top:10px}
+@media(max-width:1100px){
+.summit .membership-heading{gap:35px}
+.summit .membership-heading h2{font-size:38px}
+.summit .membership-heading>p{font-size:15px}
+.summit .benefit-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
+.summit .benefit-grid h3 br{display:none}
+.summit .benefit-label{margin-bottom:18px}
+.summit .kit-grid{gap:15px}
+.summit .kit-grid article{display:block;padding:16px}
+.summit .kit-grid img{width:90px;height:90px;margin-bottom:14px}
+.summit .membership-close{gap:25px}
+.summit .membership-close .cta{font-size:13px}
+.summit .event-header nav{gap:14px;font-size:12px}
+.summit .asn-logo{width:177px}
+.summit .brand-partner{padding-left:20px}
+.summit .event-header{gap:20px}
+}
+@media(max-width:760px){
+.summit .membership-section,.summit .membership-section{padding:42px 0;margin-top:34px}
+.summit .membership-section{margin-top:0}
+.summit .membership-heading{display:block;margin-bottom:25px}
+.summit .membership-heading h2{font-size:36px}
+.summit .membership-heading h2{font-size:30px}
+.summit .membership-heading>p{font-size:15px;margin:20px 0 0}
+.summit .benefit-grid{grid-template-columns:1fr;gap:13px}
+.summit .benefit-grid article{padding:21px 23px}
+.summit .benefit-grid h3{font-size:19px;margin-bottom:11px}
+.summit .benefit-grid h3 br{display:none}
+.summit .benefit-grid p{font-size:14px}
+.summit .benefit-label{margin-bottom:12px}
+.summit .library-preview{margin-top:28px;padding-top:25px}
+.summit .library-heading{display:block;margin-bottom:19px}
+.summit .library-heading h3{font-size:20px}
+.summit .library-heading>p{margin-top:8px}
+.summit .kit-grid{grid-template-columns:1fr;gap:12px}
+.summit .kit-grid article{display:flex;gap:17px;padding:12px}
+.summit .kit-grid img{width:94px;height:94px;margin:0}
+.summit .kit-grid h4{font-size:16px}
+.summit .kit-grid span{font-size:9px}
+.summit .membership-close{display:block;margin-top:25px}
+.summit .membership-close b{font-size:17px}
+.summit .membership-close .cta{margin-top:20px;display:flex;width:100%;font-size:14px}
+.summit .speaker-roles li span{font-size:12px}
+.summit .offer-bridge{margin-bottom:20px}
+.summit .asn-logo{width:146px}
+.summit .event-header{gap:17px}
+.summit .brand-partner{padding-left:16px}
+.summit .signup-includes span{font-size:13px}
+.summit .c-overview{padding-top:0}
+}
+@media(max-width:360px){
+.summit .speaker-roles ul{grid-template-columns:1fr}
+.summit .kit-grid img{width:79px;height:79px}
+.summit .kit-grid article{gap:13px}
+.summit .membership-heading h2{font-size:32px}
+.summit .membership-heading h2{font-size:28px}
+}
+.summit .brand-partner{flex-shrink:0;gap:10px}
+.summit .brand-partner .partner-logo{display:block;width:166px;height:auto;object-fit:contain;background:#fff;padding:4px;border-radius:2px}
+.summit .partner-with{font-size:9px}
+@media(max-width:1100px){
+.summit .brand-partner .partner-logo{width:145px}
+.summit .event-header nav{gap:12px}
+.summit .event-header{gap:18px}
+}
+@media(max-width:760px){
+.summit .brand-partner .partner-logo{width:124px;padding:3px}
+.summit .partner-with{font-size:8px}
+.summit .brand-partner{gap:8px}
+.summit .event-header{gap:17px}
+}
+@media(max-width:360px){
+.summit .event-header .asn-logo{width:120px}
+.summit .event-header{gap:12px}
+.summit .brand-partner{padding-left:12px;gap:0}
+.summit .brand-partner .partner-logo{width:118px}
+.summit .partner-with{display:none}
+}
+
+/* Early trial button: visible only when the signup card stacks below the hero copy. */
+.summit .hero-cta{display:none;width:100%;margin:-6px 0 22px}
+@media(max-width:1100px){.summit .hero-cta{display:inline-flex}}
+.summit #signup{scroll-margin-top:16px}
+.summit .stripe-loading{font-size:14px;color:#5f6b74;padding:18px 0}

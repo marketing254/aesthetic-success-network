@@ -28,7 +28,7 @@ export default function Calculator() {
       <div className="controls">
         <div className="ctl">
           <label htmlFor="r-spend">
-            Monthly spend with vendors a partner could replace <output id="o-spend">{fmt(spend)}</output>
+            Monthly spend with vendors a company could replace <output id="o-spend">{fmt(spend)}</output>
           </label>
           <input
             type="range"
@@ -84,7 +84,7 @@ export default function Calculator() {
         How this is calculated: your monthly vendor spend &times; 12 &times; your chosen discount,
         plus $150 of estimated consulting value per Hotline question (our assumption, not a
         promise), minus the $588 annual founding fee. These are estimates only; actual savings
-        depend on the deals partners commit to and how much you use the network. Results can be
+        depend on the deals companies commit to and how much you use the network. Results can be
         negative, and no results are guaranteed.
       </div>
     </div>

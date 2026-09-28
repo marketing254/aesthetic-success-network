@@ -1,45 +1,92 @@
 import Link from "next/link";
+import SitePage from "@/components/site/SitePage";
 import SiteNav from "@/components/site/SiteNav";
 import SiteFooter from "@/components/site/SiteFooter";
 import PageFx from "@/components/site/PageFx";
-import Countdown from "@/components/site/Countdown";
 import Calculator from "@/components/site/Calculator";
 import WaitlistForm from "@/components/site/WaitlistForm";
+import JsonLd from "@/components/seo/JsonLd";
 
+// The ASN home page: the approved plain-CSS design (previous ASN site,
+// _asn-source-copy/index.html) on top of DMN's functionality. The hero
+// CTA starts the DMN member signup (/join/member); the waitlist form at
+// the bottom is the "not ready yet" path and posts to /api/waitlist.
+//
+// Canon rules (ASN-SWAP-CANON.md): the Hotline is a voicemail line with a
+// written reply by text and email in 2 to 3 business days, never live or
+// 24/7; founding $49/mo (first 100) or $490/yr, then $199/mo; no $99 tier;
+// worked examples are labelled illustrative; no member directory or
+// community claims; no em dashes in visible copy.
+
+
+// FAQ copy is rendered on the page AND emitted as FAQPage JSON-LD from the
+// same list so the two can never drift.
+const FAQ_ITEMS: { q: string; a: string }[] = [
+  {
+    q: "What exactly do I get as a member?",
+    a: "The Expert Hotline (written action plans in 2 to 3 business days), a growing resource library with new expert kits weekly, exclusive member-only company deals, and monthly live AMAs and CE with the field's best experts.",
+  },
+  {
+    q: "Is the Hotline a live, 24/7 helpline?",
+    a: "No, and we won't pretend otherwise. It's a voicemail line. You leave your question and our team (AI-assisted) replies by text and email within 2 to 3 business days with a recommended solution plus 3 to 4 experts to contact.",
+  },
+  {
+    q: "How does the founding rate work?",
+    a: "The first 100 members lock in $49/mo for as long as their membership stays active. After the founding hundred, the standard rate is $199/mo. There is also an annual option: $490/yr for founding members (pay for 10 months, get 12, save $98). Your locked rate never increases while you're a member.",
+  },
+  {
+    q: "How do the company deals save me money?",
+    a: "Companies commit to a genuine member-only discount, at least as good as any offer they make comparable customers. We list them with a Verified Company badge, and you deal with them directly. Use the calculator above with your own numbers.",
+  },
+  {
+    q: "Is this just a front for a big coaching upsell?",
+    a: "No. The membership is the product. There are no four-figure programs behind the door, just the network, the resources, and the deals.",
+  },
+  {
+    q: "Do you store patient data?",
+    a: "No. The Aesthetic Success Network is a training, education and business-services platform. We do not collect, store, or process any patient data. Ever.",
+  },
+  {
+    q: "What if it's not for me?",
+    a: "Every membership comes with a 30-day money-back guarantee, and you can cancel anytime.",
+  },
+];
+
+const FAQ_JSONLD = {
+  "@context": "https://schema.org",
+  "@type": "FAQPage",
+  mainEntity: FAQ_ITEMS.map((f) => ({
+    "@type": "Question",
+    name: f.q,
+    acceptedAnswer: { "@type": "Answer", text: f.a },
+  })),
+};
+
+// The Supabase auth fallback (?code / ?error on the homepage) is handled
+// in middleware.ts, so this page reads NO request data: it stays fully
+// static and is served from the CDN edge on every visit.
 export default function HomePage() {
   return (
-    <>
-      <SiteNav
-        links={[
-          { href: "#inside", label: "What's inside" },
-          { href: "#hotline", label: "The Hotline" },
-          { href: "#math", label: "Do the math" },
-          { href: "#pricing", label: "Pricing" },
-          { href: "/experts", label: "For Experts" },
-          { href: "/partners", label: "For Partners" },
-        ]}
-        cta={{ href: "#join", label: "Join the waitlist" }}
-      />
+    <SitePage>
+      <JsonLd data={FAQ_JSONLD} />
+      <SiteNav active="/" />
 
       <header className="hero hero--home" id="top">
         <div className="wrap">
           <div>
             <span className="eyebrow">For aesthetic practice owners</span>
             <h1>
-              Every practice problem gets a <em>written action plan</em> in 2&ndash;3 business
-              days.
+              Every practice problem gets a <em>written action plan</em> in 2 to 3 business days.
             </h1>
             <p className="sub">
-              The Expert Hotline routes your toughest questions to the right people. Vetted vendors
-              give you member-only deals. New expert kits arrive weekly. That&rsquo;s the network.
+              The Expert Hotline routes your toughest questions to the right people. Vetted
+              companies give you member-only deals. New expert kits arrive weekly. That&rsquo;s the
+              network.
             </p>
-            <div className="hero-count">
-              <Countdown label="Founding doors open in" />
-            </div>
             <div className="cta-row">
-              <a className="btn bronze" href="#join">
-                Join the founding waitlist
-              </a>
+              <Link className="btn bronze" href="/join/member">
+                Start your membership
+              </Link>
               <a className="btn ghost" href="#hotline">
                 See how the Hotline works
               </a>
@@ -119,7 +166,7 @@ export default function HomePage() {
         <div className="wrap">
           <span className="star">&#10022;</span>
           <span>
-            The network is <b>powered by Business of Aesthetics</b>. Every expert and vendor is
+            The network is <b>powered by Business of Aesthetics</b>. Every expert and company is
             curated by our team, never by an algorithm.
           </span>
         </div>
@@ -140,17 +187,17 @@ export default function HomePage() {
             <div className="example">
               <div className="tag">Example &middot; illustrative</div>
               <h5>&ldquo;My filler margins are shrinking and I don&rsquo;t know where.&rdquo;</h5>
-              <p>A reply like this arrives by text + email within 2&ndash;3 business days:</p>
+              <p>A reply like this arrives by text and email within 2 to 3 business days:</p>
               <ul>
-                <li>A written action plan: inventory audit steps + a pricing worksheet</li>
-                <li>3&ndash;4 vetted experts in aesthetics finance &amp; operations to contact</li>
+                <li>A written action plan: inventory audit steps plus a pricing worksheet</li>
+                <li>3 to 4 vetted experts in aesthetics finance and operations to contact</li>
                 <li>Relevant kits from the library, matched to your problem</li>
               </ul>
             </div>
             <div className="honest">
               <b>How it actually works:</b> the Hotline is a voicemail line, not a live 24/7
               helpline. You leave your question; our team (AI-assisted) replies in writing within
-              2&ndash;3 business days, routed by fit, never pay-to-play.
+              2 to 3 business days, routed by fit, never pay-to-play.
             </div>
           </div>
           <div>
@@ -158,7 +205,7 @@ export default function HomePage() {
               <div className="stepr">
                 <div className="n">01</div>
                 <div>
-                  <h4>Call &amp; describe the problem</h4>
+                  <h4>Call and describe the problem</h4>
                   <p>
                     In plain English, on our toll-free line, (855) 567-5323. No forms, no forums, no
                     scrolling.
@@ -180,8 +227,8 @@ export default function HomePage() {
                 <div>
                   <h4>You get a written plan</h4>
                   <p>
-                    Text + email within 2&ndash;3 business days: a recommended solution plus
-                    3&ndash;4 experts to contact.
+                    Text and email within 2 to 3 business days: a recommended solution plus 3 to 4
+                    experts to contact.
                   </p>
                 </div>
               </div>
@@ -190,6 +237,8 @@ export default function HomePage() {
         </div>
       </section>
 
+      {/* /#features (DMN's "What is ASN" anchor) lands on the same section. */}
+      <span id="features" className="anchor-alias" aria-hidden />
       <section id="inside">
         <div className="wrap center">
           <span className="kicker">What&rsquo;s inside</span>
@@ -206,7 +255,7 @@ export default function HomePage() {
               <h3>Expert Hotline</h3>
               <p>
                 Written action plans for staffing, pricing, marketing and compliance problems, in
-                2&ndash;3 business days.
+                2 to 3 business days.
               </p>
             </div>
             <div className="feat">
@@ -219,15 +268,15 @@ export default function HomePage() {
             </div>
             <div className="feat">
               <div className="num">No.3</div>
-              <h3>Partner deals</h3>
+              <h3>Company deals</h3>
               <p>
-                Member-only pricing from vetted vendors across devices, injectables, skincare,
+                Member-only pricing from vetted companies across devices, injectables, skincare,
                 software and services.
               </p>
             </div>
             <div className="feat">
               <div className="num">No.4</div>
-              <h3>Live AMAs &amp; CE</h3>
+              <h3>Live AMAs and CE</h3>
               <p>
                 Monthly live sessions with the field&rsquo;s best experts, plus
                 continuing-education opportunities.
@@ -318,21 +367,21 @@ export default function HomePage() {
             Everything in <em>one place</em>.
           </h2>
           <p className="lead">
-            The Hotline, your library, live sessions and partner deals, all behind one login.
+            The Hotline, your library, live sessions and company deals, all behind one login.
           </p>
           <div className="shell" style={{ textAlign: "left" }}>
             <div className="bar">
               <i></i>
               <i></i>
               <i></i>
-              <span className="addr">portal.aestheticsuccessnetwork.com</span>
+              <span className="addr">www.aestheticsuccessnetwork.com/dashboard</span>
             </div>
             <div className="app">
               <div className="side">
                 <div className="it on">&#9742; &nbsp;Expert Hotline</div>
                 <div className="it">&#9783; &nbsp;Resource library</div>
                 <div className="it">&#9788; &nbsp;Live sessions &amp; CE</div>
-                <div className="it">&#9873; &nbsp;Partner deals</div>
+                <div className="it">&#9873; &nbsp;Company deals</div>
                 <div className="it">&#9998; &nbsp;Our experts</div>
                 <div className="it">&#9881; &nbsp;Account</div>
               </div>
@@ -355,7 +404,7 @@ export default function HomePage() {
                 </div>
                 <div className="kitrow">
                   <div>
-                    <div className="t">Hiring &amp; keeping a great injector</div>
+                    <div className="t">Hiring and keeping a great injector</div>
                     <div className="m">Training video &middot; SOP &middot; interview guide</div>
                   </div>
                   <div className="pill">Kit</div>
@@ -363,8 +412,7 @@ export default function HomePage() {
               </div>
             </div>
             <div className="note2">
-              Illustrative preview. The portal is in development and kit titles are examples of
-              the format.
+              Illustrative preview. Kit titles are examples of the format.
             </div>
           </div>
         </div>
@@ -400,17 +448,17 @@ export default function HomePage() {
               <div className="price">
                 $49<span>/mo</span>
               </div>
-              <div className="cap">Locked for life while your membership stays active.</div>
+              <div className="cap">Locked while your membership stays active.</div>
               <ul>
-                <li>The Expert Hotline, with written plans in 2&ndash;3 business days</li>
+                <li>The Expert Hotline, with written plans in 2 to 3 business days</li>
                 <li>Full resource library, new kits weekly</li>
-                <li>Every member-only partner deal</li>
-                <li>Monthly live AMAs &amp; CE</li>
+                <li>Every member-only company deal</li>
+                <li>Monthly live AMAs and CE</li>
                 <li>30-day money-back guarantee &middot; cancel anytime</li>
               </ul>
-              <a className="btn bronze" href="#join">
+              <Link className="btn bronze" href="/join/member">
                 Claim a founding spot
-              </a>
+              </Link>
             </div>
             <div className="pstd">
               <div className="t">After the first 100</div>
@@ -419,13 +467,14 @@ export default function HomePage() {
               </div>
               <p>The standard rate once founding spots fill. Same membership, later price.</p>
               <div className="ann">
-                <b>Annual:</b> $490/yr for founding members. Two months free.
+                <b>Annual:</b> $490/yr for founding members. Pay for 10 months, get 12, save
+                $98/year.
               </div>
             </div>
           </div>
           <p className="guarantee">
-            <b>Fair-launch promise:</b> you join the waitlist now, pay nothing today, and confirm
-            before any charge.
+            <b>Fair-launch promise:</b> every membership comes with a 30-day money-back guarantee.
+            Not ready yet? <a href="#join">Join the waitlist</a> and pay nothing today.
           </p>
         </div>
       </section>
@@ -451,7 +500,7 @@ export default function HomePage() {
               <ul>
                 <li>You&rsquo;re looking for free generic content</li>
                 <li>You need $20k one-on-one coaching</li>
-                <li>You won&rsquo;t use the Hotline or the partner deals</li>
+                <li>You won&rsquo;t use the Hotline or the company deals</li>
                 <li>You&rsquo;re not a decision-maker at a practice</li>
               </ul>
             </div>
@@ -463,10 +512,10 @@ export default function HomePage() {
         <div className="wrap center">
           <span className="kicker">One network &middot; three ways in</span>
           <h2 className="title">
-            Are you an <em>expert</em> or a <em>vendor</em>?
+            Are you an <em>expert</em> or a <em>company</em>?
           </h2>
           <p className="lead">
-            Members get the value. Experts and partners help build it, and get a warm-lead channel
+            Members get the value. Experts and companies help build it, and get a warm-lead channel
             in return.
           </p>
           <div className="dgrid">
@@ -480,7 +529,7 @@ export default function HomePage() {
               </p>
               <ul>
                 <li>A library built for you, in your branding</li>
-                <li>Featured profile + warm leads to your calendar</li>
+                <li>Featured profile plus warm leads to your calendar</li>
                 <li>Sell your own courses and keep 70%</li>
               </ul>
               <Link className="btn solid" href="/experts">
@@ -489,19 +538,19 @@ export default function HomePage() {
             </div>
             <div className="door">
               <h3>
-                For <em>Partners</em>
+                For <em>Companies</em>
               </h3>
               <p>
                 Get in front of aesthetics&rsquo; most engaged buyers through a trusted shortlist
                 instead of a cold ad. Free for the first six months.
               </p>
               <ul>
-                <li>Profile + placement in your category</li>
-                <li>Lead flow with a dashboard + Verified Partner badge</li>
+                <li>Profile plus placement in your category</li>
+                <li>Lead flow with a dashboard plus a Verified Company badge</li>
                 <li>Podcast, webinar and co-marketing features</li>
               </ul>
-              <Link className="btn solid" href="/partners">
-                Become a partner &rarr;
+              <Link className="btn solid" href="/companies">
+                Become a company &rarr;
               </Link>
             </div>
           </div>
@@ -515,94 +564,41 @@ export default function HomePage() {
             <h2 className="title">Good to know</h2>
           </div>
           <div style={{ marginTop: 42 }}>
-            <details open>
-              <summary>What exactly do I get as a member?</summary>
-              <p>
-                The Expert Hotline (written action plans in 2&ndash;3 business days), a growing
-                resource library with new expert kits weekly, exclusive member-only vendor deals,
-                and monthly live AMAs and CE with the field&rsquo;s best experts.
-              </p>
-            </details>
-            <details>
-              <summary>Is the Hotline a live, 24/7 helpline?</summary>
-              <p>
-                No, and we won&rsquo;t pretend otherwise. It&rsquo;s a voicemail line. You
-                leave your question and our team (AI-assisted) replies by text and email within
-                2&ndash;3 business days with a recommended solution plus 3&ndash;4 experts to
-                contact.
-              </p>
-            </details>
-            <details>
-              <summary>How does the founding rate work?</summary>
-              <p>
-                The first 100 members lock in $49/mo for as long as their membership stays active.
-                After the founding hundred, the standard rate is $199/mo. Your locked rate never
-                increases while you&rsquo;re a member.
-              </p>
-            </details>
-            <details>
-              <summary>How do the vendor deals save me money?</summary>
-              <p>
-                Partners commit to a genuine member-only discount, at least as good as any
-                offer they make comparable customers. We list them with a Verified Partner badge,
-                and you deal with them directly. Use the calculator above with your own numbers.
-              </p>
-            </details>
-            <details>
-              <summary>Is this just a front for a big coaching upsell?</summary>
-              <p>
-                No. The membership is the product. There are no four-figure programs behind the
-                door, just the network, the resources, and the deals.
-              </p>
-            </details>
-            <details>
-              <summary>Do you store patient data?</summary>
-              <p>
-                No. The Aesthetic Success Network is a training, education and business-services
-                platform. We do not collect, store, or process any patient data. Ever.
-              </p>
-            </details>
-            <details>
-              <summary>What if it&rsquo;s not for me?</summary>
-              <p>
-                Every membership comes with a 30-day money-back guarantee, and you can cancel
-                anytime.
-              </p>
-            </details>
+            {FAQ_ITEMS.map((f, i) => (
+              <details key={f.q} open={i === 0}>
+                <summary>{f.q}</summary>
+                <p>{f.a}</p>
+              </details>
+            ))}
           </div>
         </div>
       </section>
 
+      {/* /#waitlist (DMN's waitlist anchor) lands on the same section. */}
+      <span id="waitlist" className="anchor-alias" aria-hidden />
       <section className="final" id="join">
         <div className="wrap">
           <h2>
-            Claim your <em>founding spot</em>.
+            Not ready yet? <em>Get on the list.</em>
           </h2>
           <p className="lead2">
-            Join the waitlist now and pay nothing today. We&rsquo;ll reach out as founding
-            spots open, and you confirm before any charge.
+            Join the waitlist and pay nothing today. We&rsquo;ll reach out as founding spots open,
+            and you confirm before any charge. Ready now?{" "}
+            <Link href="/join/member" style={{ textDecoration: "underline" }}>
+              Start your membership
+            </Link>
+            .
           </p>
-          <div className="cd-wrap">
-            <Countdown variant="dark" label="Founding doors open in" />
-          </div>
           <WaitlistForm />
         </div>
       </section>
 
-      <SiteFooter
-        links={[
-          { href: "/experts", label: "For Experts" },
-          { href: "/partners", label: "For Partners" },
-          { href: "/member-agreement", label: "Member Agreement" },
-          { href: "/refund-policy", label: "Refund & Cancellation" },
-          { href: "/privacy", label: "Privacy" },
-        ]}
-      />
+      <SiteFooter />
 
       <PageFx
         revealSelector="section .kicker, h2.title, .lead, .feature-grid--joined .feat, .atile, .stepr, .example, .honest, .fitcol, .door, .pwrap, .calc, .shell, .faq details, .final h2, .final .lead2, .final .cd-wrap"
         grids={[".feature-grid--joined", ".artgrid", ".fitgrid", ".dgrid", ".steps"]}
       />
-    </>
+    </SitePage>
   );
 }

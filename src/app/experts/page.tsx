@@ -1,27 +1,29 @@
 import type { Metadata } from "next";
+import SitePage from "@/components/site/SitePage";
 import SiteNav from "@/components/site/SiteNav";
 import SiteFooter from "@/components/site/SiteFooter";
 import PageFx from "@/components/site/PageFx";
 import ExpertForm from "@/components/site/ExpertForm";
 import ExpertDirectory from "@/components/site/ExpertDirectory";
 
+// Copy source: the previous ASN site / _asn-source-copy/experts.html
+// (approved ASN copy). The application form posts to DMN's
+// /api/expert/signup; the bench reads DMN's /api/directory/experts.
+// Provider ramp per the ASN canon: $0 months 1 to 6, $49 months 7 to 12,
+// $199 from month 13. Experts keep 70% of course revenue. Founding experts
+// (free for life) are internal only and never mentioned here.
+
 export const metadata: Metadata = {
   title: "Become an Expert",
   description:
     "Turn your aesthetics expertise into a done-for-you content library and a pipeline of warm leads. Share one recording; we produce the kit and bring the audience.",
+  alternates: { canonical: "/experts" },
 };
 
 export default function ExpertsPage() {
   return (
-    <>
-      <SiteNav
-        links={[
-          { href: "/", label: "For Members" },
-          { href: "/experts", label: "For Experts", active: true },
-          { href: "/partners", label: "For Partners" },
-        ]}
-        cta={{ href: "#apply", label: "Apply as an expert" }}
-      />
+    <SitePage>
+      <SiteNav active="/experts" />
 
       <header className="hero hero--experts" id="top">
         <div className="wrap">
@@ -113,7 +115,7 @@ export default function ExpertsPage() {
             Meet the <em>experts</em>.
           </h2>
           <p className="lead">
-            The people behind the resource library &mdash; hand-picked, never algorithmic.
+            The people behind the resource library: hand-picked, never algorithmic.
           </p>
           <ExpertDirectory />
         </div>
@@ -215,12 +217,12 @@ export default function ExpertsPage() {
           <div className="pgrid">
             <div className="pc hot">
               <div className="badge">Start here</div>
-              <div className="tier">Months 1&ndash;6</div>
+              <div className="tier">Months 1 to 6</div>
               <div className="price">$0</div>
               <div className="desc">Get set up and build your library first.</div>
             </div>
             <div className="pc">
-              <div className="tier">Months 7&ndash;12</div>
+              <div className="tier">Months 7 to 12</div>
               <div className="price">
                 $49<span>/mo</span>
               </div>
@@ -231,7 +233,10 @@ export default function ExpertsPage() {
               <div className="price">
                 $199<span>/mo</span>
               </div>
-              <div className="desc">Standard rate once your library is working for you.</div>
+              <div className="desc">
+                Standard rate once your library is working for you, or $1,990/yr annual (two
+                months free).
+              </div>
             </div>
           </div>
           <p className="guarantee">
@@ -280,20 +285,13 @@ export default function ExpertsPage() {
         </div>
       </section>
 
-      <SiteFooter
-        links={[
-          { href: "/", label: "For Members" },
-          { href: "/partners", label: "For Partners" },
-          { href: "/provider-agreement", label: "Provider Agreement" },
-          { href: "/privacy", label: "Privacy" },
-        ]}
-      />
+      <SiteFooter />
 
       <PageFx
         revealSelector="section .kicker, h2.title, .lead, .feature-grid--cards .feat, .pc, .stepc, .fitcol"
         grids={[".steps3", ".feature-grid--cards", ".pgrid", ".fitgrid"]}
         gridDelay={0.09}
       />
-    </>
+    </SitePage>
   );
 }

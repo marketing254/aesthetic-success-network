@@ -1,40 +1,40 @@
 # dependencies
 /node_modules
+/.pnp
+.pnp.*
 
-# next.js build output
+# next.js
 /.next/
 /out/
+/build
+.next-dev-*.log
 
-# env files — secrets and local config never get committed
+# misc
+.DS_Store
+*.pem
+*.tsbuildinfo
+next-env.d.ts
+
+# debug
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# env files: never commit
 .env*
+# .env.example is kept local too (owner decision)
 
 # vercel
 .vercel
 
-# logs
-npm-debug.log*
-yarn-debug.log*
-yarn-error.log*
-*.log
-
-# typescript
-*.tsbuildinfo
-next-env.d.ts
-
-# tooling / IDE
-.hallmark/
-.vscode/
-.idea/
-
-# OS junk
-.DS_Store
-Thumbs.db
-desktop.ini
-
-# misc
-*.pem
-
-# reference material and local analysis notes — not part of the app
-Sample/
-SAMPLE-ANALYSIS.md
+# supabase local state
+supabase/.branches/
 supabase/.temp/
+supabase/.env
+
+# local seeds with real addresses and local runners with secret keys
+supabase/seed.local.sql
+stripe-test-runner*.mjs
+*test-runner*.mjs
+/scripts/local-*
+*.local.log

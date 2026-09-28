@@ -1,48 +1,85 @@
 import { NextResponse } from "next/server";
-import { requirePortalExpert } from "@/lib/auth/guards";
-import { getSupabaseAdmin } from "@/lib/supabase/server";
 import { getStripe } from "@/lib/stripe";
-import { errMessage } from "@/lib/errMessage";
+import { getSupabaseAdmin } from "@/lib/supabase/server";
+import { requireExpert } from "@/lib/auth/guards";
+import { serverError } from "@/lib/api/errorResponse";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
+/**
+ * POST /api/expert/billing/trial/prepare
+ *
+ * Mirror of /api/vendor/billing/trial/prepare for the expert bench.
+ */
 export async function POST() {
-  const guard = await requirePortalExpert();
+  const guard = await requireExpert();
   if (!guard.ok) return guard.response;
 
+  let stripe;
   try {
-    const supabase = getSupabaseAdmin();
-    const { data: expert } = await supabase
-      .from("expert_applications")
-      .select("id, email, full_name, company, stripe_customer_id")
-      .eq("id", guard.rowId)
-      .maybeSingle();
-    if (!expert) {
-      return NextResponse.json({ error: "Expert not found." }, { status: 404 });
-    }
-
-    const stripe = getStripe();
-    let customerId = expert.stripe_customer_id as string | null;
-    if (!customerId) {
-      const customer = await stripe.customers.create({
-        email: expert.email as string,
-        name: (expert.full_name as string) || undefined,
-        metadata: { audience: "expert", expert_application_id: expert.id as string },
-      });
-      customerId = customer.id;
-      await supabase.from("expert_applications").update({ stripe_customer_id: customerId }).eq("id", expert.id);
-    }
-
-    const setupIntent = await stripe.setupIntents.create({
-      customer: customerId,
-      automatic_payment_methods: { enabled: true },
-      usage: "off_session",
-      metadata: { audience: "expert", expert_application_id: expert.id as string, purpose: "trial_start" },
-    });
-
-    return NextResponse.json({ clientSecret: setupIntent.client_secret, agreementHref: "/provider-agreement" });
+    stripe = getStripe();
   } catch (err) {
-    return NextResponse.json({ error: errMessage(err) }, { status: 500 });
+    return serverError(err, { route: "POST /api/expert/billing/trial/prepare", status: 503 });
   }
+
+  const sb = getSupabaseAdmin();
+  const { data: expert } = await sb
+    .from("experts")
+    .select("id, email, full_name, stripe_customer_id, stripe_subscription_id, subscription_status")
+    .eq("id", guard.expertId)
+    .maybeSingle();
+  if (!expert) {
+    return NextResponse.json({ error: "Expert not found." }, { status: 404 });
+  }
+  if (
+    expert.stripe_subscription_id &&
+    (expert.subscription_status === "active" || expert.subscription_status === "trialing")
+  ) {
+    return NextResponse.json(
+      { error: "You already have an active subscription." },
+      { status: 409 },
+    );
+  }
+
+  let customerId = expert.stripe_customer_id;
+  if (!customerId) {
+    const customer = await stripe.customers.create({
+      email: expert.email,
+      name: expert.full_name || undefined,
+      metadata: { audience: "expert", expert_id: expert.id },
+    });
+    customerId = customer.id;
+    await sb
+      .from("experts")
+      .update({ stripe_customer_id: customerId } as never)
+      .eq("id", expert.id);
+  }
+
+  const setupIntent = await stripe.setupIntents.create({
+    customer: customerId,
+    payment_method_types: ["card"],
+    usage: "off_session",
+    metadata: { audience: "expert", expert_id: expert.id, purpose: "trial_start" },
+  });
+  if (!setupIntent.client_secret) {
+    return NextResponse.json(
+      { error: "Stripe didn't return a client secret. Try again." },
+      { status: 500 },
+    );
+  }
+
+  // Serve the right agreement: if this same email is ALSO a partner
+  // (a vendors row exists), they get the combined Expert + Partner
+  // agreement — one fee covers both roles. Otherwise the Expert one.
+  const { data: alsoPartner } = await sb
+    .from("vendors")
+    .select("id")
+    .eq("contact_email", expert.email.toLowerCase())
+    .maybeSingle();
+  const agreementHref = alsoPartner
+    ? "/agreements/asn-provider-agreement.pdf"
+    : "/agreements/asn-provider-agreement.pdf";
+
+  return NextResponse.json({ clientSecret: setupIntent.client_secret, agreementHref });
 }

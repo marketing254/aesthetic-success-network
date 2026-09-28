@@ -1,35 +1,103 @@
-import "server-only";
 import Stripe from "stripe";
 
 /**
- * Stripe SDK singleton + the founding-waiver pricing catalog.
+ * Single source of truth for the Stripe SDK + the Aesthetic Success
+ * Network (ASN) pricing catalogue.
  *
- * Members pay from day one: Founding ($49/mo, first 100 lifetime seats)
- * → Early ($99/mo, next 400) → Standard ($199/mo, uncapped). Experts and
- * partners get a 6-month free waiver (clock starts at admin approval,
- * see `monthsSince`), then Growth ($49/mo, months 7-12) → Standard
- * ($199/mo, month 13+). Starting a trial locks the Growth rate for
- * life — enforced by a DB trigger (supabase/migrations/0010), not just
- * the app code below.
+ * Price IDs are read from env vars so the same code runs against the test
+ * sandbox locally and against live prices in production without an edit.
+ *
+ *   STRIPE_PRICE_FOUNDING_MONTHLY            - $49/mo    — first 100 members, locked while active
+ *   STRIPE_PRICE_FOUNDING_ANNUAL             - $490/yr   — "pay for 10 months, get 12"
+ *   STRIPE_PRICE_FOUNDING_ANNUAL_PROMO       - $441/yr   — founding annual with a ≥90-day promo code only
+ *   STRIPE_PRICE_EARLY_MONTHLY / _ANNUAL     - NOT OFFERED. ASN has no "early" tier
+ *                                              (EARLY_MEMBER_CAP = 0). The plan keys stay so
+ *                                              the webhook never crashes on a legacy metadata
+ *                                              value; nothing in the UI can select them.
+ *   STRIPE_PRICE_STANDARD_MONTHLY            - $199/mo   — after the founding cap
+ *   STRIPE_PRICE_STANDARD_ANNUAL             - $1,990/yr
+ *
+ *   STRIPE_PRICE_PARTNER_GROWTH_MONTHLY      - $49/mo    — partner months 7–12 (180-day trial first)
+ *   STRIPE_PRICE_PARTNER_STANDARD_MONTHLY    - $199/mo   — partner month 13 onward
+ *   STRIPE_PRICE_PARTNER_STANDARD_ANNUAL     - $1,990/yr
+ *
+ *   STRIPE_PRICE_EXPERT_GROWTH_MONTHLY       - $49/mo    — expert months 7–12 (180-day trial first)
+ *   STRIPE_PRICE_EXPERT_STANDARD_MONTHLY     - $199/mo   — expert month 13 onward
+ *   STRIPE_PRICE_EXPERT_STANDARD_ANNUAL      - $1,990/yr
+ *
+ * Provider ramp (experts + partners): $0 months 1–6 (TRIAL_DAYS on the
+ * growth price), $49/month months 7–12, $199/month from month 13. The
+ * self-serve trial flow only ever creates the growth subscription; the
+ * month-13 step is applied by the founding-invite subscription schedule
+ * (pricing_plan "ladder") or by the team from the Stripe dashboard.
+ *
+ * Tier caps (lifetime — cancellations do NOT free a seat):
+ *   Founding: first 100 lifetime  → FOUNDING_MEMBER_CAP
+ *   Early:    0 (tier disabled)   → EARLY_MEMBER_CAP
+ *   Standard: unlimited
+ *
+ * The webhook handler also needs STRIPE_WEBHOOK_SECRET.
  */
 
-let stripeClient: Stripe | null = null;
+/** Canonical public origin. Every default URL in the app derives from this. */
+export const CANONICAL_ORIGIN = "https://www.aestheticsuccessnetwork.com";
+
+// Lifetime caps. Once N members have ever subscribed to a tier, the tier
+// closes permanently — cancellations do NOT free a seat. We track this by
+// the {founding,early}_member_locked boolean on members, set by the
+// Stripe webhook on first successful checkout and never reset.
+export const FOUNDING_MEMBER_CAP = 100;
+/** ASN has no early tier. Zero means the tier can never open. */
+export const EARLY_MEMBER_CAP = 0;
+
+/**
+ * Lifetime-free founding EXPERTS. The first 20 experts the team hand-picks
+ * are never charged — `experts.billing_exempt`. INTERNAL ONLY: granted by
+ * an admin, never offered on a public page, form, email or agreement.
+ * Expert 21 onward goes on the normal ramp ($0 months 1–6 → $49 months
+ * 7–12 → $199 month 13+), same as partners.
+ *
+ * This constant is for labels and pre-flight checks only. The cap is
+ * ENFORCED in the database (0043_founding_expert_cap.sql) because the
+ * flag can be set from the repair script, the admin console, or a future
+ * onboarding step — a trigger is the one place all of them must pass.
+ *
+ * Expert-side only: a founding expert who also runs a company still pays
+ * through their `vendors` row.
+ */
+export const FOUNDING_EXPERT_CAP = 20;
+
+/** Provider free period: 180 days on the growth price, first $49 charge on day 181. */
+export const TRIAL_DAYS = 180;
+
+/**
+ * Fixed-date founding ramp anchors used by the founding-invite acceptance
+ * flow (subscription schedules). Overridable per environment so a test
+ * project can move the clock. Defaults are the DMN launch anchors.
+ */
+export const FOUNDING_TRIAL_END_ISO =
+  process.env.FOUNDING_TRIAL_END_ISO || "2027-02-01T00:00:00Z";
+export const FOUNDING_STANDARD_START_ISO =
+  process.env.FOUNDING_STANDARD_START_ISO || "2027-08-01T00:00:00Z";
+
+let _client: Stripe | null = null;
 
 export function getStripe(): Stripe {
-  if (stripeClient) return stripeClient;
+  if (_client) return _client;
   const key = process.env.STRIPE_SECRET_KEY;
   if (!key) {
-    throw new Error("STRIPE_SECRET_KEY is not set. Add it to .env.local.");
+    throw new Error(
+      "STRIPE_SECRET_KEY is not set. Add it to .env.local for local dev and to Vercel env vars (Preview + Production).",
+    );
   }
-  stripeClient = new Stripe(key);
-  return stripeClient;
+  _client = new Stripe(key, {
+    // Pinning the API version keeps webhook payloads + types stable
+    // even when Stripe ships new defaults.
+    apiVersion: "2026-05-27.dahlia",
+    typescript: true,
+  });
+  return _client;
 }
-
-export function appOrigin(): string {
-  return process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000";
-}
-
-// ── Members ───────────────────────────────────────────────────────────
 
 export type SubscriptionPlanKey =
   | "founding_monthly"
@@ -38,6 +106,8 @@ export type SubscriptionPlanKey =
   | "early_annual"
   | "standard_monthly"
   | "standard_annual";
+
+export type SubscriptionTier = "founding" | "early" | "standard";
 
 export const ALL_PLAN_KEYS: SubscriptionPlanKey[] = [
   "founding_monthly",
@@ -48,211 +118,378 @@ export const ALL_PLAN_KEYS: SubscriptionPlanKey[] = [
   "standard_annual",
 ];
 
+/**
+ * Display price for each plan (USD). Used by the UI — Stripe still
+ * charges based on the price ID in the env var, this is just the label.
+ *
+ * The `early_*` entries exist ONLY so a webhook carrying a legacy plan
+ * key can still resolve a label. ASN has no early tier, so they carry the
+ * Standard label and amount: nothing can ever render "$99".
+ */
 export const PLAN_DISPLAY: Record<
   SubscriptionPlanKey,
-  { amount: number; per: "month" | "year"; tier: "founding" | "early" | "standard"; label: string }
+  { amount: number; per: "mo" | "yr"; tier: SubscriptionTier; label: string }
 > = {
-  founding_monthly: { amount: 49, per: "month", tier: "founding", label: "Founding — $49/mo" },
-  founding_annual: { amount: 490, per: "year", tier: "founding", label: "Founding — $490/yr" },
-  early_monthly: { amount: 99, per: "month", tier: "early", label: "Early — $99/mo" },
-  early_annual: { amount: 990, per: "year", tier: "early", label: "Early — $990/yr" },
-  standard_monthly: { amount: 199, per: "month", tier: "standard", label: "Standard — $199/mo" },
-  standard_annual: { amount: 1990, per: "year", tier: "standard", label: "Standard — $1990/yr" },
+  founding_monthly: { amount: 49,   per: "mo", tier: "founding", label: "Founding Monthly" },
+  founding_annual:  { amount: 490,  per: "yr", tier: "founding", label: "Founding Annual"  },
+  early_monthly:    { amount: 199,  per: "mo", tier: "early",    label: "Standard Monthly" },
+  early_annual:     { amount: 1990, per: "yr", tier: "early",    label: "Standard Annual"  },
+  standard_monthly: { amount: 199,  per: "mo", tier: "standard", label: "Standard Monthly" },
+  standard_annual:  { amount: 1990, per: "yr", tier: "standard", label: "Standard Annual"  },
 };
 
-const MEMBER_PRICE_ENV: Record<SubscriptionPlanKey, string> = {
-  founding_monthly: "STRIPE_PRICE_FOUNDING_MONTHLY",
-  founding_annual: "STRIPE_PRICE_FOUNDING_ANNUAL",
-  early_monthly: "STRIPE_PRICE_EARLY_MONTHLY",
-  early_annual: "STRIPE_PRICE_EARLY_ANNUAL",
-  standard_monthly: "STRIPE_PRICE_STANDARD_MONTHLY",
-  standard_annual: "STRIPE_PRICE_STANDARD_ANNUAL",
-};
+/** Plan keys a member can actually pick. Early keys are never offered. */
+export const OFFERED_PLAN_KEYS: SubscriptionPlanKey[] = [
+  "founding_monthly",
+  "founding_annual",
+  "standard_monthly",
+  "standard_annual",
+];
 
-export function priceIdFor(plan: SubscriptionPlanKey): string {
-  const envVar = MEMBER_PRICE_ENV[plan];
-  const id = process.env[envVar];
-  if (!id) throw new Error(`Missing env var ${envVar} for member plan "${plan}".`);
-  return id;
-}
-
-export function tierForPlan(plan: SubscriptionPlanKey) {
+export function tierForPlan(plan: SubscriptionPlanKey): SubscriptionTier {
   return PLAN_DISPLAY[plan].tier;
 }
-export function isFoundingPlan(plan: SubscriptionPlanKey) {
-  return PLAN_DISPLAY[plan].tier === "founding";
+
+/**
+ * Map our plan keys to the price IDs configured in Stripe Dashboard.
+ * Throws a clear error if any are missing so misconfiguration shows up
+ * at request time, not silently at runtime.
+ */
+export function priceIdFor(plan: SubscriptionPlanKey): string {
+  const envKey =
+    plan === "founding_monthly"   ? "STRIPE_PRICE_FOUNDING_MONTHLY"
+      : plan === "founding_annual"  ? "STRIPE_PRICE_FOUNDING_ANNUAL"
+      : plan === "early_monthly"    ? "STRIPE_PRICE_EARLY_MONTHLY"
+      : plan === "early_annual"     ? "STRIPE_PRICE_EARLY_ANNUAL"
+      : plan === "standard_monthly" ? "STRIPE_PRICE_STANDARD_MONTHLY"
+      : "STRIPE_PRICE_STANDARD_ANNUAL";
+  const value = process.env[envKey];
+  if (!value) {
+    throw new Error(
+      `Missing env var ${envKey}. Set this in .env.local (and Vercel) to a Stripe price ID like "price_1Te9...".`,
+    );
+  }
+  return value;
 }
-export function isEarlyPlan(plan: SubscriptionPlanKey) {
-  return PLAN_DISPLAY[plan].tier === "early";
-}
-export function billingIntervalFor(plan: SubscriptionPlanKey) {
-  return PLAN_DISPLAY[plan].per === "year" ? "year" : "month";
+
+export function isFoundingPlan(plan: SubscriptionPlanKey): boolean {
+  return plan === "founding_monthly" || plan === "founding_annual";
 }
 
-export const FOUNDING_MEMBER_CAP = 100;
-export const EARLY_MEMBER_CAP = 400;
-export const FOUNDING_EXPERT_CAP = 20;
+export function isEarlyPlan(plan: SubscriptionPlanKey): boolean {
+  return plan === "early_monthly" || plan === "early_annual";
+}
 
-// ── Experts & partners ───────────────────────────────────────────────
+export function billingIntervalFor(plan: SubscriptionPlanKey): "month" | "year" {
+  return PLAN_DISPLAY[plan].per === "yr" ? "year" : "month";
+}
 
-export type ExpertPlanKey = "expert_growth_monthly" | "expert_standard_monthly" | "expert_standard_annual";
-export type PartnerPlanKey = "partner_growth_monthly" | "partner_standard_monthly" | "partner_standard_annual";
+// =====================================================================
+// EXPERT + PARTNER PLANS
+// =====================================================================
+//
+// Members and the two provider audiences (vendors/partners + experts) all
+// run through Stripe but with separate products + price IDs so we can
+// tell them apart in reports + dashboards. Both partners and experts use
+// the same 3-phase ramp (ASN canon):
+//
+//   Phase 1 (months 1-6)   $0/mo    "Launch"   — 180-day trial on the growth price
+//   Phase 2 (months 7-12)  $49/mo   "Growth"
+//   Phase 3 (month 13+)    $199/mo  "Standard" ($1,990/yr pre-pay)
+//
+// The "phase" is just the price the customer is paying RIGHT NOW. We move
+// them between prices either by:
+//   (a) subscription schedules — define the ramp once on signup, Stripe
+//       auto-rolls the customer up at month 7 and month 13, or
+//   (b) admin-side switch via the customer portal at the right time.
+// (a) is what the founding-invite flow does; the self-serve trial flow
+// creates the growth subscription only.
 
-export const ALL_EXPERT_PLAN_KEYS: ExpertPlanKey[] = [
-  "expert_growth_monthly",
-  "expert_standard_monthly",
-  "expert_standard_annual",
-];
+// Phase 1 (months 1-6) is the Stripe trial on the growth price, so the
+// card is on file from day one and the first charge fires on day 181.
+export type PartnerPlanKey =
+  | "partner_growth_monthly"     // $49 months 7-12
+  | "partner_standard_monthly"   // $199 month 13+
+  | "partner_standard_annual";   // $1,990/year
+
+export type ExpertPlanKey =
+  | "expert_growth_monthly"      // $49 months 7-12
+  | "expert_standard_monthly"    // $199 month 13+
+  | "expert_standard_annual";    // $1,990/year
+
+export type PartnerPhase = "launch" | "growth" | "standard";
+export type ExpertPhase = "launch" | "growth" | "standard";
+
 export const ALL_PARTNER_PLAN_KEYS: PartnerPlanKey[] = [
   "partner_growth_monthly",
   "partner_standard_monthly",
   "partner_standard_annual",
 ];
 
-export const EXPERT_PLAN_DISPLAY: Record<ExpertPlanKey, { amount: number; per: "month" | "year"; label: string }> = {
-  expert_growth_monthly: { amount: 49, per: "month", label: "Growth — $49/mo" },
-  expert_standard_monthly: { amount: 199, per: "month", label: "Standard — $199/mo" },
-  expert_standard_annual: { amount: 1990, per: "year", label: "Standard — $1990/yr" },
-};
-export const PARTNER_PLAN_DISPLAY: Record<PartnerPlanKey, { amount: number; per: "month" | "year"; label: string }> = {
-  partner_growth_monthly: { amount: 49, per: "month", label: "Growth — $49/mo" },
-  partner_standard_monthly: { amount: 199, per: "month", label: "Standard — $199/mo" },
-  partner_standard_annual: { amount: 1990, per: "year", label: "Standard — $1990/yr" },
+export const ALL_EXPERT_PLAN_KEYS: ExpertPlanKey[] = [
+  "expert_growth_monthly",
+  "expert_standard_monthly",
+  "expert_standard_annual",
+];
+
+export const PARTNER_PLAN_DISPLAY: Record<
+  PartnerPlanKey,
+  { amount: number; per: "mo" | "yr"; phase: PartnerPhase; label: string }
+> = {
+  partner_growth_monthly:   { amount: 49,   per: "mo", phase: "growth",   label: "ASN Partner Growth (months 7-12)" },
+  partner_standard_monthly: { amount: 199,  per: "mo", phase: "standard", label: "ASN Partner Standard Monthly" },
+  partner_standard_annual:  { amount: 1990, per: "yr", phase: "standard", label: "ASN Partner Standard Annual" },
 };
 
-const EXPERT_PRICE_ENV: Record<ExpertPlanKey, string> = {
-  expert_growth_monthly: "STRIPE_PRICE_EXPERT_GROWTH_MONTHLY",
-  expert_standard_monthly: "STRIPE_PRICE_EXPERT_STANDARD_MONTHLY",
-  expert_standard_annual: "STRIPE_PRICE_EXPERT_STANDARD_ANNUAL",
+export const EXPERT_PLAN_DISPLAY: Record<
+  ExpertPlanKey,
+  { amount: number; per: "mo" | "yr"; phase: ExpertPhase; label: string }
+> = {
+  expert_growth_monthly:   { amount: 49,   per: "mo", phase: "growth",   label: "ASN Expert Growth (months 7-12)" },
+  expert_standard_monthly: { amount: 199,  per: "mo", phase: "standard", label: "ASN Expert Standard Monthly" },
+  expert_standard_annual:  { amount: 1990, per: "yr", phase: "standard", label: "ASN Expert Standard Annual" },
 };
-const PARTNER_PRICE_ENV: Record<PartnerPlanKey, string> = {
-  partner_growth_monthly: "STRIPE_PRICE_PARTNER_GROWTH_MONTHLY",
-  partner_standard_monthly: "STRIPE_PRICE_PARTNER_STANDARD_MONTHLY",
-  partner_standard_annual: "STRIPE_PRICE_PARTNER_STANDARD_ANNUAL",
-};
+
+export function partnerPriceIdFor(plan: PartnerPlanKey): string {
+  const envKey =
+    plan === "partner_growth_monthly"   ? "STRIPE_PRICE_PARTNER_GROWTH_MONTHLY"
+      : plan === "partner_standard_monthly" ? "STRIPE_PRICE_PARTNER_STANDARD_MONTHLY"
+      : "STRIPE_PRICE_PARTNER_STANDARD_ANNUAL";
+  const value = process.env[envKey];
+  if (!value) {
+    throw new Error(
+      `Missing env var ${envKey}. Set this in .env.local (and Vercel) to a Stripe price ID like "price_1Te9...".`,
+    );
+  }
+  return value;
+}
 
 export function expertPriceIdFor(plan: ExpertPlanKey): string {
-  const envVar = EXPERT_PRICE_ENV[plan];
-  const id = process.env[envVar];
-  if (!id) throw new Error(`Missing env var ${envVar} for expert plan "${plan}".`);
-  return id;
-}
-export function partnerPriceIdFor(plan: PartnerPlanKey): string {
-  const envVar = PARTNER_PRICE_ENV[plan];
-  const id = process.env[envVar];
-  if (!id) throw new Error(`Missing env var ${envVar} for partner plan "${plan}".`);
-  return id;
-}
-
-/** Reverse-lookup for display purposes — which configured plan does this Stripe price id correspond to, if any. */
-export function expertPlanKeyForPriceId(priceId: string | null): ExpertPlanKey | null {
-  if (!priceId) return null;
-  return ALL_EXPERT_PLAN_KEYS.find((k) => process.env[EXPERT_PRICE_ENV[k]] === priceId) ?? null;
-}
-export function partnerPlanKeyForPriceId(priceId: string | null): PartnerPlanKey | null {
-  if (!priceId) return null;
-  return ALL_PARTNER_PLAN_KEYS.find((k) => process.env[PARTNER_PRICE_ENV[k]] === priceId) ?? null;
+  const envKey =
+    plan === "expert_growth_monthly"   ? "STRIPE_PRICE_EXPERT_GROWTH_MONTHLY"
+      : plan === "expert_standard_monthly" ? "STRIPE_PRICE_EXPERT_STANDARD_MONTHLY"
+      : "STRIPE_PRICE_EXPERT_STANDARD_ANNUAL";
+  const value = process.env[envKey];
+  if (!value) {
+    throw new Error(
+      `Missing env var ${envKey}. Set this in .env.local (and Vercel) to a Stripe price ID like "price_1Te9...".`,
+    );
+  }
+  return value;
 }
 
-export type ProgramPhase = "launch" | "growth" | "standard";
-
-/** Months elapsed since the free-waiver clock started (admin approval). */
-export function monthsSince(startedAt: string | null): number {
-  if (!startedAt) return 0;
-  const start = new Date(startedAt).getTime();
-  if (Number.isNaN(start)) return 0;
-  const days = (Date.now() - start) / (1000 * 60 * 60 * 24);
-  return Math.max(0, Math.floor(days / 30));
-}
-
-export function phaseForMonth(monthsInProgram: number): ProgramPhase {
+/**
+ * Phase the customer is currently in, derived from months_in_program.
+ * Used to render the right "current rate" line in the billing UI without
+ * round-tripping to Stripe on every render.
+ */
+export function phaseForMonth(monthsInProgram: number): "launch" | "growth" | "standard" {
+  // ASN provider ramp: months 1-6 launch ($0), months 7-12 growth ($49),
+  // month 13 onward standard ($199).
   if (monthsInProgram <= 6) return "launch";
   if (monthsInProgram <= 12) return "growth";
   return "standard";
 }
 
-export function priceLabelForPhase(phase: ProgramPhase): string {
+/**
+ * Pretty "$0 / mo" / "$49 / mo" / "$199 / mo" label for the given phase.
+ */
+export function priceLabelForPhase(phase: "launch" | "growth" | "standard"): string {
   if (phase === "launch") return "$0 / mo";
   if (phase === "growth") return "$49 / mo";
   return "$199 / mo";
 }
 
-// ── Access gate (audience-agnostic) ──────────────────────────────────
-
-export type BillingAccessReason =
-  | "subscription_required"
-  | "past_due"
-  | "unpaid"
-  | "canceled"
-  | "incomplete_expired";
+// =====================================================================
+// BILLING ACCESS GATE — applied to vendor + expert portals.
+// =====================================================================
+// Decide whether the user's portal access should be locked based on
+// their position in the 3-phase ladder + current Stripe subscription
+// status. Used by:
+//   - components/shared/BillingGate.tsx (renders a paywall card if
+//     blocked, but always lets them through to the billing page itself
+//     so they can update the card or re-subscribe)
+//   - lib/auth/guards.ts (returns 402 Payment Required on API calls if
+//     blocked, so a client that bypasses the wall still can't write).
+//
+// Why the months-in-program check matters: during the founding waiver
+// (months 1-6) we don't expect a card on file, so a NULL subscription
+// status is normal — don't lock those users out. After the waiver ends,
+// they should have an `active`/`trialing` subscription; anything else
+// means there's a problem we should surface.
 
 export type BillingAccess =
   | { allowed: true }
-  | { allowed: false; reason: BillingAccessReason; title: string; message: string; cta: string };
+  | { allowed: false; reason: BillingBlockReason; title: string; message: string; cta: string };
+
+export type BillingBlockReason =
+  | "subscription_required"  // waiver ended, no subscription created
+  | "past_due"               // card declined on latest invoice
+  | "canceled"               // subscription terminated
+  | "unpaid";                // multiple retry failures, Stripe marked unpaid
+
+/**
+ * Preview / demo accounts that skip the card gate entirely, from the
+ * server-only env BILLING_BYPASS_EMAILS (comma-separated). Empty in
+ * production. Used by the API guards; the portal shells rely on the
+ * account row instead (see supabase/preview/mark-preview-accounts-paid.sql).
+ */
+export function isBillingBypassed(email: string | null | undefined): boolean {
+  if (!email) return false;
+  const list = (process.env.BILLING_BYPASS_EMAILS ?? "")
+    .split(",")
+    .map((e) => e.trim().toLowerCase())
+    .filter(Boolean);
+  return list.includes(email.trim().toLowerCase());
+}
 
 export function checkBillingAccess(opts: {
   monthsInProgram: number;
   subscriptionStatus: string | null;
+  /**
+   * True if the user has any Stripe subscription on file (even one
+   * that's `canceled` or `past_due`). Newly-approved users who haven't
+   * hit TrialStartCard yet arrive here with `false`, and we block
+   * portal access until they add a card and start the trial.
+   */
   hasSubscription: boolean;
+  /**
+   * Lifetime-free founding expert (`experts.billing_exempt`). These
+   * people are never charged and are never asked for a card, so every
+   * check below is skipped. Note this is expert-side only — a person
+   * who also runs a company still pays through their `vendors` row.
+   */
+  billingExempt?: boolean;
 }): BillingAccess {
-  const { monthsInProgram, subscriptionStatus, hasSubscription } = opts;
+  const { monthsInProgram, subscriptionStatus, hasSubscription, billingExempt } = opts;
 
+  // Lifetime-free cohort — always allowed, no card, no subscription.
+  // Checked first so a stale/absent Stripe status can never lock them out.
+  if (billingExempt) return { allowed: true };
+
+  // No subscription at all — regardless of where they are in the
+  // program timeline, they need to add a card first. Fresh signups
+  // land here on their first portal login; the BillingGate's "Go to
+  // billing page" button routes them to /vendor/account or
+  // /expert/billing, where TrialStartCard captures the card and spins
+  // up the trial subscription.
   if (!hasSubscription) {
-    // Still inside the free waiver window with no card on file yet.
-    if (monthsInProgram <= 6 && !subscriptionStatus) return { allowed: true };
     return {
       allowed: false,
       reason: "subscription_required",
-      title: "Add your billing details",
-      message: "Start your subscription to unlock the full portal.",
-      cta: "Add card",
+      title: "One more step: add your card",
+      message:
+        "You're approved. Add a card to activate your 6-month free trial. Nothing is charged today; the first $49 charge fires on day 181.",
+      cta: "Add card & start trial",
     };
   }
 
+  // Healthy subscriptions always pass.
   if (subscriptionStatus === "active" || subscriptionStatus === "trialing") {
     return { allowed: true };
   }
 
-  switch (subscriptionStatus) {
-    case "past_due":
-      return {
-        allowed: false,
-        reason: "past_due",
-        title: "Payment past due",
-        message: "Your last payment didn't go through. Update your card to keep your access.",
-        cta: "Update card",
-      };
-    case "unpaid":
-      return {
-        allowed: false,
-        reason: "unpaid",
-        title: "Payment required",
-        message: "Your subscription is unpaid. Update your card to restore access.",
-        cta: "Update card",
-      };
-    case "canceled":
-      return {
-        allowed: false,
-        reason: "canceled",
-        title: "Subscription canceled",
-        message: "Your subscription was canceled. Resubscribe to regain access.",
-        cta: "Resubscribe",
-      };
-    case "incomplete_expired":
-      return {
-        allowed: false,
-        reason: "incomplete_expired",
-        title: "Checkout expired",
-        message: "Your checkout session expired before payment completed. Try again.",
-        cta: "Try again",
-      };
-    default:
-      return {
-        allowed: false,
-        reason: "subscription_required",
-        title: "Add your billing details",
-        message: "Start your subscription to unlock the full portal.",
-        cta: "Add card",
-      };
+  // Waiver-era grandfather clause — if someone signed up under the old
+  // no-subscription flow (months_in_program still ≤ 6 with a NULL
+  // status), let them through. The `hasSubscription` short-circuit
+  // above catches new-flow users; this block only matches legacy rows.
+  if (monthsInProgram <= 6 && !subscriptionStatus) return { allowed: true };
+
+  if (subscriptionStatus === "past_due") {
+    return {
+      allowed: false,
+      reason: "past_due",
+      title: "Payment failed on your last invoice",
+      message:
+        "Your card was declined on the latest charge. Update your payment method to keep your portal and listing active. Stripe will retry once more before suspending.",
+      cta: "Update payment method",
+    };
   }
+  if (subscriptionStatus === "unpaid") {
+    return {
+      allowed: false,
+      reason: "unpaid",
+      title: "Subscription suspended",
+      message:
+        "Your subscription was suspended after repeated payment failures. Add a working card to reactivate.",
+      cta: "Reactivate subscription",
+    };
+  }
+  if (
+    subscriptionStatus === "canceled" ||
+    subscriptionStatus === "incomplete_expired"
+  ) {
+    return {
+      allowed: false,
+      reason: "canceled",
+      title: "Subscription is no longer active",
+      message:
+        "Your subscription has ended. Reactivate to restore portal access and your public listing.",
+      cta: "Reactivate subscription",
+    };
+  }
+
+  // No subscription at all, past the waiver — they never started one.
+  return {
+    allowed: false,
+    reason: "subscription_required",
+    title: "Founding waiver has ended",
+    message:
+      "Your 6-month founding waiver is up. Add a subscription to keep your portal and public listing active.",
+    cta: "Start subscription",
+  };
+}
+
+/**
+ * The app's absolute origin: Stripe success/cancel/return URLs, portal
+ * links, admin deep links in team emails, invite URLs. ONE helper for
+ * every server-side URL builder so no route hard-codes a domain.
+ * Resolved in this order so it works without manual env-var fiddling for
+ * each preview deploy:
+ *
+ *   1. NEXT_PUBLIC_APP_ORIGIN / NEXT_PUBLIC_SITE_URL / NEXT_PUBLIC_APP_URL
+ *      — explicit override (production sets NEXT_PUBLIC_APP_URL)
+ *   2. VERCEL_PROJECT_PRODUCTION_URL — Vercel auto-sets this for the
+ *      project's production deployment, even on preview builds
+ *   3. VERCEL_BRANCH_URL       — Vercel auto-sets this to a STABLE
+ *      per-branch URL (e.g. <project>-git-<branch>-<team>.vercel.app)
+ *      that survives across pushes — great for previews
+ *   4. VERCEL_URL              — Vercel auto-sets this to the specific
+ *      deployment's URL (changes per push) — last-resort fallback
+ *   5. CANONICAL_ORIGIN in production, http://localhost:3000 otherwise
+ *
+ * All Vercel system env vars are bare hostnames (no scheme), so we
+ * prepend https:// when we use them.
+ */
+export function appOrigin(): string {
+  const explicit =
+    process.env.NEXT_PUBLIC_APP_ORIGIN ??
+    process.env.NEXT_PUBLIC_SITE_URL ??
+    process.env.NEXT_PUBLIC_APP_URL;
+  if (explicit) return stripTrailingSlash(explicit);
+
+  const productionHost = process.env.VERCEL_PROJECT_PRODUCTION_URL;
+  if (productionHost && process.env.VERCEL_ENV === "production") {
+    return `https://${productionHost}`;
+  }
+
+  const branchHost = process.env.VERCEL_BRANCH_URL;
+  if (branchHost) return `https://${branchHost}`;
+
+  const deploymentHost = process.env.VERCEL_URL;
+  if (deploymentHost) return `https://${deploymentHost}`;
+
+  return process.env.NODE_ENV === "production" ? CANONICAL_ORIGIN : "http://localhost:3000";
+}
+
+/**
+ * Absolute URL for a path on this app (admin deep links, portal links).
+ * `adminLink("/admin/members?filter=new")` → `<appOrigin()>/admin/members?filter=new`.
+ */
+export function appUrl(path: string): string {
+  return `${appOrigin()}${path.startsWith("/") ? path : `/${path}`}`;
+}
+
+function stripTrailingSlash(s: string): string {
+  return s.replace(/\/+$/, "");
 }

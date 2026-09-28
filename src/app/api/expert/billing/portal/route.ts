@@ -1,35 +1,50 @@
 import { NextResponse } from "next/server";
-import { requirePortalExpert } from "@/lib/auth/guards";
+import { appOrigin, getStripe } from "@/lib/stripe";
 import { getSupabaseAdmin } from "@/lib/supabase/server";
-import { getStripe, appOrigin } from "@/lib/stripe";
-import { errMessage } from "@/lib/errMessage";
+import { requireExpert } from "@/lib/auth/guards";
+import { serverError } from "@/lib/api/errorResponse";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
+/**
+ * POST /api/expert/billing/portal
+ *
+ * Opens the Stripe Customer Portal for the signed-in expert. They use
+ * this to update their card, cancel, switch from monthly to annual, and
+ * download invoices — all without us building any of that UI ourselves.
+ *
+ * Returns 404 if the expert hasn't subscribed yet (no Stripe customer).
+ */
 export async function POST() {
-  const guard = await requirePortalExpert();
+  const guard = await requireExpert();
   if (!guard.ok) return guard.response;
 
-  try {
-    const supabase = getSupabaseAdmin();
-    const { data: expert } = await supabase
-      .from("expert_applications")
-      .select("stripe_customer_id")
-      .eq("id", guard.rowId)
-      .maybeSingle();
+  const sb = getSupabaseAdmin();
+  const { data: expert } = await sb
+    .from("experts")
+    .select("stripe_customer_id")
+    .eq("id", guard.expertId)
+    .single();
 
-    if (!expert?.stripe_customer_id) {
-      return NextResponse.json({ error: "No Stripe customer on file yet." }, { status: 404 });
-    }
-
-    const session = await getStripe().billingPortal.sessions.create({
-      customer: expert.stripe_customer_id as string,
-      return_url: `${appOrigin()}/expert/billing`,
-    });
-
-    return NextResponse.json({ ok: true, url: session.url });
-  } catch (err) {
-    return NextResponse.json({ error: errMessage(err) }, { status: 500 });
+  if (!expert?.stripe_customer_id) {
+    return NextResponse.json(
+      { error: "No Stripe customer found. Activate your subscription first." },
+      { status: 404 },
+    );
   }
+
+  let stripe;
+  try {
+    stripe = getStripe();
+  } catch (err) {
+    return serverError(err, { route: "POST /api/expert/billing/portal", status: 503 });
+  }
+
+  const session = await stripe.billingPortal.sessions.create({
+    customer: expert.stripe_customer_id,
+    return_url: `${appOrigin()}/expert/billing`,
+  });
+
+  return NextResponse.json({ url: session.url });
 }

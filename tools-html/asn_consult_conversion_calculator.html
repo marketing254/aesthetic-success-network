@@ -1,0 +1,140 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Consult Conversion Calculator · Aesthetic Success Network</title>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,600;9..144,700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root{--navy:#1B3A5C;--gold:#C8993D;--cream:#F5ECD7;--ink:#243140;--muted:#5a6b7d;--hair:#dbe2ea;}
+  *{box-sizing:border-box;margin:0;padding:0;}
+  body{font-family:'Inter',sans-serif;background:#f2f5f8;color:var(--ink);line-height:1.5;}
+  .wrap{max-width:880px;margin:0 auto;padding:28px 20px 60px;}
+  .hero{background:radial-gradient(120% 130% at 85% 0%,#2a5a86,#23496f 35%,#0d2641 78%);color:#fff;border-radius:14px;padding:28px 30px 24px;margin-bottom:22px;}
+  .hero .eyebrow{color:#E7B964;font-weight:700;letter-spacing:.16em;text-transform:uppercase;font-size:11px;}
+  .hero h1{font-family:'Fraunces',serif;font-weight:600;font-size:30px;line-height:1.1;margin:6px 0 8px;}
+  .hero p{color:#cfe0ee;font-size:14px;max-width:640px;}
+  .credit{display:inline-flex;align-items:center;gap:8px;margin-top:14px;background:rgba(255,255,255,.09);border:1px solid rgba(255,255,255,.18);border-radius:999px;padding:6px 14px;font-size:12.5px;color:#e8f0f7;}
+  .credit b{color:#E7B964;font-weight:600;}
+  .grid{display:grid;grid-template-columns:1fr 1.15fr;gap:18px;}
+  @media (max-width:720px){.grid{grid-template-columns:1fr;}}
+  .card{background:#fff;border:1px solid var(--hair);border-radius:14px;padding:22px;}
+  .card h2{font-family:'Fraunces',serif;color:var(--navy);font-size:18px;margin-bottom:4px;}
+  .card .sub{font-size:12.5px;color:var(--muted);margin-bottom:14px;}
+  label{display:block;font-weight:600;font-size:13px;color:var(--navy);margin:14px 0 5px;}
+  label span.opt{color:var(--muted);font-weight:400;}
+  .inp{display:flex;align-items:center;border:1.5px solid var(--hair);border-radius:9px;overflow:hidden;background:#fff;}
+  .inp:focus-within{border-color:var(--gold);}
+  .inp .unit{background:#f6f8fb;color:var(--muted);font-weight:600;padding:10px 12px;font-size:14px;}
+  .inp .unit.l{border-right:1px solid var(--hair);}
+  .inp .unit.r{border-left:1px solid var(--hair);}
+  .inp input{border:none;outline:none;font:inherit;font-size:16px;padding:10px 12px;width:100%;color:var(--ink);}
+  .hint{font-size:11.5px;color:var(--muted);margin-top:4px;}
+  .res-big{background:var(--cream);border-radius:11px;padding:14px 16px;margin-bottom:10px;}
+  .res-big .l{font-size:12px;color:#7a5d1f;font-weight:600;text-transform:uppercase;letter-spacing:.06em;}
+  .res-big .n{font-family:'Fraunces',serif;font-weight:700;color:var(--navy);font-size:32px;line-height:1.15;}
+  .res-big .s{font-size:12.5px;color:#5a4410;}
+  .res-row{display:flex;justify-content:space-between;align-items:baseline;gap:12px;padding:9px 2px;border-bottom:1px dotted var(--hair);font-size:14px;}
+  .res-row:last-child{border-bottom:none;}
+  .res-row b{color:var(--navy);font-size:16px;white-space:nowrap;}
+  .note{margin-top:14px;background:var(--cream);border:1px solid #e6d9b8;border-radius:11px;padding:12px 15px;font-size:13.5px;color:#5a4410;}
+  .note b{color:#7a5d1f;}
+  .btn{display:inline-block;background:var(--gold);color:#10243b;font-weight:700;font-size:14px;border:none;border-radius:999px;padding:11px 22px;cursor:pointer;margin-top:16px;}
+  .btn:hover{filter:brightness(1.05);}
+  .disclaimer{font-size:11.5px;color:var(--muted);margin-top:14px;}
+  .foot{margin-top:26px;display:flex;flex-wrap:wrap;gap:10px;justify-content:space-between;align-items:center;color:var(--muted);font-size:12px;}
+  .foot .brand{color:var(--navy);font-weight:700;letter-spacing:.08em;}
+  .foot .url{color:var(--gold);font-weight:600;}
+  @media print{ body{background:#fff;} .btn,.noprint,.howto{display:none !important;} .grid{grid-template-columns:1fr 1fr;} }
+  .howto h3{font-family:'Fraunces',serif;color:var(--navy);font-size:14.5px;margin:12px 0 4px;}.howto p{font-size:13.5px;margin:2px 0 10px;color:#37485a;}.howto ul{margin:4px 0 12px 18px;}.howto li{font-size:13.5px;margin-bottom:6px;color:#37485a;}.howto li b{color:var(--navy);}
+</style></head>
+<body>
+<div class="wrap">
+  <div class="hero">
+    <div class="eyebrow">ASN Member Tool &middot; Consult &amp; Conversion</div>
+    <h1>The Consult Conversion Calculator</h1>
+    <p>See the monthly revenue impact of lifting your same-day close rate by a few points, holding lead volume and average ticket constant.</p>
+    <div class="credit">An <b>Aesthetic Success Network</b> original &middot; works alongside every kit in your library</div>
+  </div>
+
+  <div class="grid">
+    <div class="card">
+      <h2>Your consults today</h2>
+      <div class="sub">Nothing you type here is saved or sent anywhere. It stays on your screen.</div>
+
+      <label>Consults per month</label>
+      <div class="inp"><input id="consults" type="number" min="0" step="5" value="40" inputmode="numeric"><span class="unit r">consults</span></div>
+      <div class="hint">New-patient and treatment consults your team runs in a typical month.</div>
+
+      <label>Current same-day close rate</label>
+      <div class="inp"><input id="close" type="number" min="0" max="100" step="1" value="35" inputmode="numeric"><span class="unit r">%</span></div>
+      <div class="hint">The share of consults that book or pay for treatment the same day.</div>
+
+      <label>Average ticket</label>
+      <div class="inp"><span class="unit l">$</span><input id="ticket" type="number" min="0" step="50" value="650" inputmode="numeric"></div>
+      <div class="hint">Average treatment value per closed consult.</div>
+
+      <label>Close-rate lift you want to test</label>
+      <div class="inp"><span class="unit l">+</span><input id="lift" type="number" min="0" max="100" step="1" value="10" inputmode="numeric"><span class="unit r">pts</span></div>
+      <div class="hint">Percentage points, not percent. A 35% rate plus 10 points is 45%.</div>
+    </div>
+
+    <div class="card">
+      <h2>What it means</h2>
+      <div class="sub">Live results, updated as you type.</div>
+
+      <div class="res-big">
+        <div class="l">Added revenue from that lift</div>
+        <div class="n" id="gain">$2,600/mo</div>
+        <div class="s" id="rates">$31,200/yr, moving close rate from 35% to 45% on the same 40 consults.</div>
+      </div>
+
+      <div class="res-row"><span>Revenue per month at your current rate</span><b id="current">$9,100</b></div>
+      <div class="res-row"><span>Revenue per month at the target rate</span><b id="lifted">$11,700</b></div>
+      <div class="res-row"><span>Added revenue per year</span><b id="annual">$31,200</b></div>
+
+      <div class="note"><b>Same leads, same ticket.</b> The lift comes from the consult itself: how it is run, what financing is offered, and how consistently the team follows the same script.</div>
+
+      <button class="btn noprint" onclick="window.print()">Download my results (PDF)</button>
+      <div class="disclaimer">How this is calculated: consults &times; close rate &times; average ticket, compared at your current rate vs. your target rate. Estimates only. Actual results depend on case mix, financing options and how consistently your team runs the consult. Illustrative planning estimate, not financial advice.</div>
+    </div>
+  </div>
+
+  <div class="card howto">
+    <h2>How this tool works</h2>
+    <h3>What it does</h3>
+    <p>It shows how much revenue a higher same-day close rate would add, per month and per year, without changing how many consults you run or what you charge.</p>
+    <h3>What to gather before you start</h3>
+    <ul><li><b>Consults per month:</b> from your booking system, a typical month</li><li><b>Same-day close rate:</b> consults that booked or paid the same day, divided by all consults</li><li><b>Average ticket:</b> total treatment revenue divided by closed consults</li><li><b>Lift to test:</b> a realistic target in percentage points; 5 to 10 points is a common first goal</li></ul>
+    <h3>The math, in plain English</h3>
+    <p>Current revenue = consults &times; close rate &times; average ticket. Target revenue = consults &times; (close rate + lift) &times; average ticket. Added revenue = the difference, per month; multiply by 12 for the year.</p>
+  </div>
+
+  <div class="foot">
+    <span class="brand">AESTHETIC SUCCESS NETWORK</span>
+    <span>Tool 02 &middot; Consult &amp; Conversion &middot; More tools in your member portal</span>
+    <span class="url">www.aestheticsuccessnetwork.com</span>
+  </div>
+</div>
+
+<script>
+  const $ = id => document.getElementById(id);
+  const fmt = n => '$' + Math.round(n).toLocaleString('en-US');
+  function calc(){
+    const consults = Math.max(0, parseFloat($('consults').value) || 0);
+    const closeRate = Math.max(0, parseFloat($('close').value) || 0);
+    const ticket = Math.max(0, parseFloat($('ticket').value) || 0);
+    const lift = Math.max(0, parseFloat($('lift').value) || 0);
+    const target = Math.min(100, closeRate + lift);
+    const current = consults * (closeRate / 100) * ticket;
+    const lifted = consults * (target / 100) * ticket;
+    const gain = lifted - current;
+    const annual = gain * 12;
+    $('current').textContent = fmt(current);
+    $('lifted').textContent = fmt(lifted);
+    $('gain').textContent = fmt(gain) + '/mo';
+    $('annual').textContent = fmt(annual);
+    $('rates').textContent = fmt(annual) + '/yr, moving close rate from ' + closeRate + '% to ' + target + '% on the same ' + consults + ' consults.';
+  }
+  document.querySelectorAll('input').forEach(i => i.addEventListener('input', calc));
+  calc();
+</script>
+</body></html>
