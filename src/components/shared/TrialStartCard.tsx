@@ -66,7 +66,6 @@ export default function TrialStartCard({
   audience: "gold" | "green";
   onSuccess?: () => void;
 }) {
-  void _audience;
   // ASN has ONE Provider Agreement covering experts, partners and
   // expert+partner. The prepare endpoint may still override the link
   // (e.g. a versioned PDF), so it stays in state.
@@ -114,6 +113,7 @@ export default function TrialStartCard({
   const stripeInstance = useMemo(() => getStripePromise(), []);
 
   return (
+    <Stack direction={{ xs: "column", md: "row" }} spacing={3} sx={{ alignItems: "flex-start", justifyContent: "center" }}>
     <Box
       sx={{
         borderRadius: "8px",
@@ -121,7 +121,7 @@ export default function TrialStartCard({
         border: `1px solid ${LINE}`,
         overflow: "hidden",
         maxWidth: 560,
-        mx: "auto",
+        width: "100%",
       }}
     >
       <Box sx={{ p: 3 }}>
@@ -181,6 +181,8 @@ export default function TrialStartCard({
         </Stack>
       </Box>
     </Box>
+    <BenefitsPanel audience={_audience} />
+    </Stack>
   );
 }
 
@@ -353,5 +355,55 @@ function RampLine({ label, price, bold }: { label: string; price: string; bold?:
         {price}
       </Typography>
     </Stack>
+  );
+}
+
+/** What the card pays for, listed beside the payment form so the person
+ *  knows exactly what they get. Audience "green" = expert, "gold" = company. */
+function BenefitsPanel({ audience }: { audience: "gold" | "green" }) {
+  const expert = audience === "green";
+  const items = expert
+    ? [
+        "Featured profile on the expert bench, seen by every member",
+        "One recording becomes a full kit: training video, action guide, checklist, worksheet, slide deck",
+        "Every kit carries your booking link, so members book straight onto your calendar",
+        "Post updates to the network feed and answer member inquiries",
+        "Sell your own paid courses and keep 70% of net revenue",
+        "Refer and earn: $50 per referred member, paid after their first payment",
+      ]
+    : [
+        "Company profile with your logo and member-only offer, placed in your category",
+        "Offers with promo codes and a redemptions dashboard",
+        "Member leads routed to you with conversion data",
+        "Verified Company badge for your marketing",
+        "Co-marketing features across the Business of Aesthetics network",
+        "Refer and earn: $50 per referred member, paid after their first payment",
+      ];
+  return (
+    <Box
+      sx={{
+        borderRadius: "8px",
+        bgcolor: "#FFFFFF",
+        border: `1px solid ${LINE}`,
+        p: 3,
+        width: "100%",
+        maxWidth: { xs: 560, md: 360 },
+      }}
+    >
+      <Typography sx={{ fontSize: "1rem", fontWeight: 600, color: INK, mb: 0.5 }}>What your membership includes</Typography>
+      <Typography sx={{ fontSize: "0.8125rem", color: MUTED, mb: 2 }}>
+        Free for months 1 to 6, then $39 a month for months 7 to 12, then $199 a month from month 13. Cancel with 30 days notice.
+      </Typography>
+      <Stack component="ul" spacing={1.25} sx={{ listStyle: "none", p: 0, m: 0 }}>
+        {items.map((t) => (
+          <Stack key={t} component="li" direction="row" spacing={1.25} sx={{ alignItems: "flex-start" }}>
+            <Box sx={{ width: 18, height: 18, borderRadius: "50%", bgcolor: "#ECFDF5", color: "#166534", fontSize: 12, fontWeight: 700, display: "flex", alignItems: "center", justifyContent: "center", flex: "none", mt: "2px" }}>
+              &#10003;
+            </Box>
+            <Typography sx={{ fontSize: "0.875rem", color: BODY, lineHeight: 1.5 }}>{t}</Typography>
+          </Stack>
+        ))}
+      </Stack>
+    </Box>
   );
 }
