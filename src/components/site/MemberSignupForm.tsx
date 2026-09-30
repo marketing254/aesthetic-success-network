@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import Link from "next/link";
-import { useRouter, useSearchParams } from "next/navigation";
+import { useSearchParams } from "next/navigation";
 import { challengeOptions, heardAboutOptions, locationOptions, memberRoles } from "@/lib/content";
 import type { RefContext } from "@/lib/referralContext";
 import { trackEvent } from "@/lib/analytics";
@@ -34,9 +34,9 @@ const SMS_CONSENT_TEXT =
   "I agree to receive SMS messages from the Aesthetic Success Network, including hotline replies. Reply STOP to opt out.";
 
 const STEPS = [
-  { eyebrow: "Step 1 of 3", title: "First, about you.", sub: "Three short steps and you're picking your plan. No payment on this page." },
+  { eyebrow: "Step 1 of 3", title: "First, about you.", sub: "Three short steps to reserve your founding spot. Nothing to pay today." },
   { eyebrow: "Step 2 of 3", title: "Your practice.", sub: "So the hotline replies fit your practice." },
-  { eyebrow: "Step 3 of 3", title: "Almost in.", sub: "One optional question, one agreement, and you're through to plan and checkout." },
+  { eyebrow: "Step 3 of 3", title: "Almost in.", sub: "One optional question and one agreement, and your spot is reserved." },
 ] as const;
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
@@ -48,7 +48,6 @@ export default function MemberSignupForm({
   refCtx?: RefContext | null;
   prefill?: SignupPrefill | null;
 }) {
-  const router = useRouter();
   const params = useSearchParams();
 
   const [step, setStep] = useState(0);
@@ -121,54 +120,49 @@ export default function MemberSignupForm({
     setStep((s) => Math.min(2, Math.max(0, s + d)));
   };
 
+  const [done, setDone] = useState<string | null>(null);
+
+  // Launch phase: member signups go to the waitlist only. No plan step, no
+  // payment, no portal access. The team activates members from the admin
+  // console when the member portal opens.
   const submit = async () => {
     setSubmitting(true);
     setError(null);
     const fullName = [firstName.trim(), lastName.trim()].filter(Boolean).join(" ");
-    const resolveOther = (v: string, other: string) => (v === OTHER ? other.trim() : v || null);
+    const resolveOther = (v: string, other: string) => (v === OTHER ? other.trim() : v || undefined);
     try {
-      const res = await fetch("/api/member/signup", {
+      const res = await fetch("/api/waitlist", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          role: "member" as const,
+          role: "member",
           fullName,
+          firstName: firstName.trim(),
+          lastName: lastName.trim(),
           email: email.trim(),
-          practiceName: practiceName.trim(),
-          phone: phone.trim() || null,
+          practiceName: practiceName.trim() || undefined,
+          phone: phone.trim() || undefined,
+          practiceRole: resolveOther(roleLabel, roleLabelOther),
+          locations: locations || undefined,
+          challenge: resolveOther(challenge, challengeOther),
+          agreementAccepted: agreed,
+          agreementAcceptedAt: new Date().toISOString(),
           smsConsent,
           smsConsentText: smsConsent ? SMS_CONSENT_TEXT : null,
           smsConsentAt: smsConsent ? new Date().toISOString() : null,
           source: "landing-join",
           ref: params.get("ref") ?? undefined,
-          utm: {
-            role_label: resolveOther(roleLabel, roleLabelOther),
-            locations: locations || null,
-            biggest_challenge: resolveOther(challenge, challengeOther),
-            heard_about: resolveOther(heardAbout, heardAboutOther),
-            agreement_type: "member",
-            agreement_version: "1.0",
-            agreement_accepted_at: new Date().toISOString(),
-          },
+          utm: { form: "asn-member-signup", heard_about: resolveOther(heardAbout, heardAboutOther) ?? null },
         }),
       });
-      const data = (await res.json().catch(() => ({}))) as { error?: string; next?: string };
-      if (!res.ok) {
-        setError(data?.error ?? "Couldn't complete signup right now. Please try again.");
+      const data = (await res.json().catch(() => ({}))) as { ok?: boolean; duplicate?: boolean; message?: string; error?: string };
+      if (!res.ok || !data.ok) {
+        setError(data?.error ?? "Couldn't save your spot right now. Please try again.");
         setSubmitting(false);
         return;
       }
       trackEvent("sign_up", { method: params.get("ref") ? "referral" : "organic" });
-      const next = data?.next ?? "/upgrade";
-      const carry = new URLSearchParams();
-      if (params.get("interval") === "annual") carry.set("interval", "annual");
-      const ref = params.get("ref");
-      if (ref) carry.set("ref", ref);
-      const promo = params.get("promo");
-      if (promo && /^[A-Za-z0-9-]{3,20}$/.test(promo)) carry.set("promo", promo);
-      const resume = params.get("resume");
-      if (resume && /^[A-Za-z0-9_-]{16,64}$/.test(resume)) carry.set("resume", resume);
-      router.push(carry.size > 0 ? `${next}${next.includes("?") ? "&" : "?"}${carry.toString()}` : next);
+      setDone(data.duplicate && data.message ? data.message : "You're on the founding waitlist. We'll email you before the doors open, and you confirm before any charge.");
     } catch {
       setError("Network error. Check your connection and try again.");
       setSubmitting(false);
@@ -177,6 +171,15 @@ export default function MemberSignupForm({
 
   const offerN = refCtx?.offerActive ? refCtx.offerMonths : 0;
   const s = STEPS[step]!;
+
+  if (done) {
+    return (
+      <div className="thanks waitlist-thanks">
+        <h3>You&rsquo;re on the list.</h3>
+        <p>{done}</p>
+      </div>
+    );
+  }
 
   return (
     <div className="netform signup" id="memberSignupForm">
@@ -325,11 +328,11 @@ export default function MemberSignupForm({
           disabled={!stepValid || submitting}
           onClick={() => (step === 2 ? void submit() : go(1))}
         >
-          {submitting ? "Creating your account…" : step === 2 ? "Start your membership" : "Continue"}
+          {submitting ? "Saving your spot..." : step === 2 ? "Reserve my founding spot" : "Continue"}
         </button>
       </div>
       <div className="formnote">
-        No payment on this page &middot; You choose your plan next &middot; 30-day money-back guarantee
+        Nothing to pay today &middot; We contact you before the doors open &middot; You confirm before any charge
       </div>
     </div>
   );

@@ -11,24 +11,30 @@ import {
 } from "@mui/material";
 import ContentCopyRoundedIcon from "@mui/icons-material/ContentCopyRounded";
 import CheckRoundedIcon from "@mui/icons-material/CheckRounded";
+import CardGiftcardOutlinedIcon from "@mui/icons-material/CardGiftcardOutlined";
 
 /**
- * ReferralCard — drop-in block for expert/partner portal dashboards.
+ * ReferralCard: drop-in block for expert/company portal dashboards.
  *
  * Fetches the role's referral code from the provided endpoint, shows the
  * short code + a copyable referral URL, and a small "this month / lifetime"
  * stats row so they can see their impact at a glance.
  *
- * `accent` is kept for API compatibility; the card is neutral with navy
- * links and buttons.
+ * `accent` is kept for API compatibility; the card uses the community
+ * palette (white card, sand link field, navy buttons, gold highlight).
  */
 
-const NAVY = "#0E2A3D";
-const INK = "#111827";
-const BODY = "#374151";
+const NAVY = "#0A1320";
+const INK = "#0A1320";
+const BODY = "#3B4451";
 const MUTED = "#6B7280";
-const LINE = "#E5E7EB";
-const MONO = "var(--font-mono, ui-monospace, Menlo, monospace)";
+const LINE = "rgba(10,19,32,0.06)";
+const LINE_STRONG = "rgba(10,19,32,0.14)";
+const SAND = "#F3EBDD";
+const SAND_SOFT = "#F8F4EC";
+const GOLD_DEEP = "#B8862F";
+const SHADOW = "0 1px 2px rgba(10,19,32,0.04), 0 8px 24px -16px rgba(10,19,32,0.12)";
+const MONO = "ui-monospace, SFMono-Regular, Menlo, monospace";
 
 export default function ReferralCard({
   endpoint,
@@ -84,13 +90,33 @@ export default function ReferralCard({
   return (
     <Box
       sx={{
-        borderRadius: "8px",
+        borderRadius: "16px",
         border: `1px solid ${LINE}`,
         bgcolor: "#FFFFFF",
+        boxShadow: SHADOW,
         p: 3,
       }}
     >
-      <Typography sx={{ fontSize: "1rem", fontWeight: 600, color: INK, mb: 0.5 }}>Your referral link</Typography>
+      <Stack direction="row" spacing={1.5} sx={{ alignItems: "center", mb: 0.75 }}>
+        <Box
+          sx={{
+            width: 36,
+            height: 36,
+            borderRadius: "50%",
+            bgcolor: SAND,
+            color: GOLD_DEEP,
+            display: "grid",
+            placeItems: "center",
+            flexShrink: 0,
+          }}
+        >
+          <CardGiftcardOutlinedIcon sx={{ fontSize: 18 }} />
+        </Box>
+        <Box>
+          <Typography sx={{ fontSize: "1rem", fontWeight: 700, letterSpacing: "-0.01em", color: INK, lineHeight: 1.3 }}>Refer and earn</Typography>
+          <Typography sx={{ fontSize: "0.8125rem", color: MUTED }}>$50 per referred member, paid after their first payment</Typography>
+        </Box>
+      </Stack>
 
       {loading ? (
         <Stack sx={{ alignItems: "center", py: 2 }}>
@@ -98,8 +124,8 @@ export default function ReferralCard({
         </Stack>
       ) : code ? (
         <>
-          <Typography sx={{ fontSize: "0.875rem", color: BODY, lineHeight: 1.55, mb: 2 }}>
-            Share this link with aesthetic practice owners. Anyone who joins through it gets attributed to you, and you earn $50 per referred member, paid after their first payment.
+          <Typography sx={{ fontSize: "0.875rem", color: BODY, lineHeight: 1.6, mt: 1.5, mb: 2 }}>
+            Share this link with aesthetic practice owners. Anyone who joins through it is attributed to you.
           </Typography>
 
           <Stack
@@ -110,11 +136,11 @@ export default function ReferralCard({
             <Box
               sx={{
                 flex: 1,
-                px: 1.5,
-                py: 1,
-                borderRadius: "6px",
+                px: 1.75,
+                py: 1.25,
+                borderRadius: "10px",
                 border: `1px solid ${LINE}`,
-                bgcolor: "#F9FAFB",
+                bgcolor: SAND_SOFT,
                 fontFamily: MONO,
                 fontSize: "0.8125rem",
                 color: INK,
@@ -126,19 +152,21 @@ export default function ReferralCard({
             <Tooltip title={justCopied === "link" ? "Copied" : "Copy link"}>
               <Button
                 onClick={() => copy("link", joinUrl)}
-                variant="outlined"
-                size="small"
-                startIcon={justCopied === "link" ? <CheckRoundedIcon sx={{ fontSize: 14 }} /> : <ContentCopyRoundedIcon sx={{ fontSize: 14 }} />}
+                variant="contained"
+                disableElevation
+                startIcon={justCopied === "link" ? <CheckRoundedIcon sx={{ fontSize: 15 }} /> : <ContentCopyRoundedIcon sx={{ fontSize: 15 }} />}
                 sx={{
                   textTransform: "none",
-                  fontWeight: 500,
-                  borderRadius: "6px",
-                  minHeight: 36,
-                  borderColor: "#D1D5DB",
-                  color: INK,
-                  bgcolor: "#FFFFFF",
+                  fontWeight: 600,
+                  borderRadius: "10px",
+                  minHeight: 40,
+                  px: 2,
+                  bgcolor: NAVY,
+                  color: "#FFFFFF",
+                  backgroundImage: "none",
+                  boxShadow: "inset 0 1px 0 rgba(255,255,255,0.10), 0 1px 2px rgba(10,19,32,0.12)",
                   flexShrink: 0,
-                  "&:hover": { borderColor: "#D1D5DB", bgcolor: "#F9FAFB", transform: "none" },
+                  "&:hover": { bgcolor: "#141F30", boxShadow: "inset 0 1px 0 rgba(255,255,255,0.10), 0 6px 16px -8px rgba(10,19,32,0.45)" },
                 }}
               >
                 {justCopied === "link" ? "Copied" : "Copy link"}
@@ -156,15 +184,15 @@ export default function ReferralCard({
                 sx={{
                   px: 1.25,
                   py: 0.5,
-                  borderRadius: "6px",
-                  border: `1px solid ${LINE}`,
-                  bgcolor: "#F9FAFB",
+                  borderRadius: "8px",
+                  border: `1px solid ${LINE_STRONG}`,
+                  bgcolor: "#FFFFFF",
                   color: INK,
                   fontFamily: MONO,
                   fontSize: "0.8125rem",
                   fontWeight: 600,
                   cursor: "pointer",
-                  "&:hover": { bgcolor: "#F3F4F6" },
+                  "&:hover": { bgcolor: SAND_SOFT },
                 }}
               >
                 {justCopied === "code" ? "Copied" : code}
@@ -177,7 +205,7 @@ export default function ReferralCard({
             </Stack>
           </Stack>
 
-          {/* Promotional code — team-activated 3-months-free code. Shown
+          {/* Promotional code: team-activated months-free code. Shown
               read-only: the owner shares it, the ASN team switches it on. */}
           {promo && (
             <Box sx={{ mt: 2, pt: 2, borderTop: `1px solid ${LINE}` }}>
@@ -190,9 +218,9 @@ export default function ReferralCard({
                     sx={{
                       px: 1.25,
                       py: 0.5,
-                      borderRadius: "6px",
+                      borderRadius: "8px",
                       border: `1px solid ${LINE}`,
-                      bgcolor: promo.active ? "#DCFCE7" : "#F3F4F6",
+                      bgcolor: promo.active ? "#DCFCE7" : "#F1EFEA",
                       color: promo.active ? "#166534" : MUTED,
                       fontFamily: MONO,
                       fontSize: "0.8125rem",
@@ -215,7 +243,7 @@ export default function ReferralCard({
           )}
         </>
       ) : (
-        <Typography sx={{ fontSize: "0.875rem", color: MUTED }}>
+        <Typography sx={{ fontSize: "0.875rem", color: MUTED, mt: 1.5 }}>
           Couldn&apos;t load your referral code. Refresh to try again.
         </Typography>
       )}
@@ -227,7 +255,7 @@ function MiniStat({ label, value }: { label: string; value: number }) {
   return (
     <Box sx={{ textAlign: "right" }}>
       <Typography sx={{ fontSize: "0.75rem", color: MUTED }}>{label}</Typography>
-      <Typography sx={{ fontSize: "0.9375rem", fontWeight: 600, color: INK, lineHeight: 1.2, fontVariantNumeric: "tabular-nums" }}>
+      <Typography sx={{ fontSize: "1rem", fontWeight: 700, letterSpacing: "-0.01em", color: INK, lineHeight: 1.2, fontVariantNumeric: "tabular-nums" }}>
         {value}
       </Typography>
     </Box>

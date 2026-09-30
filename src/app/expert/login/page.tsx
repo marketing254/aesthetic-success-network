@@ -2,16 +2,22 @@
 
 import { Suspense } from "react";
 import OtpLoginForm from "@/components/auth/OtpLoginForm";
+import { EP } from "@/components/shared/TopNavPortalShell";
 
 /**
  * Expert sign-in. OTP-based: enter email → receive 6-digit code → enter
  * code → land on /expert. Account creation happens via the admin
  * Add-expert flow at /admin/experts, not here.
+ *
+ * Same fields and endpoints as every other portal login; only the band
+ * beside the form uses the expert portal's espresso gradient with a
+ * bronze glow.
  */
 export default function ExpertLoginPage() {
   return (
     <Suspense fallback={null}>
       <OtpLoginForm
+        band={{ from: EP.espresso, to: EP.espressoDeep, glow: "176,122,44" }}
         config={{
           roleLabel: "expert",
           sendEndpoint: "/api/expert/login",

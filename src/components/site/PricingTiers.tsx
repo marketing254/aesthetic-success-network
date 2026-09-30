@@ -113,7 +113,7 @@ export default function PricingTiers() {
           </ul>
           {!open && (
             <Link className="btn bronze" href={joinHref}>
-              Start your membership
+              Reserve a founding spot
             </Link>
           )}
         </div>

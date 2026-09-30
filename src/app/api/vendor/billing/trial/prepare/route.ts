@@ -10,12 +10,13 @@ export const dynamic = "force-dynamic";
 /**
  * POST /api/vendor/billing/trial/prepare
  *
- * First half of the "add card in portal" flow. Ensures a Stripe
- * customer exists for the signed-in vendor and returns a SetupIntent
- * client_secret so <PaymentElement> can render.
+ * First half of the "add card in portal" flow (the route name is
+ * historical; companies have no trial). Ensures a Stripe customer exists
+ * for the signed-in vendor and returns a SetupIntent client_secret so
+ * <PaymentElement> can render.
  *
- * No subscription is created here — that happens in /start once the
- * card is confirmed on the client.
+ * No subscription is created here; the first payment ($39, charged
+ * today) happens in /start once the card is confirmed on the client.
  */
 export async function POST() {
   const guard = await requireVendor();

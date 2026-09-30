@@ -69,10 +69,10 @@ function loadTemplate(role: FoundingAgreementPdfInput["role"]): Promise<string> 
 export type FoundingAgreementPdfInput = {
   role: "partner" | "expert" | "both";
   /**
-   * Price plan (0066). "ladder" (the ASN default) prints the $0 → $39 →
-   * $199 ramp with the annual pre-pay line; "flat_49" prints the flat $39
-   * plan. ASN experts follow the same ramp as partners, so every template
-   * carries a {{RAMP_BLOCK}}.
+   * Company price plan (0066). "ladder" (the default) prints $39/mo for
+   * months 1 to 12 then $149/mo; "flat_49" prints $39/mo with no increase.
+   * The expert side always prints 12 months free then $39/mo. Every
+   * template carries a {{RAMP_BLOCK}}; "both" prints both schedules.
    */
   pricing?: "ladder" | "flat_49" | null;
   signer: {
@@ -92,23 +92,33 @@ export type FoundingAgreementPdfInput = {
 
 /**
  * Fee ramp for "3. What it costs". Static HTML, no user input, so it is
- * injected raw like {{COMPANIES_LIST}}. Ladder is the ASN default; only
- * an explicit "flat_49" invite plan prints the flat schedule.
+ * injected raw like {{COMPANIES_LIST}}.
+ *   expert:  $0 months 1 to 12, $39/mo month 13 onward (no increase).
+ *   partner: ladder = $39/mo months 1 to 12, $149/mo month 13 onward;
+ *            flat_49 = $39/mo from acceptance, no increase.
+ *   both:    both schedules, labelled.
  */
-function rampBlockHtml(pricing: FoundingAgreementPdfInput["pricing"]): string {
+function rampBlockHtml(
+  role: FoundingAgreementPdfInput["role"],
+  pricing: FoundingAgreementPdfInput["pricing"],
+): string {
   const step = (amount: string, label: string) =>
     `<div class="rstep"><div class="n">${amount}</div><div class="l">${label}</div></div>`;
   const mo = `<span style="font-size:9pt;color:#5C6B7A;">/mo</span>`;
-  if (pricing === "flat_49") {
-    return (
-      `<div class="ramp">${step("$0", "Months 1 to 6")}${step(`$39${mo}`, "Month 7 onward")}</div>` +
-      `<p style="font-size:9pt;color:#5C6B7A;">Your rate stays at $39 a month for as long as your membership stays continuously active. You&#39;ll see this on the sign-up page before you pay.</p>`
-    );
-  }
-  return (
-    `<div class="ramp">${step("$0", "Months 1 to 6")}${step(`$39${mo}`, "Months 7 to 12")}${step(`$199${mo}`, "Month 13 onward &middot; standard")}</div>` +
-    `<p style="font-size:9pt;color:#5C6B7A;">Annual pre-pay = 2 months free. You&#39;ll see this on the sign-up page before you pay.</p>`
-  );
+  const heading = (text: string) =>
+    `<div style="font-size:9pt;color:#5C6B7A;margin:6px 0 0;font-weight:600;">${text}</div>`;
+  const expertBlock =
+    `<div class="ramp">${step("$0", "Months 1 to 12")}${step(`$39${mo}`, "Month 13 onward")}</div>` +
+    `<p style="font-size:9pt;color:#5C6B7A;">Your expert access is free for your first 12 months. From month 13 it is $39 a month, and it stays at $39 for as long as your membership stays continuously active. A card is saved at acceptance; nothing is charged for 12 months.</p>`;
+  const companyBlock =
+    pricing === "flat_49"
+      ? `<div class="ramp">${step(`$39${mo}`, "From acceptance &middot; no increase")}</div>` +
+        `<p style="font-size:9pt;color:#5C6B7A;">Your company listing is $39 a month from acceptance, with the first charge made on acceptance, and stays at $39 for as long as your listing stays continuously active.</p>`
+      : `<div class="ramp">${step(`$39${mo}`, "Months 1 to 12")}${step(`$149${mo}`, "Month 13 onward &middot; founding standard")}</div>` +
+        `<p style="font-size:9pt;color:#5C6B7A;">Your company listing is $39 a month for your first 12 months, with the first charge made on acceptance, then $149 a month from month 13. You&#39;ll see this on the acceptance page before you save your card.</p>`;
+  if (role === "expert") return expertBlock;
+  if (role === "partner") return companyBlock;
+  return heading("Expert access") + expertBlock + heading("Company listing") + companyBlock;
 }
 
 /** Join names for prose: ["A","B","C"] → "A, B and C". */
@@ -216,7 +226,7 @@ async function renderAgreementHtml(input: FoundingAgreementPdfInput): Promise<st
   );
   return withTokens
     .replaceAll("{{COMPANIES_LIST}}", companiesListHtml)
-    .replaceAll("{{RAMP_BLOCK}}", rampBlockHtml(input.pricing));
+    .replaceAll("{{RAMP_BLOCK}}", rampBlockHtml(input.role, input.pricing));
 }
 
 async function launchBrowser(): Promise<Browser> {

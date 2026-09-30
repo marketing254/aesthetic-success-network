@@ -17,6 +17,7 @@ import DownloadOutlinedIcon from "@mui/icons-material/DownloadOutlined";
 import ReceiptLongOutlinedIcon from "@mui/icons-material/ReceiptLongOutlined";
 import SavingsOutlinedIcon from "@mui/icons-material/SavingsOutlined";
 import GroupsOutlinedIcon from "@mui/icons-material/GroupsOutlined";
+import TrendingUpRoundedIcon from "@mui/icons-material/TrendingUpRounded";
 import SearchOutlinedIcon from "@mui/icons-material/SearchOutlined";
 import OpenInNewOutlinedIcon from "@mui/icons-material/OpenInNewOutlined";
 import { createBrowserSupabase } from "@/lib/supabase/browser";
@@ -29,20 +30,22 @@ import {
 } from "@/lib/supabase/vendorQueries";
 import {
   EmptyState,
+  ListDivider,
   PageHeader,
   SectionCard,
   StatCard,
+  listHeadSx,
+  listRowSx,
   portalText,
 } from "@/components/vendor/PortalUI";
+import { CP } from "@/components/shared/CommunityPortalShell";
 
-const INK = "#111827";
-const BODY = "#374151";
-const MUTED = "#6B7280";
-const FAINT = "#9CA3AF";
-const LINE = "#E5E7EB";
-const ROW_HOVER = "#F9FAFB";
+const INK = CP.ink;
+const BODY = CP.body;
+const MUTED = CP.muted;
+const FAINT = CP.faint;
 
-const GRID_COLUMNS = "minmax(0, 1.5fr) minmax(0, 2fr) 120px 140px 60px";
+const GRID_COLUMNS = "minmax(0, 1.5fr) minmax(0, 2fr) 120px 150px 48px";
 
 export default function RedemptionsPage() {
   const [loading, setLoading] = useState(true);
@@ -87,9 +90,9 @@ export default function RedemptionsPage() {
 
   if (loading) {
     return (
-      <Stack sx={{ alignItems: "center", py: 8, gap: 2 }}>
+      <Stack sx={{ alignItems: "center", py: 10, gap: 2 }}>
         <CircularProgress size={24} />
-        <Typography sx={portalText.meta}>Loading redemptions…</Typography>
+        <Typography sx={portalText.meta}>Loading redemptions...</Typography>
       </Stack>
     );
   }
@@ -108,7 +111,7 @@ export default function RedemptionsPage() {
     <Stack spacing={3}>
       <PageHeader
         title="Redemptions"
-        subtitle="Member identities are anonymized to first name + city. Use this view to verify attribution on your monthly company report."
+        subtitle="Member identities are anonymized to first name and city. Use this view to verify attribution on your monthly company report."
         actions={
           <Button variant="outlined" startIcon={<DownloadOutlinedIcon sx={{ fontSize: 16 }} />}>
             Export CSV
@@ -120,7 +123,8 @@ export default function RedemptionsPage() {
         <Grid size={{ xs: 12, sm: 6, lg: 3 }}>
           <StatCard
             icon={ReceiptLongOutlinedIcon}
-            label="Redemptions, MTD"
+            accent="gold"
+            label="Redemptions this month"
             value={String(k.redemptionsThisMonth)}
             footer={`${k.redemptionsLifetime} lifetime`}
           />
@@ -128,7 +132,8 @@ export default function RedemptionsPage() {
         <Grid size={{ xs: 12, sm: 6, lg: 3 }}>
           <StatCard
             icon={SavingsOutlinedIcon}
-            label="Savings delivered, MTD"
+            accent="green"
+            label="Savings delivered this month"
             value={`$${k.savingsDeliveredMonth.toLocaleString()}`}
             footer={`$${k.savingsDeliveredLifetime.toLocaleString()} lifetime`}
           />
@@ -136,18 +141,21 @@ export default function RedemptionsPage() {
         <Grid size={{ xs: 12, sm: 6, lg: 3 }}>
           <StatCard
             icon={GroupsOutlinedIcon}
-            label="Inbound leads, MTD"
+            accent="navy"
+            label="Inbound leads this month"
             value={String(k.leadsThisMonth)}
-            footer="Bookings + hotline"
+            footer="Bookings and hotline"
           />
         </Grid>
         <Grid size={{ xs: 12, sm: 6, lg: 3 }}>
           <StatCard
-            label="Avg savings / redemption"
+            icon={TrendingUpRoundedIcon}
+            accent="gold"
+            label="Average savings per redemption"
             value={
               k.redemptionsLifetime > 0
                 ? `$${Math.round(k.savingsDeliveredLifetime / k.redemptionsLifetime).toLocaleString()}`
-                : ""
+                : "$0"
             }
             footer="Lifetime average"
           />
@@ -190,17 +198,10 @@ export default function RedemptionsPage() {
         <SectionCard padding="none">
           <Box
             sx={{
+              ...(listHeadSx as object),
               display: { xs: "none", md: "grid" },
               gridTemplateColumns: GRID_COLUMNS,
               gap: 1,
-              px: 2,
-              py: 1.25,
-              borderBottom: `1px solid ${LINE}`,
-              fontSize: "0.75rem",
-              fontWeight: 600,
-              color: MUTED,
-              letterSpacing: 0,
-              textTransform: "none",
             }}
           >
             <Box>Member</Box>
@@ -209,18 +210,15 @@ export default function RedemptionsPage() {
             <Box sx={{ textAlign: "right" }}>Saved</Box>
             <Box />
           </Box>
-          <Stack divider={<Box sx={{ borderTop: `1px solid ${LINE}` }} />}>
+          <Stack divider={<ListDivider />}>
             {filtered.map((r) => (
               <Box
                 key={r.id}
                 sx={{
+                  ...(listRowSx as object),
                   display: { xs: "block", md: "grid" },
                   gridTemplateColumns: GRID_COLUMNS,
-                  alignItems: "center",
-                  px: 2,
-                  py: 1.5,
                   gap: 1,
-                  "&:hover": { bgcolor: ROW_HOVER },
                 }}
               >
                 <Box sx={{ minWidth: 0 }}>
@@ -236,11 +234,11 @@ export default function RedemptionsPage() {
                     {r.offers?.headline ?? ""}
                   </Typography>
                 </Box>
-                <Box sx={{ display: { xs: "none", md: "block" }, fontSize: "0.8125rem", color: MUTED }}>
+                <Box sx={{ display: { xs: "none", md: "block" }, fontSize: "0.8125rem", color: MUTED, fontVariantNumeric: "tabular-nums" }}>
                   {r.redeemed_on}
                 </Box>
                 <Box sx={{ display: { xs: "none", md: "block" }, textAlign: "right" }}>
-                  <Typography sx={{ fontSize: "0.875rem", fontWeight: 600, color: INK, fontVariantNumeric: "tabular-nums" }}>
+                  <Typography sx={{ fontSize: "0.875rem", fontWeight: 700, color: INK, fontVariantNumeric: "tabular-nums" }}>
                     ${Number(r.amount_saved ?? 0).toLocaleString()}
                   </Typography>
                   <Typography sx={{ ...portalText.meta, fontSize: "0.75rem", fontVariantNumeric: "tabular-nums" }}>
@@ -260,7 +258,7 @@ export default function RedemptionsPage() {
                     {r.offers?.headline ?? ""}
                   </Typography>
                   <Typography sx={{ fontSize: "0.8125rem", color: MUTED }}>{r.redeemed_on}</Typography>
-                  <Typography sx={{ fontSize: "0.8125rem", fontWeight: 600, color: INK, fontVariantNumeric: "tabular-nums" }}>
+                  <Typography sx={{ fontSize: "0.8125rem", fontWeight: 700, color: INK, fontVariantNumeric: "tabular-nums" }}>
                     ${Number(r.amount_saved ?? 0).toLocaleString()}
                   </Typography>
                 </Stack>

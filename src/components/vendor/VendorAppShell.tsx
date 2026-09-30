@@ -31,6 +31,7 @@ import KeyboardArrowDownOutlinedIcon from "@mui/icons-material/KeyboardArrowDown
 import SwapHorizRoundedIcon from "@mui/icons-material/SwapHorizRounded";
 import SchoolOutlinedIcon from "@mui/icons-material/SchoolOutlined";
 import EditOutlinedIcon from "@mui/icons-material/EditOutlined";
+import VerifiedRoundedIcon from "@mui/icons-material/VerifiedRounded";
 import NotificationsBell from "@/components/shared/NotificationsBell";
 import { createBrowserSupabase } from "@/lib/supabase/browser";
 import { fetchCurrentVendor } from "@/lib/supabase/vendorQueries";
@@ -39,11 +40,13 @@ import type { VendorsRow } from "@/lib/supabase/types";
 import ProfileEditDialog from "@/components/shared/ProfileEditDialog";
 import { checkBillingAccess } from "@/lib/stripe";
 import BillingGate from "@/components/shared/BillingGate";
-import StandardPortalShell, {
-  STD,
-  StandardAvatarButton,
-  type StandardNavItem,
-} from "@/components/shared/StandardPortalShell";
+import CommunityPortalShell, {
+  CP,
+  CommunityAvatarButton,
+  communityIconButtonSx,
+  communityPillButtonSx,
+  type CommunityNavGroup,
+} from "@/components/shared/CommunityPortalShell";
 
 function useCurrentVendorRow(): { vendor: VendorsRow | null; loading: boolean } {
   const [vendor, setVendor] = useState<VendorsRow | null>(null);
@@ -75,16 +78,32 @@ function initialsFromName(s: string | null | undefined): string {
 }
 
 // Routes stay /vendor/* (code identifiers unchanged); labels say "company".
-const navItems: StandardNavItem[] = [
-  { href: "/vendor", label: "Overview", icon: DashboardOutlinedIcon },
-  { href: "/vendor/profile", label: "Company profile", icon: StoreOutlinedIcon },
-  { href: "/vendor/catalog", label: "Catalog", icon: Inventory2OutlinedIcon },
-  { href: "/vendor/offers", label: "Offers", icon: LocalOfferOutlinedIcon },
-  { href: "/vendor/inquiries", label: "Inquiries", icon: ChatBubbleOutlineRoundedIcon },
-  { href: "/vendor/analytics", label: "Analytics", icon: InsightsRoundedIcon },
-  { href: "/vendor/redemptions", label: "Redemptions", icon: ReceiptLongOutlinedIcon },
-  { href: "/vendor/account", label: "Account & billing", icon: ManageAccountsOutlinedIcon },
-  { href: "/vendor/agreement", label: "Agreement", icon: GavelOutlinedIcon },
+// Grouped for the community sidebar: Workspace, Growth, Account.
+const navGroups: CommunityNavGroup[] = [
+  {
+    label: "Workspace",
+    items: [
+      { href: "/vendor", label: "Overview", icon: DashboardOutlinedIcon },
+      { href: "/vendor/profile", label: "Company profile", icon: StoreOutlinedIcon },
+      { href: "/vendor/catalog", label: "Catalog", icon: Inventory2OutlinedIcon },
+      { href: "/vendor/offers", label: "Offers", icon: LocalOfferOutlinedIcon },
+    ],
+  },
+  {
+    label: "Growth",
+    items: [
+      { href: "/vendor/inquiries", label: "Inquiries", icon: ChatBubbleOutlineRoundedIcon },
+      { href: "/vendor/analytics", label: "Analytics", icon: InsightsRoundedIcon },
+      { href: "/vendor/redemptions", label: "Redemptions", icon: ReceiptLongOutlinedIcon },
+    ],
+  },
+  {
+    label: "Account",
+    items: [
+      { href: "/vendor/account", label: "Account & billing", icon: ManageAccountsOutlinedIcon },
+      { href: "/vendor/agreement", label: "Agreement", icon: GavelOutlinedIcon },
+    ],
+  },
 ];
 
 export default function VendorAppShell({ children }: { children: React.ReactNode }) {
@@ -153,7 +172,7 @@ export default function VendorAppShell({ children }: { children: React.ReactNode
             variant="outlined"
             startIcon={<StoreOutlinedIcon sx={{ fontSize: 16 }} />}
             endIcon={<KeyboardArrowDownOutlinedIcon sx={{ fontSize: 15 }} />}
-            sx={{ display: { xs: "none", sm: "inline-flex" }, maxWidth: 220 }}
+            sx={{ ...communityPillButtonSx, display: { xs: "none", sm: "inline-flex" }, maxWidth: 220 }}
           >
             <Box component="span" sx={{ overflow: "hidden", textOverflow: "ellipsis" }}>
               {companies.find((c) => c.is_current)?.name ?? "Your companies"}
@@ -166,7 +185,7 @@ export default function VendorAppShell({ children }: { children: React.ReactNode
             slotProps={{ paper: { sx: { mt: 1, minWidth: 280 } } }}
           >
             <Box sx={{ px: 1.75, pt: 1, pb: 0.75 }}>
-              <Typography sx={{ fontSize: "0.75rem", fontWeight: 600, color: STD.muted }}>
+              <Typography sx={{ fontSize: "0.75rem", fontWeight: 600, color: CP.muted }}>
                 Your companies, one founding fee
               </Typography>
             </Box>
@@ -198,25 +217,29 @@ export default function VendorAppShell({ children }: { children: React.ReactNode
           size="small"
           variant="outlined"
           startIcon={<SwapHorizRoundedIcon sx={{ fontSize: 16 }} />}
-          sx={{ display: { xs: "none", sm: "inline-flex" } }}
+          sx={{ ...communityPillButtonSx, display: { xs: "none", sm: "inline-flex" } }}
         >
           View as expert
         </Button>
       )}
       <Tooltip title="Help: partners@aestheticsuccessnetwork.com">
-        <IconButton size="small" component="a" href="mailto:partners@aestheticsuccessnetwork.com" aria-label="Help">
-          <HelpOutlineOutlinedIcon sx={{ fontSize: 20 }} />
+        <IconButton
+          component="a"
+          href="mailto:partners@aestheticsuccessnetwork.com"
+          aria-label="Help"
+          sx={{ ...communityIconButtonSx, display: { xs: "none", sm: "inline-flex" } }}
+        >
+          <HelpOutlineOutlinedIcon sx={{ fontSize: 19 }} />
         </IconButton>
       </Tooltip>
-      <NotificationsBell audience="vendor" />
-      <StandardAvatarButton
+      <NotificationsBell audience="vendor" tone="community" />
+      <CommunityAvatarButton
         anchorRef={userMenuAnchor}
         onClick={() => setUserMenuOpen(true)}
         open={userMenuOpen}
         src={avatarUrl}
         initials={initials}
         name={displayName}
-        subline={isVerified ? "Verified company" : "Pending review"}
       />
     </>
   );
@@ -228,17 +251,20 @@ export default function VendorAppShell({ children }: { children: React.ReactNode
       anchorEl={userMenuAnchor.current}
       anchorOrigin={{ vertical: "bottom", horizontal: "right" }}
       transformOrigin={{ vertical: "top", horizontal: "right" }}
-      slotProps={{ paper: { sx: { mt: 1, minWidth: 260 } } }}
+      slotProps={{ paper: { sx: { mt: 1, minWidth: 272 } } }}
     >
       <Box sx={{ px: 2, pt: 1.5, pb: 1.25 }}>
-        <Typography sx={{ fontSize: "0.875rem", fontWeight: 600, lineHeight: 1.2, color: STD.ink }} noWrap>
-          {displayName}
-        </Typography>
-        <Typography sx={{ fontSize: "0.75rem", color: STD.muted, mt: 0.25 }} noWrap>
+        <Stack direction="row" spacing={0.75} sx={{ alignItems: "center" }}>
+          <Typography sx={{ fontSize: "0.9375rem", fontWeight: 700, letterSpacing: "-0.01em", lineHeight: 1.2, color: CP.ink }} noWrap>
+            {displayName}
+          </Typography>
+          {isVerified && <VerifiedRoundedIcon sx={{ fontSize: 16, color: CP.gold }} titleAccess="Verified company" />}
+        </Stack>
+        <Typography sx={{ fontSize: "0.75rem", color: CP.muted, mt: 0.25 }} noWrap>
           {email}
         </Typography>
-        <Stack direction="row" spacing={0.5} sx={{ mt: 1, flexWrap: "wrap", gap: 0.5 }}>
-          <Chip label={isVerified ? "Verified" : "Pending"} size="small" color={isVerified ? "success" : "warning"} />
+        <Stack direction="row" spacing={0.5} sx={{ mt: 1.25, flexWrap: "wrap", gap: 0.5 }}>
+          <Chip label={isVerified ? "Verified company" : "Pending review"} size="small" color={isVerified ? "success" : "warning"} />
           {currentVendor?.category && <Chip label={currentVendor.category} size="small" />}
         </Stack>
       </Box>
@@ -284,8 +310,8 @@ export default function VendorAppShell({ children }: { children: React.ReactNode
     </Menu>
   );
 
-  // Billing gate. Locks portal access once the founding waiver runs out and
-  // the company has no healthy subscription. /vendor/account stays reachable.
+  // Billing gate. Locks portal access while the company has no card on file
+  // (companies pay from day 1) or no healthy subscription. /vendor/account stays reachable.
   // Covered companies (billing_parent_id set) inherit the principal's
   // subscription and never see the "add your card" wall.
   const access = currentVendor
@@ -308,12 +334,21 @@ export default function VendorAppShell({ children }: { children: React.ReactNode
     );
 
   return (
-    <StandardPortalShell
+    <CommunityPortalShell
       portalName="Company portal"
       homeHref="/vendor"
-      items={navItems}
+      groups={navGroups}
       pathname={pathname}
       topRight={topRight}
+      identity={{
+        name: displayName,
+        avatarUrl,
+        initials,
+        subline: email,
+        status: isVerified
+          ? { label: "Verified company", tone: "success" }
+          : { label: "Pending review", tone: "warning" },
+      }}
       onSignOut={handleSignOut}
       overlays={
         <>
@@ -333,28 +368,10 @@ export default function VendorAppShell({ children }: { children: React.ReactNode
           />
         </>
       }
-      sidebarFooter={
-        <Stack spacing={0.25}>
-          <Box
-            component="a"
-            href="tel:+18555675323"
-            sx={{ fontSize: "0.75rem", color: STD.muted, textDecoration: "none", "&:hover": { color: STD.ink } }}
-          >
-            Hotline (855) 567-5323
-          </Box>
-          <Box
-            component="a"
-            href="mailto:partners@aestheticsuccessnetwork.com"
-            sx={{ fontSize: "0.75rem", color: STD.muted, textDecoration: "none", wordBreak: "break-all", "&:hover": { color: STD.ink } }}
-          >
-            partners@aestheticsuccessnetwork.com
-          </Box>
-        </Stack>
-      }
       supportEmail="partners@aestheticsuccessnetwork.com"
       supportPhone="(855) 567-5323"
     >
       {content}
-    </StandardPortalShell>
+    </CommunityPortalShell>
   );
 }

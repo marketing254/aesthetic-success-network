@@ -13,6 +13,10 @@ export const dynamic = "force-dynamic";
  * `viewed`, ensures a Stripe customer, and returns a SetupIntent
  * client_secret so the founding accept card can render the payment
  * element. No login — the code is the credential.
+ *
+ * Every role saves a card: founding experts start a 12-month trial that
+ * converts to $39/month, founding companies are billed $39/month from
+ * acceptance.
  */
 export async function POST(_req: Request, ctx: { params: Promise<{ code: string }> }) {
   const { code } = await ctx.params;
@@ -49,10 +53,6 @@ export async function POST(_req: Request, ctx: { params: Promise<{ code: string 
       .update({ status: "viewed", viewed_at: new Date().toISOString() } as never)
       .eq("id", invite.id);
   }
-  if (invite.role === "expert") {
-    return NextResponse.json({ requiresPayment: false });
-  }
-
   let stripe;
   try {
     stripe = getStripe();

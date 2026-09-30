@@ -1,4 +1,5 @@
 import nodemailer from "nodemailer";
+import { emailBrandHeader } from "@/lib/email/brandHeader";
 import type { Transporter } from "nodemailer";
 import { escapeHtml } from "@/lib/email/escapeHtml";
 import { applyEmailSandbox } from "@/lib/email/sandbox";
@@ -52,7 +53,7 @@ function renderHtml(input: { memberName: string; pdfUrl: string; question: strin
     : "";
   return `<!doctype html><html><body style="margin:0;background:#FBF8F1;font-family:Arial,Helvetica,sans-serif;color:#3B4A55">
   <div style="max-width:560px;margin:0 auto;padding:32px 24px">
-    <img src="${process.env.NEXT_PUBLIC_APP_URL ?? "https://www.aestheticsuccessnetwork.com"}/asn-logo-email.png" alt="Aesthetic Success Network" width="180" style="display:block;margin:0 0 12px;max-width:180px;height:auto;" />
+    ${emailBrandHeader({ dark: false })}
     <h1 style="font-size:22px;color:#0A1A2F;margin:0 0 14px">Thanks, the team will be in touch</h1>
     <p style="margin:0 0 14px">Hi ${escapeHtml(input.memberName)}, we have your question and a member of the team will get back to you in writing, by text and email, within <strong>2 to 3 business days</strong>.</p>
     ${q}

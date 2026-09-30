@@ -1,12 +1,11 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import {
   Alert,
   Avatar,
   Box,
   Button,
-  Chip,
   CircularProgress,
   Snackbar,
   Stack,
@@ -14,15 +13,20 @@ import {
   Typography,
 } from "@mui/material";
 import SaveOutlinedIcon from "@mui/icons-material/SaveOutlined";
+import CloudUploadOutlinedIcon from "@mui/icons-material/CloudUploadOutlined";
 import RestartAltOutlinedIcon from "@mui/icons-material/RestartAltOutlined";
 import OpenInNewRoundedIcon from "@mui/icons-material/OpenInNewRounded";
-import { PageHeader, SectionCard } from "@/components/vendor/PortalUI";
+import { CP } from "@/components/shared/CommunityPortalShell";
+import { EP } from "@/components/shared/TopNavPortalShell";
+import { PageHeader, SectionCard, TagPill } from "@/components/vendor/PortalUI";
 
-const INK = "#111827";
-const BODY = "#374151";
-const MUTED = "#6B7280";
-const NAVY = "#0E2A3D";
-const NAVY_TINT = "rgba(14,42,61,0.08)";
+const INK = CP.ink;
+const BODY = CP.body;
+const MUTED = CP.muted;
+const ESPRESSO = EP.espresso;
+const ESPRESSO_HOVER = EP.espressoHover;
+const BRONZE = EP.bronze;
+const BRONZE_TINT = EP.bronzeTint;
 
 type Profile = {
   id: string;
@@ -191,8 +195,13 @@ export default function ExpertProfilePage() {
     .join("")
     .toUpperCase();
 
+  const topicList = form.topics
+    .split(/\r?\n/)
+    .map((t) => t.trim())
+    .filter(Boolean);
+
   return (
-    <Stack spacing={3} sx={{ maxWidth: 960 }}>
+    <Stack spacing={3}>
       <PageHeader
         title="Public profile"
         subtitle="Your bio, headshot, and links appear in the member directory and on every resource you publish. Keep it tight, specific, and human."
@@ -204,58 +213,17 @@ export default function ExpertProfilePage() {
         </Alert>
       )}
 
-      {/* Preview card: what members will see */}
-      <SectionCard title="Preview" subtitle="How members see you in the directory.">
-        <Stack
-          direction={{ xs: "column", sm: "row" }}
-          spacing={3}
-          sx={{ alignItems: { sm: "flex-start" } }}
-        >
-          <Avatar
-            src={form.headshot_url || undefined}
-            sx={{
-              width: 80,
-              height: 80,
-              bgcolor: NAVY_TINT,
-              color: NAVY,
-              fontSize: "1.5rem",
-              fontWeight: 600,
-              flexShrink: 0,
-            }}
-          >
-            {displayInitials}
-          </Avatar>
-          <Box sx={{ minWidth: 0, flex: 1 }}>
-            <Typography sx={{ fontSize: "1rem", fontWeight: 600, color: INK, lineHeight: 1.3 }}>
-              {form.display_name || profile.full_name}
-            </Typography>
-            <Typography sx={{ fontSize: "0.8125rem", color: MUTED, mb: 1 }}>{profile.email}</Typography>
-            {form.specialty && (
-              <Typography sx={{ color: BODY, fontSize: "0.875rem", mb: 1 }}>
-                {form.specialty}
-              </Typography>
-            )}
-            {form.bio && (
-              <Typography
-                sx={{ color: BODY, fontSize: "0.875rem", lineHeight: 1.6, whiteSpace: "pre-wrap" }}
-              >
-                {form.bio}
-              </Typography>
-            )}
-            <Stack direction="row" spacing={1} sx={{ mt: 1.5, flexWrap: "wrap", gap: 1 }}>
-              {form.website && (
-                <PreviewLink href={form.website} label="Website" />
-              )}
-              {form.booking_link && (
-                <PreviewLink href={form.booking_link} label="Book a meeting" emphasized />
-              )}
-            </Stack>
-          </Box>
-        </Stack>
-      </SectionCard>
-
+      {/* Two columns: the editor on the left, the live preview pinned on the right */}
+      <Box
+        sx={{
+          display: "grid",
+          gridTemplateColumns: { xs: "1fr", md: "minmax(0, 7fr) minmax(280px, 5fr)" },
+          gap: 3,
+          alignItems: "flex-start",
+        }}
+      >
       {/* Edit form */}
-      <SectionCard title="Edit profile">
+      <SectionCard title="Edit profile" subtitle="Changes show in the preview as you type.">
         <Stack spacing={3}>
           <FieldGroup title="Identity">
             <Box sx={{ display: "grid", gridTemplateColumns: { xs: "1fr", md: "1fr 1fr" }, gap: 2 }}>
@@ -283,13 +251,14 @@ export default function ExpertProfilePage() {
                 placeholder="(555) 010-1234"
                 fullWidth
               />
-              <TextField
-                label="Headshot URL"
+              <HeadshotUploader
                 value={form.headshot_url}
-                onChange={(e) => setForm((f) => ({ ...f, headshot_url: e.target.value }))}
-                placeholder="https://..."
-                helperText="Paste a public image URL. Direct upload comes later."
-                fullWidth
+                onUploaded={(url) => {
+                  setForm((f) => ({ ...f, headshot_url: url }));
+                  setProfile((p) => (p ? { ...p, headshot_url: url } : p));
+                  setToast("Headshot uploaded.");
+                }}
+                onError={(msg) => setToast(msg)}
               />
             </Box>
           </FieldGroup>
@@ -364,11 +333,77 @@ export default function ExpertProfilePage() {
                 saving ? <CircularProgress size={14} sx={{ color: "inherit" }} /> : <SaveOutlinedIcon />
               }
             >
-              {saving ? "Saving…" : "Save changes"}
+              {saving ? "Saving..." : "Save changes"}
             </Button>
           </Stack>
         </Stack>
       </SectionCard>
+
+      {/* Live preview: what members will see */}
+      <Box sx={{ position: { md: "sticky" }, top: { md: 24 } }}>
+        <SectionCard title="Preview" subtitle="How members see you in the directory." padding="none">
+          {/* Forest cap with the headshot overlapping its lower edge */}
+          <Box
+            sx={{
+              height: 72,
+              bgcolor: EP.espresso,
+              backgroundImage: `linear-gradient(135deg, ${EP.espresso} 0%, ${EP.espressoDeep} 100%)`,
+            }}
+          />
+          <Box sx={{ px: 3, pb: 3, mt: -5 }}>
+            <Avatar
+              src={form.headshot_url || undefined}
+              sx={{
+                width: 80,
+                height: 80,
+                bgcolor: BRONZE_TINT,
+                color: BRONZE,
+                fontSize: "1.5rem",
+                fontWeight: 700,
+                border: `4px solid ${CP.white}`,
+                boxShadow: CP.shadow,
+              }}
+            >
+              {displayInitials}
+            </Avatar>
+            <Typography sx={{ mt: 1.5, fontSize: "1.125rem", fontWeight: 800, letterSpacing: "-0.02em", color: INK, lineHeight: 1.25 }}>
+              {form.display_name || profile.full_name}
+            </Typography>
+            {form.company_name && (
+              <Typography sx={{ fontSize: "0.8125rem", color: MUTED, mt: 0.25 }}>{form.company_name}</Typography>
+            )}
+            {form.specialty ? (
+              <Typography sx={{ color: BRONZE, fontSize: "0.875rem", fontWeight: 600, mt: 0.75 }}>{form.specialty}</Typography>
+            ) : (
+              <Typography sx={{ color: CP.faint, fontSize: "0.875rem", mt: 0.75 }}>Your specialty shows here.</Typography>
+            )}
+            {form.bio ? (
+              <Typography sx={{ color: BODY, fontSize: "0.875rem", lineHeight: 1.6, whiteSpace: "pre-wrap", mt: 1.25 }}>
+                {form.bio}
+              </Typography>
+            ) : (
+              <Typography sx={{ color: CP.faint, fontSize: "0.875rem", lineHeight: 1.6, mt: 1.25 }}>
+                Add 2 to 4 sentences so members know who you serve and why they should book you.
+              </Typography>
+            )}
+            {topicList.length > 0 && (
+              <Stack direction="row" sx={{ mt: 1.5, flexWrap: "wrap", gap: 0.75 }}>
+                {topicList.map((t) => (
+                  <TagPill key={t} label={t} tone="neutral" size="sm" />
+                ))}
+              </Stack>
+            )}
+            <Stack direction="row" sx={{ mt: 2, flexWrap: "wrap", gap: 1 }}>
+              {form.booking_link && <PreviewLink href={form.booking_link} label="Book a meeting" emphasized />}
+              {form.website && <PreviewLink href={form.website} label="Website" />}
+            </Stack>
+            <Typography sx={{ fontSize: "0.75rem", color: MUTED, mt: 2, lineHeight: 1.5 }}>
+              Signed in as {profile.email}. Your email and phone are never shown to members.
+            </Typography>
+          </Box>
+        </SectionCard>
+      </Box>
+      </Box>
 
       <Snackbar
         open={!!toast}
@@ -384,7 +419,26 @@ export default function ExpertProfilePage() {
 function FieldGroup({ title, children }: { title: string; children: React.ReactNode }) {
   return (
     <Box>
-      <Typography sx={{ fontSize: "0.875rem", fontWeight: 600, color: INK, mb: 1.5 }}>
+      <Typography
+        sx={{
+          fontSize: "0.875rem",
+          fontWeight: 700,
+          color: INK,
+          mb: 1.5,
+          pl: 1.5,
+          position: "relative",
+          "&::before": {
+            content: '""',
+            position: "absolute",
+            left: 0,
+            top: 3,
+            bottom: 3,
+            width: 3,
+            borderRadius: 999,
+            bgcolor: BRONZE,
+          },
+        }}
+      >
         {title}
       </Typography>
       <Stack spacing={2}>{children}</Stack>
@@ -412,21 +466,103 @@ function PreviewLink({
         alignItems: "center",
         gap: 0.5,
         px: 1.5,
-        height: 32,
-        borderRadius: "6px",
+        height: 34,
+        borderRadius: "10px",
         fontSize: "0.8125rem",
-        fontWeight: 500,
+        fontWeight: 600,
         textDecoration: "none",
-        bgcolor: emphasized ? NAVY : "#FFFFFF",
-        color: emphasized ? "#FFFFFF" : INK,
-        border: emphasized ? `1px solid ${NAVY}` : "1px solid #D1D5DB",
+        bgcolor: emphasized ? ESPRESSO : CP.white,
+        color: emphasized ? EP.ivory : ESPRESSO,
+        border: `1px solid ${ESPRESSO}`,
+        transition: "background-color 140ms ease",
         "&:hover": {
-          bgcolor: emphasized ? "#0B2232" : "#F9FAFB",
+          bgcolor: emphasized ? ESPRESSO_HOVER : BRONZE_TINT,
         },
       }}
     >
       {label}
       <OpenInNewRoundedIcon sx={{ fontSize: 13 }} />
+    </Box>
+  );
+}
+
+/**
+ * Headshot upload: picks a file from the expert's device and sends it to
+ * PATCH /api/expert/profile/avatar with target=headshot (stored in the
+ * avatars bucket, experts.headshot_url updated server-side). PNG, JPG,
+ * WebP or GIF up to 5 MB.
+ */
+function HeadshotUploader({
+  value,
+  onUploaded,
+  onError,
+}: {
+  value: string;
+  onUploaded: (url: string) => void;
+  onError: (message: string) => void;
+}) {
+  const inputRef = useRef<HTMLInputElement | null>(null);
+  const [busy, setBusy] = useState(false);
+
+  const pick = async (file: File | null) => {
+    if (!file) return;
+    if (file.size > 5 * 1024 * 1024) {
+      onError("That image is over 5 MB. Please choose a smaller file.");
+      return;
+    }
+    setBusy(true);
+    try {
+      const fd = new FormData();
+      fd.append("headshot", file);
+      fd.append("target", "headshot");
+      const res = await fetch("/api/expert/profile/avatar", { method: "PATCH", body: fd });
+      const body = (await res.json().catch(() => ({}))) as { ok?: boolean; url?: string | null; error?: string };
+      if (!res.ok || !body.url) {
+        onError(body.error ?? "Upload failed. Please try again.");
+        return;
+      }
+      onUploaded(body.url);
+    } catch {
+      onError("Upload failed. Check your connection and try again.");
+    } finally {
+      setBusy(false);
+      if (inputRef.current) inputRef.current.value = "";
+    }
+  };
+
+  return (
+    <Box>
+      <Typography sx={{ fontSize: "0.8125rem", fontWeight: 600, color: EP.espresso, mb: 0.75 }}>Headshot</Typography>
+      <Stack direction="row" spacing={2} sx={{ alignItems: "center" }}>
+        <Avatar
+          src={value || undefined}
+          variant="rounded"
+          sx={{ width: 64, height: 64, borderRadius: "14px", bgcolor: EP.bronzeTint, color: EP.espresso, fontWeight: 700 }}
+        >
+          {busy ? <CircularProgress size={20} sx={{ color: EP.bronze }} /> : null}
+        </Avatar>
+        <Box>
+          <input
+            ref={inputRef}
+            type="file"
+            accept="image/png,image/jpeg,image/webp,image/gif"
+            hidden
+            onChange={(e) => void pick(e.target.files?.[0] ?? null)}
+          />
+          <Button
+            variant="outlined"
+            size="small"
+            startIcon={<CloudUploadOutlinedIcon />}
+            disabled={busy}
+            onClick={() => inputRef.current?.click()}
+          >
+            {busy ? "Uploading..." : value ? "Replace headshot" : "Upload headshot"}
+          </Button>
+          <Typography sx={{ fontSize: "0.75rem", color: "#6B6157", mt: 0.75 }}>
+            PNG, JPG or WebP, up to 5 MB. Square works best. Saved as soon as the upload finishes.
+          </Typography>
+        </Box>
+      </Stack>
     </Box>
   );
 }

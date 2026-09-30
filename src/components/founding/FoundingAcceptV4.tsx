@@ -39,7 +39,7 @@ export type FoundingAcceptProps = {
   fullName: string;
   signerName: string | null;
   role: "expert" | "partner" | "both";
-  /** Partner price plan: "ladder" shows the $199 step from month 13; "flat_49" never does. */
+  /** Company price plan: "ladder" = $39/mo for 12 months then $149/mo; "flat_49" = $39/mo with no increase. Expert side is always 12 months free then $39/mo. */
   pricing?: "ladder" | "flat_49" | null;
   companyName: string | null;
   memberOffer: string | null;
@@ -54,7 +54,12 @@ export default function FoundingAcceptV4(props: FoundingAcceptProps) {
       : props.role === "partner"
         ? "Founding Partner"
         : "Founding Expert";
-  const requiresPayment = props.role === "partner" || props.role === "both";
+  // Every founding role saves a card: experts start a 12-month free period
+  // that converts to $39/month; companies are billed $39/month from today.
+  const hasExpert = props.role === "expert" || props.role === "both";
+  const hasCompany = props.role === "partner" || props.role === "both";
+  const ladder = props.pricing !== "flat_49";
+  const dueToday = hasCompany ? "$39.00" : "$0.00";
   const displayName = props.signerName?.trim() || props.fullName;
   const showsFeaturedExpert = Boolean(
     props.signerName?.trim() && props.signerName.trim() !== props.fullName,
@@ -64,7 +69,6 @@ export default function FoundingAcceptV4(props: FoundingAcceptProps) {
   const [prepareError, setPrepareError] = useState<string | null>(null);
 
   useEffect(() => {
-    if (!requiresPayment) return;
     let cancelled = false;
     (async () => {
       try {
@@ -83,7 +87,7 @@ export default function FoundingAcceptV4(props: FoundingAcceptProps) {
     return () => {
       cancelled = true;
     };
-  }, [props.code, requiresPayment]);
+  }, [props.code]);
 
   const stripeInstance = useMemo(() => getStripePromise(), []);
 
@@ -98,7 +102,10 @@ export default function FoundingAcceptV4(props: FoundingAcceptProps) {
         </Typography>
         <Typography sx={{ color: "#5C6770", maxWidth: 460, mt: 1 }}>
           You&apos;ve been invited to join as a <strong>{roleLabel}</strong>. Review your
-          agreement below, agree, and {requiresPayment ? "save your card for the partner ramp. Nothing is charged today." : "activate your founding expert listing."}
+          agreement below, agree, and save your card.{" "}
+          {hasCompany
+            ? "Your first $39 company charge is today; your expert access, if any, stays free for 12 months."
+            : "Nothing is charged today: your expert access is free for 12 months, then $39 a month."}
         </Typography>
       </Stack>
 
@@ -135,40 +142,38 @@ export default function FoundingAcceptV4(props: FoundingAcceptProps) {
         </Box>
 
         <Box sx={{ px: { xs: 2.5, md: 3 }, pt: 2.5 }}>
-          {requiresPayment ? (
-            <>
-              <Stack direction="row" sx={{ justifyContent: "space-between", alignItems: "baseline", mb: 2 }}>
-                <Typography sx={{ fontSize: "0.9rem", color: "#5C6770", fontWeight: 600 }}>Due today</Typography>
-                <Typography sx={{ fontFamily: "var(--font-display)", fontSize: "1.9rem", fontWeight: 600, color: "#0A1A2F", lineHeight: 1 }}>
-                  $0.00
-                </Typography>
-              </Stack>
-              <Box sx={{ bgcolor: "rgba(217,168,75,0.08)", borderRadius: 1.5, px: 2, py: 1.5, mb: 2.5 }}>
-                <RampLine label="Now to month 6" price="$0/mo" bold />
-                {props.pricing === "ladder" ? (
-                  <>
-                    <RampLine label="Months 7 to 12" price="$39/mo" />
-                    <RampLine label="Month 13 onward" price="$199/mo" />
-                  </>
-                ) : (
-                  <RampLine label="Month 7 onward" price="$39/mo" />
-                )}
-              </Box>
-            </>
-          ) : (
-            <Box sx={{ bgcolor: "rgba(44,122,82,0.09)", borderRadius: 1.5, px: 2, py: 1.5, mb: 2.5 }}>
-              <Typography sx={{ fontSize: "0.88rem", color: "#1F5238", fontWeight: 700 }}>
-                Founding expert listing
+          <Stack direction="row" sx={{ justifyContent: "space-between", alignItems: "baseline", mb: 2 }}>
+            <Typography sx={{ fontSize: "0.9rem", color: "#5C6770", fontWeight: 600 }}>Due today</Typography>
+            <Typography sx={{ fontFamily: "var(--font-display)", fontSize: "1.9rem", fontWeight: 600, color: "#0A1A2F", lineHeight: 1 }}>
+              {dueToday}
+            </Typography>
+          </Stack>
+          {hasExpert && (
+            <Box sx={{ bgcolor: "rgba(44,122,82,0.09)", borderRadius: 1.5, px: 2, py: 1.5, mb: 2 }}>
+              <Typography sx={{ fontSize: "0.78rem", color: "#1F5238", fontWeight: 700, letterSpacing: "0.06em", textTransform: "uppercase", mb: 0.5 }}>
+                Founding expert access
               </Typography>
-              <Typography sx={{ fontSize: "0.86rem", color: "#3B4A55", mt: 0.4 }}>
-                Free for as long as your founding expert membership stays continuously active.
+              <RampLine label="Months 1 to 12" price="$0/mo" bold />
+              <RampLine label="Month 13 onward" price="$39/mo" />
+            </Box>
+          )}
+          {hasCompany && (
+            <Box sx={{ bgcolor: "rgba(217,168,75,0.08)", borderRadius: 1.5, px: 2, py: 1.5, mb: 2.5 }}>
+              <Typography sx={{ fontSize: "0.78rem", color: "#7A5B17", fontWeight: 700, letterSpacing: "0.06em", textTransform: "uppercase", mb: 0.5 }}>
+                Founding company listing
               </Typography>
+              {ladder ? (
+                <>
+                  <RampLine label="Months 1 to 12" price="$39/mo" bold />
+                  <RampLine label="Month 13 onward" price="$149/mo" />
+                </>
+              ) : (
+                <RampLine label="From today, no increase" price="$39/mo" bold />
+              )}
             </Box>
           )}
 
-          {!requiresPayment ? (
-            <ExpertAcceptForm {...props} roleLabel={roleLabel} displayName={displayName} />
-          ) : prepareError ? (
+          {prepareError ? (
             <Alert severity="error" sx={{ fontSize: "0.84rem", mb: 2 }}>
               {prepareError}
             </Alert>
@@ -200,7 +205,9 @@ export default function FoundingAcceptV4(props: FoundingAcceptProps) {
           <Stack direction="row" spacing={0.75} sx={{ alignItems: "center", justifyContent: "center" }}>
             <LockRoundedIcon sx={{ fontSize: 13, color: "#7A8590" }} />
             <Typography sx={{ fontSize: "0.74rem", color: "#7A8590", textAlign: "center", lineHeight: 1.5 }}>
-              {requiresPayment ? "Secured by Stripe. Billing starts at month 7. Your signed agreement is emailed to you." : "Your acceptance is recorded electronically and the signed agreement is emailed to you."}
+              {hasCompany
+                ? "Secured by Stripe. Your company listing is billed monthly from today. Your signed agreement is emailed to you."
+                : "Secured by Stripe. Nothing is charged for 12 months. Your signed agreement is emailed to you."}
             </Typography>
           </Stack>
           <Typography sx={{ fontSize: "0.72rem", color: "#9CA3AB", textAlign: "center", mt: 0.75 }}>
@@ -209,55 +216,6 @@ export default function FoundingAcceptV4(props: FoundingAcceptProps) {
         </Box>
       </Box>
     </Container>
-  );
-}
-
-function ExpertAcceptForm(props: FoundingAcceptProps & { roleLabel: string; displayName: string }) {
-  const router = useRouter();
-  const [agreed, setAgreed] = useState(false);
-  const [busy, setBusy] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-
-  const submit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!agreed) return;
-    setBusy(true);
-    setError(null);
-    try {
-      const res = await fetch(`/api/founding/${props.code}/accept`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({}),
-      });
-      const body = (await res.json().catch(() => ({}))) as { ok?: boolean; next?: string; error?: string };
-      if (!res.ok || !body.ok) {
-        setError(body.error ?? "Something went wrong. Try again.");
-        setBusy(false);
-        return;
-      }
-      router.push(body.next ?? "/");
-    } catch {
-      setError("Something went wrong. Try again.");
-      setBusy(false);
-    }
-  };
-
-  return (
-    <Box component="form" onSubmit={submit}>
-      <AgreementCheckbox
-        agreed={agreed}
-        setAgreed={setAgreed}
-        displayName={props.displayName}
-        roleLabel={props.roleLabel}
-        agreementVersion={props.agreementVersion}
-      />
-      <SubmitButton busy={busy} disabled={!agreed || busy} label="Agree and accept" />
-      {error && (
-        <Alert severity="error" sx={{ mb: 2, fontSize: "0.82rem" }}>
-          {error}
-        </Alert>
-      )}
-    </Box>
   );
 }
 

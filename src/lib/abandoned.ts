@@ -1,4 +1,5 @@
 import "server-only";
+import { emailBrandHeader } from "@/lib/email/brandHeader";
 import { randomBytes } from "node:crypto";
 import { readFileSync } from "node:fs";
 import path from "node:path";
@@ -312,7 +313,7 @@ function shell(bodyHtml: string, unsubscribeLink: string): string {
   <tr><td style="background:#FFFFFF;border:1px solid #E6DDCF;border-radius:14px;overflow:hidden;">
     <table role="presentation" cellpadding="0" cellspacing="0" width="100%">
       <tr><td style="padding:28px 40px 16px;text-align:center;">
-        <img src="cid:${LOGO_CID}" alt="Aesthetic Success Network" width="200" style="display:inline-block;max-width:200px;height:auto;">
+        ${emailBrandHeader({ center: true })}
       </td></tr>
       <tr><td style="padding:0 40px;"><div style="height:2px;background:#D9A84B;border-radius:2px;"></div></td></tr>
       <tr><td style="padding:26px 40px 34px;color:#243244;font-size:16px;line-height:1.75;">

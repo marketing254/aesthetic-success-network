@@ -48,6 +48,7 @@ export async function resolveNetworkAuthor(
         subscriptionStatus: data.subscription_status ?? null,
         hasSubscription: !!data.stripe_subscription_id,
         billingExempt: !!data.billing_exempt,
+        audience: "expert",
       });
       // Unpaid expert: no expert identity — fall through in case they're
       // also a paying member/partner under the same account.

@@ -12,9 +12,9 @@ import { COLORS } from "@/theme";
  * Each card's CTA scrolls to #waitlist and sets ?role=member|expert|partner
  * so WaitlistSection opens on the right tab.
  *
- * Visibility rule: do NOT show the "Free for life · founding 20" expert
- * offer here or anywhere public. Per ASN-SWAP-CANON §3 the founding-expert
- * cohort is internal-only (invite link only).
+ * Visibility rule: do NOT show the founding-expert invite offer (12 months
+ * free, then $39) here or anywhere public. Per ASN-SWAP-CANON section 3
+ * founding invites are internal-only (invite link only).
  */
 type CardRole = "member" | "expert" | "partner";
 
@@ -56,7 +56,7 @@ const CARDS: Array<{
   {
     eyebrow: "Partners",
     title: "For companies serving aesthetic practices",
-    body: "Get in front of aesthetics' most engaged buyers through a trusted shortlist instead of a cold ad. Free for the first six months.",
+    body: "Get in front of aesthetics' most engaged buyers through a trusted shortlist instead of a cold ad. $39 a month, then $149 after your first year.",
     perks: [
       "Profile and placement in your category",
       "Lead flow with a dashboard",

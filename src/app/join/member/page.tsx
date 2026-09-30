@@ -11,7 +11,7 @@ export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
 export const metadata: Metadata = {
-  title: "Start your membership | Aesthetic Success Network",
+  title: "Reserve your founding spot | Aesthetic Success Network",
   description:
     "Three short steps to join Aesthetic Success Network: the Expert Hotline, company savings, and the resource library of expert kits.",
   alternates: { canonical: "/join/member" },
@@ -70,11 +70,12 @@ export default async function JoinMemberPage({
           <div className="wrap center">
             <span className="kicker">Founding membership &middot; first 100 members</span>
             <h1 className="title">
-              Start your <em>membership</em>.
+              Reserve your <em>founding spot</em>.
             </h1>
             <p className="lead">
-              $29 a month or $290 a year, locked for as long as your membership stays active. Then
-              $99 a month for everyone after the first 100. 30-day money-back guarantee.
+              $29 a month or $290 a year, locked for as long as your membership stays active, for the
+              first 100 members. Nothing to pay today: we reach out before the doors open, and you
+              confirm before any charge.
             </p>
             <Suspense fallback={null}>
               <MemberSignupForm refCtx={refCtx} prefill={prefill} />

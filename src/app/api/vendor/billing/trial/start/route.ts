@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { getStripe, appOrigin, partnerPriceIdFor, TRIAL_DAYS } from "@/lib/stripe";
+import { getStripe, appOrigin, partnerPriceIdFor, createCompanyLadderSchedule } from "@/lib/stripe";
 import { getSupabaseAdmin } from "@/lib/supabase/server";
 import { requireVendor } from "@/lib/auth/guards";
 import { renderAgreementPdf } from "@/lib/pdf/agreementPdf";
@@ -13,11 +13,14 @@ export const dynamic = "force-dynamic";
 /**
  * POST /api/vendor/billing/trial/start
  *
- * Second half of the trial-start flow. Given the setupIntentId +
+ * Second half of the website company sign-and-pay flow (the route name is
+ * historical; there is no trial for companies). Given the setupIntentId +
  * paymentMethodId (from the /prepare step's <PaymentElement>
  * confirmation), attaches the card as default, records the agreement
- * acceptance stamp, and creates the subscription with trial_period_days
- * = 180. No $0 catalog item — Stripe zeroes the trial on the $29 price.
+ * acceptance stamp, and creates the company ladder subscription schedule
+ * (createCompanyLadderSchedule): $39 a month for months 1 to 12 charged
+ * from today, then $149 a month from month 13. Identical Stripe objects
+ * to a founding "ladder" invite acceptance.
  */
 
 type Body = { setupIntentId?: string; paymentMethodId?: string; agreementVersion?: string };
@@ -37,10 +40,12 @@ export async function POST(req: Request) {
   }
 
   let stripe;
-  let priceGrowth: string;
   try {
     stripe = getStripe();
-    priceGrowth = partnerPriceIdFor("partner_growth_monthly");
+    // Pre-flight both price env vars so a misconfiguration is a 503, not a
+    // half-created schedule.
+    partnerPriceIdFor("partner_growth_monthly");
+    partnerPriceIdFor("partner_founding_standard_monthly");
   } catch (err) {
     return serverError(err, { route: "POST /api/vendor/billing/trial/start", status: 503 });
   }
@@ -89,23 +94,19 @@ export async function POST(req: Request) {
     invoice_settings: { default_payment_method: paymentMethodId },
   });
 
-  // Create the subscription with 180-day trial. missing_payment_method:
-  // pause means Stripe pauses instead of hard-fails if the card fails
-  // when the trial converts.
-  let subscription;
+  // Create the company ladder schedule: phase 1 = $39 x 12 months charged
+  // from today, phase 2 = $149 open-ended. Same helper as the founding
+  // accept route.
+  let ladder;
   try {
-    subscription = await stripe.subscriptions.create({
-      customer: vendor.stripe_customer_id,
-      items: [{ price: priceGrowth }],
-      trial_period_days: TRIAL_DAYS,
-      default_payment_method: paymentMethodId,
-      trial_settings: { end_behavior: { missing_payment_method: "pause" } },
+    ladder = await createCompanyLadderSchedule({
+      customerId: vendor.stripe_customer_id,
+      paymentMethodId,
       metadata: {
-        audience: "vendor",
         vendor_id: vendor.id,
-        plan: "partner_growth_monthly",
+        source: "website",
+        ramp: "company-ladder-12x39-then-149",
       },
-      expand: ["latest_invoice"],
     });
   } catch (err) {
     return serverError(err, {
@@ -114,6 +115,8 @@ export async function POST(req: Request) {
         publicMessage: "Stripe rejected the subscription. Check the card details and try again.",
       });
   }
+  const subscription = ladder.subscription;
+  const priceGrowth = ladder.growthPriceId;
 
   // `default_payment_method` came in as a string ID from the create
   // call, so `subscription.default_payment_method` is still a string,
@@ -142,7 +145,7 @@ export async function POST(req: Request) {
     .update({
       stripe_subscription_id: subscription.id,
       stripe_price_id: priceGrowth,
-      subscription_status: subscription.status, // "trialing"
+      subscription_status: subscription.status, // "active" (first $39 charged today)
       subscription_interval: "month",
       current_period_end:
         typeof subscription.items.data[0]?.current_period_end === "number"
@@ -190,6 +193,9 @@ export async function POST(req: Request) {
       pdfFilename: `ASN-Provider-Agreement-${agreementVersion}.pdf`,
       portalUrl: `${appOrigin()}/vendor/account`,
       agreementVersion,
+      signedAt,
+      partnerStandardStartsAt: ladder.standardStartsAt,
+      cardCaptured: true,
     });
   } catch (err) {
     console.error("[vendor:trial:start] PDF/email failed", err);

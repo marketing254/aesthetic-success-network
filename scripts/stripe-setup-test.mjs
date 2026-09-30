@@ -11,11 +11,22 @@ import Stripe from "stripe";
 
 config({ path: ".env.local", override: true });
 
-const key = process.env.STRIPE_SECRET_KEY ?? "";
-if (!key.startsWith("sk_test_")) {
-  console.error("STRIPE_SECRET_KEY must be a TEST key (sk_test_...). Aborting.");
+// TEST mode (default): uses STRIPE_SECRET_KEY, which must be sk_test_...
+// LIVE mode (--live): uses STRIPE_LIVE_SECRET_KEY (sk_live_...), a SEPARATE
+// variable so a live key never sits in the normal STRIPE_SECRET_KEY slot on a
+// laptop. Creates the same products and prices in the live account and
+// prints the live ids for Vercel Production.
+const live = process.argv.includes("--live");
+const key = (live ? process.env.STRIPE_LIVE_SECRET_KEY : process.env.STRIPE_SECRET_KEY) ?? "";
+if (live && !key.startsWith("sk_live_")) {
+  console.error("--live needs STRIPE_LIVE_SECRET_KEY=sk_live_... in .env.local. Aborting.");
   process.exit(1);
 }
+if (!live && !key.startsWith("sk_test_")) {
+  console.error("STRIPE_SECRET_KEY must be a TEST key (sk_test_...). Aborting. (Use --live for the live account.)");
+  process.exit(1);
+}
+console.log(live ? "MODE: LIVE account (real prices)" : "MODE: test sandbox");
 const stripe = new Stripe(key);
 
 const PRODUCTS = [
@@ -43,8 +54,10 @@ const PRODUCTS = [
     metadata: { audience: "vendor", product: "company_directory" },
     prices: [
       { env: "STRIPE_PRICE_PARTNER_GROWTH_MONTHLY", plan: "partner_growth_monthly", amount: 3900, interval: "month" },
-      { env: "STRIPE_PRICE_PARTNER_STANDARD_MONTHLY", plan: "partner_standard_monthly", amount: 19900, interval: "month" },
-      { env: "STRIPE_PRICE_PARTNER_STANDARD_ANNUAL", plan: "partner_standard_annual", amount: 199000, interval: "year" },
+      { env: "STRIPE_PRICE_PARTNER_GROWTH_ANNUAL", plan: "partner_growth_annual", amount: 39000, interval: "year" },
+      // Founding company (admin invite): $39/mo for months 1-12, then $149/mo from month 13.
+      { env: "STRIPE_PRICE_PARTNER_FOUNDING_STANDARD_MONTHLY", plan: "partner_founding_standard_monthly", amount: 14900, interval: "month" },
+      { env: "STRIPE_PRICE_PARTNER_FOUNDING_STANDARD_ANNUAL", plan: "partner_founding_standard_annual", amount: 149000, interval: "year" },
     ],
   },
   {
@@ -56,8 +69,7 @@ const PRODUCTS = [
     metadata: { audience: "expert", product: "expert_bench" },
     prices: [
       { env: "STRIPE_PRICE_EXPERT_GROWTH_MONTHLY", plan: "expert_growth_monthly", amount: 3900, interval: "month" },
-      { env: "STRIPE_PRICE_EXPERT_STANDARD_MONTHLY", plan: "expert_standard_monthly", amount: 19900, interval: "month" },
-      { env: "STRIPE_PRICE_EXPERT_STANDARD_ANNUAL", plan: "expert_standard_annual", amount: 199000, interval: "year" },
+      { env: "STRIPE_PRICE_EXPERT_GROWTH_ANNUAL", plan: "expert_growth_annual", amount: 39000, interval: "year" },
     ],
   },
 ];

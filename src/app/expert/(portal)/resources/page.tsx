@@ -2,20 +2,18 @@
 
 import { useEffect, useState } from "react";
 import {
+  Alert,
   Box,
-  Chip,
   CircularProgress,
   Stack,
   Typography,
 } from "@mui/material";
 import OpenInNewRoundedIcon from "@mui/icons-material/OpenInNewRounded";
+import LibraryBooksOutlinedIcon from "@mui/icons-material/LibraryBooksOutlined";
 import { createBrowserSupabase } from "@/lib/supabase/browser";
-import { EmptyState, PageHeader, SectionCard } from "@/components/vendor/PortalUI";
-
-const INK = "#111827";
-const MUTED = "#6B7280";
-const LINE = "#E5E7EB";
-const NAVY = "#0E2A3D";
+import { CP } from "@/components/shared/CommunityPortalShell";
+import { EP } from "@/components/shared/TopNavPortalShell";
+import { EmptyState, ListDivider, PageHeader, SectionCard, TagPill, portalText } from "@/components/vendor/PortalUI";
 
 type PublishedResource = {
   id: string;
@@ -100,23 +98,19 @@ export default function ExpertResourcesPage() {
         title="Your library"
         subtitle="The ASN content team produces and publishes your kits (videos, action guides, worksheets) and tags them to your name. Anything live in the member library that originated from you shows up here."
       />
-      <Typography sx={{ fontSize: "0.875rem", color: MUTED, mt: -2 }}>
+      <Typography sx={{ ...portalText.meta, mt: -2 }}>
         To request a new kit, email{" "}
         <Box
           component="a"
           href="mailto:experts@aestheticsuccessnetwork.com"
-          sx={{ color: NAVY, textDecoration: "none", fontWeight: 500, "&:hover": { textDecoration: "underline" } }}
+          sx={{ color: EP.bronze, textDecoration: "none", fontWeight: 600, "&:hover": { textDecoration: "underline" } }}
         >
           experts@aestheticsuccessnetwork.com
         </Box>
         .
       </Typography>
 
-      {error && (
-        <Box sx={{ p: 2, bgcolor: "#FEE2E2", color: "#991B1B", borderRadius: "6px", fontSize: "0.875rem" }}>
-          {error}
-        </Box>
-      )}
+      {error && <Alert severity="error">{error}</Alert>}
 
       {loading ? (
         <Stack sx={{ alignItems: "center", py: 6 }}>
@@ -124,8 +118,9 @@ export default function ExpertResourcesPage() {
         </Stack>
       ) : byTopic.size === 0 ? (
         <EmptyState
+          icon={LibraryBooksOutlinedIcon}
           title="Nothing live yet"
-          body="When the team publishes a kit tagged with your name, it'll appear here. Member inquiries on those kits will land in your Inquiries inbox."
+          body="When the team publishes a kit tagged with your name, it will appear here. Member inquiries on those kits will land in your Inquiries inbox."
         />
       ) : (
         <Stack spacing={3}>
@@ -134,24 +129,32 @@ export default function ExpertResourcesPage() {
               key={topic.topic_slug}
               title={topic.topic_title}
               subtitle="Kit"
-              action={<Chip label={`${topic.items.length} resource${topic.items.length === 1 ? "" : "s"}`} size="small" />}
+              action={<TagPill label={`${topic.items.length} resource${topic.items.length === 1 ? "" : "s"}`} />}
               padding="none"
             >
-              <Stack divider={<Box sx={{ borderTop: `1px solid ${LINE}` }} />}>
+              <Stack divider={<ListDivider />}>
                 {topic.items.map((r) => (
                   <Stack
                     key={r.id}
                     direction="row"
-                    sx={{ alignItems: "center", justifyContent: "space-between", px: 3, py: 1.5, "&:hover": { bgcolor: "#F9FAFB" } }}
+                    sx={{
+                      alignItems: "center",
+                      justifyContent: "space-between",
+                      minHeight: 56,
+                      px: 3,
+                      py: 1.5,
+                      transition: "background-color 120ms ease",
+                      "&:hover": { bgcolor: EP.bronzeTint },
+                    }}
                   >
                     <Box sx={{ minWidth: 0, flex: 1 }}>
-                      <Stack direction="row" spacing={1} sx={{ alignItems: "center", flexWrap: "wrap", mb: 0.25 }}>
-                        <Typography sx={{ fontSize: "0.875rem", fontWeight: 600, color: INK }} noWrap>
+                      <Stack direction="row" spacing={1} sx={{ alignItems: "center", flexWrap: "wrap", rowGap: 0.5, mb: 0.25 }}>
+                        <Typography sx={{ fontSize: "0.875rem", fontWeight: 600, color: CP.ink }} noWrap>
                           {r.title}
                         </Typography>
                         <StatusChip status={r.is_published ? "published" : r.submission_status} />
                       </Stack>
-                      <Typography sx={{ fontSize: "0.8125rem", color: MUTED }}>
+                      <Typography sx={portalText.meta}>
                         {r.kind.replaceAll("_", " ")} {r.category ? `· ${r.category}` : ""}
                       </Typography>
                     </Box>
@@ -165,9 +168,9 @@ export default function ExpertResourcesPage() {
                           display: "inline-flex",
                           alignItems: "center",
                           gap: 0.5,
-                          color: NAVY,
-                          fontSize: "0.875rem",
-                          fontWeight: 500,
+                          color: EP.bronze,
+                          fontSize: "0.8125rem",
+                          fontWeight: 600,
                           textDecoration: "none",
                           flexShrink: 0,
                           ml: 2,
@@ -188,12 +191,13 @@ export default function ExpertResourcesPage() {
   );
 }
 
+/** Green for live, amber for in-progress, gray for anything else. */
 function StatusChip({ status }: { status: string }) {
-  const color: "success" | "warning" | "default" =
+  const tone: "green" | "gold" | "neutral" =
     status === "published" || status === "approved"
-      ? "success"
+      ? "green"
       : status === "draft" || status === "pending_review"
-        ? "warning"
-        : "default";
-  return <Chip label={status.replaceAll("_", " ")} size="small" color={color} />;
+        ? "gold"
+        : "neutral";
+  return <TagPill label={status.replaceAll("_", " ")} tone={tone} size="sm" />;
 }

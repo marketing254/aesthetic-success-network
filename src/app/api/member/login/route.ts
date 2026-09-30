@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { isOtpThrottle, sendOtpViaFallback } from "@/lib/auth/otpFallback";
+import { isOtpThrottle, sendOtpViaFallback, requestOtp } from "@/lib/auth/otpFallback";
 import { createServerSupabase } from "@/lib/supabase/server-ssr";
 import { getSupabaseAdmin } from "@/lib/supabase/server";
 import { checkRateLimit } from "@/lib/waitlist/rateLimit";
@@ -81,10 +81,7 @@ export async function POST(req: Request) {
     if (adminBypassRow?.active) {
       // Skip the members-row requirement and go straight to sending the OTP.
       const supabase = await createServerSupabase();
-      const { error: otpErr } = await supabase.auth.signInWithOtp({
-        email,
-        options: { shouldCreateUser: false },
-      });
+      const { error: otpErr } = await requestOtp(supabase, email, "member:login");
       if (otpErr) {
         return NextResponse.json(
           { error: "Couldn't send your sign-in code. Please try again." },
@@ -147,10 +144,7 @@ export async function POST(req: Request) {
 
   const supabase = await createServerSupabase();
   let otpProvider: "supabase" | "fallback" = "supabase";
-  const { error } = await supabase.auth.signInWithOtp({
-    email,
-    options: { shouldCreateUser: false },
-  });
+  const { error } = await requestOtp(supabase, email, "member:login");
 
   if (error) {
     const msg = error.message ?? "";

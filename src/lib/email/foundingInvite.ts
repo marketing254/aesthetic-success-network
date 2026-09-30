@@ -1,4 +1,5 @@
 import "server-only";
+import { emailBrandHeader } from "@/lib/email/brandHeader";
 import { escapeHtml } from "@/lib/email/escapeHtml";
 import { applyEmailSandbox } from "@/lib/email/sandbox";
 
@@ -28,6 +29,8 @@ export type FoundingInviteEmailInput = {
   to: string;
   fullName: string;
   role: "expert" | "partner" | "both";
+  /** Company price plan: "ladder" (default) = $39 a month for 12 months then $149; "flat_49" = $39 with no increase. */
+  pricing?: "ladder" | "flat_49" | null;
   inviteUrl: string;
   pdfBuffer?: Buffer | null;
   pdfFilename?: string;
@@ -122,19 +125,29 @@ export async function sendFoundingInviteEmail(
   }
 }
 
-function paymentLineFor(role: FoundingInviteEmailInput["role"]): string {
-  return hasPartnerRole(role)
-    ? "If you proceed, the acceptance page will securely collect a payment method for the partner billing schedule. No payment is due today."
-    : "No payment is due at this step. After acceptance, the portal will guide you through any remaining account setup required for access.";
+function paymentLineFor(o: { role: FoundingInviteEmailInput["role"]; pricing?: FoundingInviteEmailInput["pricing"] }): string {
+  const expertLine =
+    "Your founding expert access is free for 12 months, then $39 a month, and it stays $39.";
+  const companyLine =
+    o.pricing === "flat_49"
+      ? "Your founding company listing is $39 a month from acceptance, with no increase."
+      : "Your founding company listing is $39 a month for the first 12 months, then $149 a month.";
+  if (o.role === "both") {
+    return `If you proceed, the acceptance page will securely save a payment method. ${expertLine} ${companyLine} The first $39 company charge is made on acceptance.`;
+  }
+  if (hasPartnerRole(o.role)) {
+    return `If you proceed, the acceptance page will securely save a payment method. ${companyLine} The first $39 charge is made on acceptance.`;
+  }
+  return `If you proceed, the acceptance page will securely save a payment method. ${expertLine} Nothing is charged for 12 months.`;
 }
 
 function buildHtml(o: FoundingInviteEmailInput & { roleLabel: string; firstName: string }): string {
-  const paymentLine = paymentLineFor(o.role);
+  const paymentLine = paymentLineFor(o);
   const support = supportEmail();
   return `<!doctype html><html><body style="margin:0;background:#F7F5F0;padding:24px;font-family:system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif;color:#0A1A2F;">
   <div style="max-width:560px;margin:0 auto;background:#FFFFFF;border:1px solid #E0DACE;border-radius:12px;padding:32px;">
     <div style="text-align:center;margin-bottom:22px;">
-      <img src="${process.env.NEXT_PUBLIC_APP_URL ?? "https://www.aestheticsuccessnetwork.com"}/asn-logo-email.png" alt="Aesthetic Success Network" width="200" style="display:block;margin:0 auto;max-width:200px;height:auto;" />
+      ${emailBrandHeader({ dark: false })}
     </div>
     <h1 style="font-family:Georgia,'Times New Roman',serif;font-size:23px;font-weight:500;margin:0 0 10px 0;color:#0A1A2F;">
       Agreement ready for review
@@ -166,7 +179,7 @@ function buildHtml(o: FoundingInviteEmailInput & { roleLabel: string; firstName:
 }
 
 function buildText(o: FoundingInviteEmailInput & { roleLabel: string; firstName: string }): string {
-  const paymentLine = paymentLineFor(o.role);
+  const paymentLine = paymentLineFor(o);
   return `Agreement ready for review
 
 Hello ${o.firstName},

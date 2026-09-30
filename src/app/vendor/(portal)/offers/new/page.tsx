@@ -19,11 +19,13 @@ import ArrowForwardIcon from "@mui/icons-material/ArrowForward";
 import CloudUploadOutlinedIcon from "@mui/icons-material/CloudUploadOutlined";
 import DeleteOutlineOutlinedIcon from "@mui/icons-material/DeleteOutlineOutlined";
 import LockOutlinedIcon from "@mui/icons-material/LockOutlined";
+import CheckRoundedIcon from "@mui/icons-material/CheckRounded";
 import MedicalServicesOutlinedIcon from "@mui/icons-material/MedicalServicesOutlined";
 import Inventory2OutlinedIcon from "@mui/icons-material/Inventory2Outlined";
 import SchoolOutlinedIcon from "@mui/icons-material/SchoolOutlined";
 import { REDEMPTION_LIMIT_OPTIONS } from "@/lib/catalogData";
 import { PageHeader, SectionCard, TagPill } from "@/components/vendor/PortalUI";
+import { CP } from "@/components/shared/CommunityPortalShell";
 import { createBrowserSupabase } from "@/lib/supabase/browser";
 import {
   createOffer,
@@ -33,15 +35,10 @@ import {
 } from "@/lib/supabase/vendorQueries";
 import type { CatalogItemsRow, VendorsRow } from "@/lib/supabase/types";
 
-const INK = "#111827";
-const MUTED = "#6B7280";
-const FAINT = "#9CA3AF";
-const LINE = "#E5E7EB";
-const LINE_STRONG = "#D1D5DB";
-const SOFT = "#F9FAFB";
-const FILL = "#F3F4F6";
-const NAVY = "#0E2A3D";
-const NAVY_TINT = "rgba(14,42,61,0.08)";
+const INK = CP.ink;
+const MUTED = CP.muted;
+const LINE = CP.border;
+const NAVY = CP.navy;
 
 type CatalogType = CatalogItemsRow["type"];
 
@@ -185,7 +182,7 @@ function OfferNewInner() {
   void loadingCatalog;
 
   return (
-    <Stack spacing={3} sx={{ maxWidth: 760 }}>
+    <Stack spacing={3} sx={{ maxWidth: 800 }}>
       <Box>
         <Button
           component={Link}
@@ -193,7 +190,7 @@ function OfferNewInner() {
           variant="text"
           size="small"
           startIcon={<ArrowBackIcon sx={{ fontSize: 14 }} />}
-          sx={{ px: 0.5, mb: 1, ml: -0.5 }}
+          sx={{ px: 1, mb: 1, ml: -1 }}
         >
           Back to offers
         </Button>
@@ -205,7 +202,7 @@ function OfferNewInner() {
 
       {!canPublish && (
         <Alert severity="warning" icon={<LockOutlinedIcon />}>
-          <Typography sx={{ fontWeight: 600, fontSize: "0.875rem", mb: 0.25 }}>
+          <Typography sx={{ fontWeight: 700, fontSize: "0.875rem", mb: 0.25 }}>
             Verification required
           </Typography>
           <Typography sx={{ fontSize: "0.875rem", lineHeight: 1.55 }}>
@@ -218,7 +215,7 @@ function OfferNewInner() {
 
       {submitted ? (
         <Alert severity="success">
-          <strong>Submitted for review.</strong> Redirecting you back to your offers…
+          <strong>Submitted for review.</strong> Redirecting you back to your offers...
         </Alert>
       ) : (
         <Stack spacing={3}>
@@ -237,7 +234,7 @@ function OfferNewInner() {
                 course first.
               </Alert>
             ) : (
-              <Stack spacing={1.5}>
+              <Stack spacing={1.25}>
                 {catalogItems.map((c) => {
                   const active = form.catalogItemId === c.id;
                   return (
@@ -254,16 +251,17 @@ function OfferNewInner() {
                       }}
                       sx={{
                         cursor: "pointer",
-                        p: 2,
-                        borderRadius: "8px",
+                        p: 1.75,
+                        borderRadius: "12px",
                         border: "1px solid",
                         borderColor: active ? NAVY : LINE,
-                        bgcolor: active ? NAVY_TINT : "#FFFFFF",
+                        bgcolor: active ? CP.sand : CP.white,
+                        boxShadow: active ? "0 0 0 3px rgba(10,19,32,0.06)" : "none",
                         display: "flex",
                         gap: 2,
                         alignItems: "center",
-                        transition: "border-color 120ms ease, background-color 120ms ease",
-                        "&:hover": { borderColor: active ? NAVY : LINE_STRONG, bgcolor: active ? NAVY_TINT : SOFT },
+                        transition: "border-color 140ms ease, background-color 140ms ease, box-shadow 140ms ease",
+                        "&:hover": { borderColor: active ? NAVY : CP.borderStrong, bgcolor: active ? CP.sand : CP.sandSoft },
                         "&:focus-visible": { outline: `2px solid ${NAVY}`, outlineOffset: 2 },
                       }}
                     >
@@ -271,11 +269,11 @@ function OfferNewInner() {
                         sx={{
                           width: 40,
                           height: 40,
-                          borderRadius: "6px",
+                          borderRadius: "10px",
                           display: "grid",
                           placeItems: "center",
-                          bgcolor: FILL,
-                          color: active ? NAVY : MUTED,
+                          bgcolor: active ? CP.white : CP.sand,
+                          color: active ? NAVY : CP.goldDeep,
                           flexShrink: 0,
                         }}
                       >
@@ -283,13 +281,29 @@ function OfferNewInner() {
                       </Box>
                       <Box sx={{ flex: 1, minWidth: 0 }}>
                         <Stack direction="row" spacing={1} sx={{ alignItems: "center", flexWrap: "wrap", mb: 0.25 }}>
-                          <Typography sx={{ fontSize: "0.875rem", fontWeight: 600, color: INK }}>{c.name}</Typography>
+                          <Typography sx={{ fontSize: "0.875rem", fontWeight: 700, color: INK }}>{c.name}</Typography>
                           <TagPill label={c.type} tone="neutral" size="sm" />
                         </Stack>
                         <Typography sx={{ fontSize: "0.8125rem", color: MUTED }}>
                           {c.category} · {c.price_label}
                         </Typography>
                       </Box>
+                      {active && (
+                        <Box
+                          sx={{
+                            width: 22,
+                            height: 22,
+                            borderRadius: "50%",
+                            bgcolor: NAVY,
+                            color: CP.gold,
+                            display: "grid",
+                            placeItems: "center",
+                            flexShrink: 0,
+                          }}
+                        >
+                          <CheckRoundedIcon sx={{ fontSize: 14 }} />
+                        </Box>
+                      )}
                     </Box>
                   );
                 })}
@@ -399,7 +413,7 @@ function OfferNewInner() {
                           {o}
                         </MenuItem>
                       ))}
-                      <MenuItem value="custom">Custom…</MenuItem>
+                      <MenuItem value="custom">Custom...</MenuItem>
                     </TextField>
                     {form.redemptionLimit === "custom" && (
                       <TextField
@@ -446,7 +460,7 @@ function OfferNewInner() {
 
           {item && (
             <Stack direction="row" spacing={1.5} sx={{ justifyContent: "flex-end" }}>
-              <Button component={Link} href="/vendor/offers" variant="text" color="primary">
+              <Button component={Link} href="/vendor/offers" variant="outlined">
                 Cancel
               </Button>
               <Button
@@ -467,7 +481,7 @@ function OfferNewInner() {
                 {!canPublish
                   ? "Verification required"
                   : submitting
-                    ? "Submitting…"
+                    ? "Submitting..."
                     : "Submit for team review"}
               </Button>
             </Stack>
@@ -509,19 +523,19 @@ function MediaUploader({
 }) {
   return (
     <Box>
-      <Typography sx={{ fontSize: "0.875rem", fontWeight: 500, mb: 1, color: INK }}>
+      <Typography sx={{ fontSize: "0.875rem", fontWeight: 600, mb: 1, color: CP.body }}>
         {label}
       </Typography>
       <Box
         sx={{
-          border: `1px solid ${LINE}`,
-          borderRadius: "8px",
+          border: `1px dashed ${CP.borderStrong}`,
+          borderRadius: "12px",
           p: 2,
-          bgcolor: SOFT,
+          bgcolor: CP.sandSoft,
         }}
       >
         {items.length === 0 ? (
-          <Typography sx={{ color: FAINT, fontSize: "0.875rem", mb: 1.5 }}>
+          <Typography sx={{ color: MUTED, fontSize: "0.8125rem", mb: 1.5 }}>
             {emptyHint}
           </Typography>
         ) : (
@@ -533,9 +547,9 @@ function MediaUploader({
                 spacing={1}
                 sx={{
                   alignItems: "center",
-                  bgcolor: "#FFFFFF",
+                  bgcolor: CP.white,
                   border: `1px solid ${LINE}`,
-                  borderRadius: "6px",
+                  borderRadius: "10px",
                   px: 1.25,
                   py: 0.75,
                 }}

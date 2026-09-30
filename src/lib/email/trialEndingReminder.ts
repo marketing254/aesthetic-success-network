@@ -1,4 +1,5 @@
 import "server-only";
+import { emailBrandHeader } from "@/lib/email/brandHeader";
 import { escapeHtml } from "@/lib/email/escapeHtml";
 import { applyEmailSandbox } from "@/lib/email/sandbox";
 
@@ -6,8 +7,16 @@ import { applyEmailSandbox } from "@/lib/email/sandbox";
  * Trial-ending reminder email. Fired by the Stripe webhook when
  * customer.subscription.trial_will_end (default: 3 days before trial
  * ends). For the 7-day-before ask in the product spec, run a daily
- * cron that queries vendors/experts where trial_end is 7 days out and
- * calls this same function.
+ * cron that queries experts where trial_end is 7 days out and calls
+ * this same function.
+ *
+ * EXPERTS ONLY. Experts (website 6-month trial or founding 12-month
+ * trial) pay $39 after the trial and stay at $39 for good. Companies
+ * never trial: every company pays $39 from the day it adds a card and
+ * moves to $149 at month 13 through a subscription schedule, so Stripe
+ * never emits trial_will_end for them. A call with role "partner" is a
+ * no-op (returns false) so a legacy "trialing" company row can never
+ * receive free-period copy.
  *
  * Transport priority mirrors joinConfirmation.ts — SMTP → Resend → log.
  */
@@ -31,7 +40,14 @@ export type TrialEndingReminderInput = {
 export async function sendTrialEndingReminder(
   input: TrialEndingReminderInput,
 ): Promise<boolean> {
-  const roleLabel = input.role === "partner" ? "partner" : "expert";
+  if (input.role !== "expert") {
+    // Companies have no trial (see header). Nothing to send.
+    console.info(`[trial-ending:${input.role}] skipped: companies have no free period`, {
+      to: input.to,
+    });
+    return false;
+  }
+  const roleLabel = "expert";
   const firstName = input.contactName.trim().split(/\s+/)[0] || "there";
   const subject =
     input.daysLeft === 1
@@ -100,6 +116,10 @@ function endsWords(daysLeft: number): string {
   return daysLeft === 1 ? "tomorrow" : `in ${daysLeft} days`;
 }
 
+/** What the rate does after the first paid month. Experts never step up. */
+const AFTER_FIRST_CHARGE_LINE =
+  "Your rate stays at $39 a month for as long as your expert membership is active.";
+
 function formatTrialEnd(d: Date): string {
   return d.toLocaleDateString("en-US", {
     weekday: "long",
@@ -117,7 +137,7 @@ function buildHtml(
 <html><body style="font-family:system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif;background:#F7F5F0;padding:24px;color:#0A1A2F;">
 <div style="max-width:560px;margin:0 auto;background:#FFFFFF;border-radius:12px;padding:32px;border:1px solid #E0DACE;">
   <div style="text-align:center;margin-bottom:24px;">
-    <img src="${process.env.NEXT_PUBLIC_APP_URL ?? "https://www.aestheticsuccessnetwork.com"}/asn-logo-email.png" alt="Aesthetic Success Network" width="200" style="display:block;margin:0 auto;max-width:200px;height:auto;" />
+    ${emailBrandHeader({ dark: false })}
   </div>
   <h1 style="font-family:Georgia,'Times New Roman',serif;font-size:22px;font-weight:500;margin:0 0 8px 0;color:#0A1A2F;">
     Heads-up, ${escapeHtml(opts.firstName)}: your free trial ends ${endsWords(opts.daysLeft)}.
@@ -125,7 +145,7 @@ function buildHtml(
   <p style="color:#3B4A55;line-height:1.55;font-size:15px;">
     Your ASN ${escapeHtml(opts.roleLabel)} trial ends on <strong>${escapeHtml(dateStr)}</strong>. On that
     day Stripe will charge the card on file for the first paid month at
-    $39. If the card has expired or changed, update it now so your
+    $39. ${escapeHtml(AFTER_FIRST_CHARGE_LINE)} If the card has expired or changed, update it now so your
     listing doesn't get suspended.
   </p>
   <div style="background:#F7EED9;border:1px solid #D9A84B;border-radius:8px;padding:14px;margin:20px 0;">
@@ -155,9 +175,9 @@ function buildText(
   return `Heads-up, ${opts.firstName}: your free trial ends ${endsWords(opts.daysLeft)}.
 
 Your ASN ${opts.roleLabel} trial ends on ${dateStr}. On that day Stripe will
-charge the card on file for the first paid month at $39. If the card
-has expired or changed, update it now so your listing doesn't get
-suspended.
+charge the card on file for the first paid month at $39. ${AFTER_FIRST_CHARGE_LINE}
+If the card has expired or changed, update it now so your listing doesn't
+get suspended.
 
 If the charge fails, the portal locks until you update the card.
 Nothing on your public listing changes immediately. You have a short

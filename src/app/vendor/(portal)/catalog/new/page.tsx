@@ -23,9 +23,11 @@ import MedicalServicesOutlinedIcon from "@mui/icons-material/MedicalServicesOutl
 import Inventory2OutlinedIcon from "@mui/icons-material/Inventory2Outlined";
 import SchoolOutlinedIcon from "@mui/icons-material/SchoolOutlined";
 import LockOutlinedIcon from "@mui/icons-material/LockOutlined";
+import CheckRoundedIcon from "@mui/icons-material/CheckRounded";
 import type { SvgIconComponent } from "@mui/icons-material";
 import { CATALOG_CATEGORIES, type CatalogItemType } from "@/lib/catalogData";
-import { PageHeader } from "@/components/vendor/PortalUI";
+import { PageHeader, SectionCard } from "@/components/vendor/PortalUI";
+import { CP } from "@/components/shared/CommunityPortalShell";
 import { createBrowserSupabase } from "@/lib/supabase/browser";
 import {
   createCatalogItem,
@@ -34,11 +36,10 @@ import {
 } from "@/lib/supabase/vendorQueries";
 import type { VendorsRow } from "@/lib/supabase/types";
 
-const INK = "#111827";
-const MUTED = "#6B7280";
-const LINE = "#E5E7EB";
-const NAVY = "#0E2A3D";
-const FILL = "#F9FAFB";
+const INK = CP.ink;
+const MUTED = CP.muted;
+const LINE = CP.border;
+const NAVY = CP.navy;
 
 const TYPE_OPTIONS: { value: CatalogItemType; label: string; description: string; icon: SvgIconComponent }[] = [
   {
@@ -159,7 +160,7 @@ export default function CatalogNewPage() {
         return;
       }
 
-      // Upload media (best effort — surface first error if any)
+      // Upload media (best effort, surface first error if any)
       const all: { kind: "image" | "video" | "document"; file: File }[] = [
         ...form.images.map((f) => ({ kind: "image" as const, file: f })),
         ...form.videos.map((f) => ({ kind: "video" as const, file: f })),
@@ -188,14 +189,14 @@ export default function CatalogNewPage() {
 
   if (loadingVendor) {
     return (
-      <Stack sx={{ alignItems: "center", py: 8, gap: 2 }}>
+      <Stack sx={{ alignItems: "center", py: 10, gap: 2 }}>
         <CircularProgress size={24} />
       </Stack>
     );
   }
 
   return (
-    <Stack spacing={3} sx={{ maxWidth: 800 }}>
+    <Stack spacing={3} sx={{ maxWidth: 840 }}>
       <Box>
         <Button
           component={Link}
@@ -203,7 +204,7 @@ export default function CatalogNewPage() {
           variant="text"
           size="small"
           startIcon={<ArrowBackIcon sx={{ fontSize: 16 }} />}
-          sx={{ px: 0.5, ml: -0.5, mb: 1 }}
+          sx={{ px: 1, ml: -1, mb: 1 }}
         >
           Back to catalog
         </Button>
@@ -215,7 +216,7 @@ export default function CatalogNewPage() {
 
       {!canPublish && (
         <Alert severity="warning" icon={<LockOutlinedIcon />}>
-          <Typography sx={{ fontWeight: 600, fontSize: "0.875rem", mb: 0.5 }}>
+          <Typography sx={{ fontWeight: 700, fontSize: "0.875rem", mb: 0.5 }}>
             Verification required
           </Typography>
           <Typography sx={{ fontSize: "0.875rem", lineHeight: 1.55 }}>
@@ -228,12 +229,12 @@ export default function CatalogNewPage() {
 
       {submitted ? (
         <Alert severity="success">
-          <strong>Submitted for review.</strong> Redirecting you back to your catalog…
+          <strong>Submitted for review.</strong> Redirecting you back to your catalog...
         </Alert>
       ) : (
         <Stack spacing={3}>
           {/* Type picker */}
-          <Section title="What are you adding?" hint="This shapes the fields we ask for next.">
+          <SectionCard title="What are you adding?" subtitle="This shapes the fields we ask for next.">
             <Box
               sx={{
                 display: "grid",
@@ -264,27 +265,60 @@ export default function CatalogNewPage() {
                       }
                     }}
                     sx={{
+                      position: "relative",
                       cursor: canPublish ? "pointer" : "not-allowed",
                       opacity: canPublish ? 1 : 0.55,
-                      p: 2,
-                      borderRadius: "6px",
+                      p: 2.25,
+                      borderRadius: "12px",
                       border: "1px solid",
                       borderColor: active ? NAVY : LINE,
-                      bgcolor: active ? "rgba(14,42,61,0.04)" : "#FFFFFF",
-                      transition: "border-color 120ms ease, background-color 120ms ease",
-                      "&:hover": canPublish ? { borderColor: active ? NAVY : "#D1D5DB", bgcolor: active ? "rgba(14,42,61,0.04)" : FILL } : {},
+                      bgcolor: active ? CP.sand : CP.white,
+                      boxShadow: active ? "0 0 0 3px rgba(10,19,32,0.06)" : "none",
+                      transition: "border-color 140ms ease, background-color 140ms ease, box-shadow 140ms ease, transform 140ms ease",
+                      "&:hover": canPublish
+                        ? { borderColor: active ? NAVY : CP.borderStrong, bgcolor: active ? CP.sand : CP.sandSoft, transform: "translateY(-1px)" }
+                        : {},
                       "&:focus-visible": {
                         outline: `2px solid ${NAVY}`,
                         outlineOffset: 2,
                       },
                     }}
                   >
-                    <Stack direction="row" spacing={1} sx={{ alignItems: "center", mb: 0.75 }}>
-                      <Icon sx={{ fontSize: 18, color: active ? NAVY : MUTED }} />
-                      <Typography sx={{ fontWeight: 600, fontSize: "0.875rem", color: INK }}>
-                        {opt.label}
-                      </Typography>
-                    </Stack>
+                    {active && (
+                      <Box
+                        sx={{
+                          position: "absolute",
+                          top: 12,
+                          right: 12,
+                          width: 20,
+                          height: 20,
+                          borderRadius: "50%",
+                          bgcolor: NAVY,
+                          color: CP.gold,
+                          display: "grid",
+                          placeItems: "center",
+                        }}
+                      >
+                        <CheckRoundedIcon sx={{ fontSize: 13 }} />
+                      </Box>
+                    )}
+                    <Box
+                      sx={{
+                        width: 40,
+                        height: 40,
+                        borderRadius: "50%",
+                        bgcolor: active ? CP.white : CP.sand,
+                        color: active ? NAVY : CP.goldDeep,
+                        display: "grid",
+                        placeItems: "center",
+                        mb: 1.5,
+                      }}
+                    >
+                      <Icon sx={{ fontSize: 20 }} />
+                    </Box>
+                    <Typography sx={{ fontWeight: 700, fontSize: "0.9375rem", color: INK, letterSpacing: "-0.01em", mb: 0.5 }}>
+                      {opt.label}
+                    </Typography>
                     <Typography sx={{ color: MUTED, fontSize: "0.8125rem", lineHeight: 1.5 }}>
                       {opt.description}
                     </Typography>
@@ -292,11 +326,11 @@ export default function CatalogNewPage() {
                 );
               })}
             </Box>
-          </Section>
+          </SectionCard>
 
           {/* Basics */}
           {form.type && (
-            <Section title="Basics" hint="The essentials members see in the directory.">
+            <SectionCard title="Basics" subtitle="The essentials members see in the directory.">
               <Stack spacing={2.5}>
                 <TextField
                   label="Name"
@@ -394,14 +428,14 @@ export default function CatalogNewPage() {
                   helperText={`${form.description.trim().length}/20 minimum characters`}
                 />
               </Stack>
-            </Section>
+            </SectionCard>
           )}
 
           {/* Media */}
           {form.type && (
-            <Section
+            <SectionCard
               title="Media and documents"
-              hint={
+              subtitle={
                 form.type === "course"
                   ? "Add 1 to 3 images, at least one preview video, and any course materials as PDFs."
                   : "Add 1 to 4 images. Optional product video. Attach spec sheets, brochures, or any supporting PDF."
@@ -436,7 +470,7 @@ export default function CatalogNewPage() {
                   accept="document"
                 />
               </Stack>
-            </Section>
+            </SectionCard>
           )}
 
           {submitError && <Alert severity="error">{submitError}</Alert>}
@@ -456,7 +490,7 @@ export default function CatalogNewPage() {
                 {!canPublish
                   ? "Verification required"
                   : submitting
-                    ? "Submitting…"
+                    ? "Submitting..."
                     : "Submit for team review"}
               </Button>
             </Stack>
@@ -464,37 +498,6 @@ export default function CatalogNewPage() {
         </Stack>
       )}
     </Stack>
-  );
-}
-
-function Section({
-  title,
-  hint,
-  children,
-}: {
-  title: string;
-  hint?: string;
-  children: React.ReactNode;
-}) {
-  return (
-    <Box
-      sx={{
-        bgcolor: "#FFFFFF",
-        border: `1px solid ${LINE}`,
-        borderRadius: "8px",
-        p: 3,
-      }}
-    >
-      <Box sx={{ mb: 2.5 }}>
-        <Typography sx={{ fontSize: "1rem", fontWeight: 600, color: INK, mb: hint ? 0.5 : 0 }}>
-          {title}
-        </Typography>
-        {hint && (
-          <Typography sx={{ color: MUTED, fontSize: "0.8125rem" }}>{hint}</Typography>
-        )}
-      </Box>
-      {children}
-    </Box>
   );
 }
 
@@ -528,15 +531,15 @@ function MediaUploader({
 
   return (
     <Box>
-      <Typography sx={{ fontSize: "0.875rem", fontWeight: 500, mb: 1, color: "#374151" }}>
+      <Typography sx={{ fontSize: "0.875rem", fontWeight: 600, mb: 1, color: CP.body }}>
         {label}
       </Typography>
       <Box
         sx={{
-          border: `1px solid ${LINE}`,
-          borderRadius: "6px",
+          border: `1px dashed ${CP.borderStrong}`,
+          borderRadius: "12px",
           p: 2,
-          bgcolor: FILL,
+          bgcolor: CP.sandSoft,
           opacity: disabled ? 0.6 : 1,
         }}
       >
@@ -553,9 +556,9 @@ function MediaUploader({
                 spacing={1}
                 sx={{
                   alignItems: "center",
-                  bgcolor: "#FFFFFF",
+                  bgcolor: CP.white,
                   border: `1px solid ${LINE}`,
-                  borderRadius: "6px",
+                  borderRadius: "10px",
                   px: 1.25,
                   py: 0.75,
                 }}

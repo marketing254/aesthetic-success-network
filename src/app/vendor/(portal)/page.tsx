@@ -5,7 +5,6 @@ import Link from "next/link";
 import {
   Box,
   Button,
-  Chip,
   CircularProgress,
   Grid,
   LinearProgress,
@@ -18,6 +17,8 @@ import ReceiptLongOutlinedIcon from "@mui/icons-material/ReceiptLongOutlined";
 import SavingsOutlinedIcon from "@mui/icons-material/SavingsOutlined";
 import GroupsOutlinedIcon from "@mui/icons-material/GroupsOutlined";
 import AddCircleOutlineOutlinedIcon from "@mui/icons-material/AddCircleOutlineOutlined";
+import VerifiedRoundedIcon from "@mui/icons-material/VerifiedRounded";
+import ChevronRightRoundedIcon from "@mui/icons-material/ChevronRightRounded";
 import { createBrowserSupabase } from "@/lib/supabase/browser";
 import {
   fetchCurrentVendor,
@@ -29,15 +30,20 @@ import {
   type RedemptionWithOffer,
 } from "@/lib/supabase/vendorQueries";
 import type { VendorsRow } from "@/lib/supabase/types";
-import { PageHeader, SectionCard, StatCard, StatusPill, TagPill, portalText } from "@/components/vendor/PortalUI";
+import { ListDivider, SectionCard, StatCard, StatusPill, TagPill, listRowSx, portalText } from "@/components/vendor/PortalUI";
+import { CP } from "@/components/shared/CommunityPortalShell";
 import ReferralCard from "@/components/shared/ReferralCard";
+import { currentRampRow, normalizeVendorPlan, vendorRamp } from "@/lib/vendorPricing";
 
-const INK = "#111827";
-const MUTED = "#6B7280";
-const LINE = "#E5E7EB";
-const NAVY = "#0E2A3D";
-const NAVY_HOVER = "#0B2232";
-const HOVER = "#F9FAFB";
+const INK = CP.ink;
+const MUTED = CP.muted;
+const NAVY = CP.navy;
+
+function greetingFor(hour: number): string {
+  if (hour < 12) return "Good morning";
+  if (hour < 18) return "Good afternoon";
+  return "Good evening";
+}
 
 export default function VendorOverview() {
   const [loading, setLoading] = useState(true);
@@ -84,11 +90,15 @@ export default function VendorOverview() {
     return vendor.contact_name?.split(" ")[0] ?? vendor.display_name ?? "there";
   }, [vendor]);
 
+  // Data arrives client-side after the loading state, so the local hour is
+  // safe to read here (no server/client mismatch).
+  const greeting = greetingFor(new Date().getHours());
+
   if (loading) {
     return (
-      <Stack sx={{ alignItems: "center", py: 8, gap: 2 }}>
+      <Stack sx={{ alignItems: "center", py: 10, gap: 2 }}>
         <CircularProgress size={24} />
-        <Typography sx={portalText.meta}>Loading your dashboard…</Typography>
+        <Typography sx={portalText.meta}>Loading your dashboard...</Typography>
       </Stack>
     );
   }
@@ -120,11 +130,11 @@ export default function VendorOverview() {
               <Box
                 component="a"
                 href="/vendor/login"
-                sx={{ color: NAVY, fontWeight: 500, textDecoration: "none", "&:hover": { textDecoration: "underline" } }}
+                sx={{ color: NAVY, fontWeight: 600, textDecoration: "none", "&:hover": { textDecoration: "underline" } }}
               >
                 /vendor/login
               </Box>{" "}
-              and request a fresh magic link.
+              and request a fresh sign-in code.
             </Typography>
           )}
         </Stack>
@@ -142,8 +152,15 @@ export default function VendorOverview() {
     activeOffersCount: 0,
   };
 
-  const monthsLeftInWaiver = Math.max(0, 6 - vendor.months_in_program);
-  const waiverProgress = Math.min(100, (vendor.months_in_program / 6) * 100);
+  // Price ramp for THIS company's plan (vendors.billing_plan, 0070):
+  // website and founding_ladder = $39 months 1 to 12, then $149 (no free
+  // period); founding_flat = $39 flat.
+  const billingPlan = normalizeVendorPlan(vendor.billing_plan);
+  const ramp = vendorRamp(billingPlan);
+  const months = vendor.months_in_program ?? 0;
+  const currentRow = currentRampRow(billingPlan, months);
+  const isWebsite = billingPlan === "website";
+  const foundingProgress = Math.min(100, (months / 12) * 100);
   const planLabel = vendor.plan_id?.toUpperCase() ?? "FOUNDING";
 
   const subtitle =
@@ -151,46 +168,92 @@ export default function VendorOverview() {
       ? `You delivered $${k.savingsDeliveredMonth.toLocaleString()} in member savings this month across ${k.redemptionsThisMonth} redemptions.`
       : vendor.verified
         ? "No member redemptions yet this month. Add or refresh an offer to keep your listing fresh."
-        : "Your application is under team review. You can set up your catalog and draft offers now; they'll go live to members once your profile is approved.";
+        : "Your application is under team review. You can set up your catalog and draft offers now; they go live to members once your profile is approved.";
+
+  const hasFocusItems =
+    !vendor.verified || k.pendingOffersCount > 0 || (vendor.verified && k.leadsThisMonth > 0);
 
   return (
     <Stack spacing={3}>
-      <PageHeader
-        title={`Welcome, ${firstName}`}
-        subtitle={subtitle}
-        actions={
-          <Button
-            component={Link}
-            href="/vendor/offers/new"
-            variant="contained"
-            startIcon={<AddCircleOutlineOutlinedIcon sx={{ fontSize: 16 }} />}
+      {/* Welcome hero: dark navy card with a gold glow; the stat tiles
+          overlap its bottom edge on md+. */}
+      <Box>
+        <Box
+          sx={{
+            position: "relative",
+            overflow: "hidden",
+            borderRadius: "16px",
+            bgcolor: CP.navy,
+            backgroundImage: `linear-gradient(180deg, ${CP.navy} 0%, ${CP.sidebarEnd} 100%)`,
+            color: CP.ivory,
+            px: { xs: 3, md: 4 },
+            pt: { xs: 3, md: 4 },
+            pb: { xs: 3, md: 9 },
+            boxShadow: "0 16px 40px -24px rgba(10,19,32,0.6)",
+            "&::before": {
+              content: '""',
+              position: "absolute",
+              top: -140,
+              right: -100,
+              width: 420,
+              height: 420,
+              borderRadius: "50%",
+              background: "radial-gradient(circle, rgba(217,168,75,0.32) 0%, rgba(217,168,75,0.10) 40%, transparent 70%)",
+              pointerEvents: "none",
+            },
+          }}
+        >
+          <Stack
+            direction={{ xs: "column", md: "row" }}
+            spacing={2}
+            sx={{ position: "relative", justifyContent: "space-between", alignItems: { md: "flex-end" } }}
           >
-            Create offer
-          </Button>
-        }
-      />
+            <Box sx={{ minWidth: 0 }}>
+              <Typography sx={{ fontSize: "0.8125rem", fontWeight: 600, color: CP.gold, letterSpacing: "0.01em", mb: 0.75 }}>
+                Company portal
+              </Typography>
+              <Typography
+                component="h2"
+                sx={{ fontSize: { xs: "1.5rem", md: "1.875rem" }, fontWeight: 800, letterSpacing: "-0.03em", color: "#FFFFFF", lineHeight: 1.15 }}
+              >
+                {greeting}, {firstName}
+              </Typography>
+              <Typography sx={{ fontSize: "0.9375rem", color: CP.ivory80, lineHeight: 1.55, maxWidth: 720, mt: 0.75 }}>{subtitle}</Typography>
+              <Stack direction="row" spacing={1} sx={{ mt: 2, flexWrap: "wrap", rowGap: 1, alignItems: "center" }}>
+                <HeroChip
+                  tone={vendor.verified ? "success" : "warning"}
+                  icon={vendor.verified ? <VerifiedRoundedIcon sx={{ fontSize: 14 }} /> : undefined}
+                  label={vendor.verified ? "Verified company" : "Pending review"}
+                />
+                {planLabel === "FOUNDING" ? (
+                  <HeroChip tone="gold" label="Founding" />
+                ) : (
+                  <HeroChip tone="neutral" label={planLabel} />
+                )}
+                <HeroChip tone="neutral" label={`Month ${months} of ${ramp.termMonths}`} />
+              </Stack>
+            </Box>
+            <Button
+              component={Link}
+              href="/vendor/offers/new"
+              variant="contained"
+              color="secondary"
+              startIcon={<AddCircleOutlineOutlinedIcon sx={{ fontSize: 16 }} />}
+              sx={{ flexShrink: 0, alignSelf: { xs: "flex-start", md: "auto" }, bgcolor: CP.gold, color: CP.ink, "&:hover": { bgcolor: "#E4B85E", color: CP.ink } }}
+            >
+              Create offer
+            </Button>
+          </Stack>
+        </Box>
 
-      {/* Status markers */}
-      <Stack direction="row" spacing={1} sx={{ flexWrap: "wrap", rowGap: 1, alignItems: "center" }}>
-        <Chip
-          size="small"
-          color={vendor.verified ? "success" : "warning"}
-          label={vendor.verified ? "Verified company" : "Pending review"}
-        />
-        {planLabel === "FOUNDING" ? (
-          <TagPill label="Founding" tone="gold" size="sm" />
-        ) : (
-          <TagPill label={planLabel} tone="neutral" size="sm" />
-        )}
-        <TagPill label={`Month ${vendor.months_in_program}/12`} tone="neutral" size="sm" />
-      </Stack>
-
-      {/* KPI tiles */}
+        {/* KPI tiles, overlapping the hero on md+ */}
+        <Box sx={{ px: { xs: 0, md: 3 }, mt: { xs: 3, md: -6 }, position: "relative" }}>
       <Grid container spacing={3}>
         <Grid size={{ xs: 12, sm: 6, lg: 3 }}>
           <StatCard
             icon={ReceiptLongOutlinedIcon}
-            label="Redemptions, MTD"
+            accent="navy"
+            label="Redemptions this month"
             value={String(k.redemptionsThisMonth)}
             footer={`${k.redemptionsLifetime} lifetime`}
           />
@@ -198,7 +261,8 @@ export default function VendorOverview() {
         <Grid size={{ xs: 12, sm: 6, lg: 3 }}>
           <StatCard
             icon={SavingsOutlinedIcon}
-            label="Savings delivered, MTD"
+            accent="navy"
+            label="Savings delivered this month"
             value={`$${k.savingsDeliveredMonth.toLocaleString()}`}
             footer={`$${k.savingsDeliveredLifetime.toLocaleString()} lifetime`}
           />
@@ -206,94 +270,80 @@ export default function VendorOverview() {
         <Grid size={{ xs: 12, sm: 6, lg: 3 }}>
           <StatCard
             icon={GroupsOutlinedIcon}
-            label="Inbound leads, MTD"
+            accent="navy"
+            label="Inbound leads this month"
             value={String(k.leadsThisMonth)}
-            footer="Bookings + hotline"
+            footer="Bookings and hotline"
           />
         </Grid>
         <Grid size={{ xs: 12, sm: 6, lg: 3 }}>
           <StatCard
             icon={LocalOfferOutlinedIcon}
+            accent="navy"
             label="Active offers"
             value={String(k.activeOffersCount)}
             footer={`${k.pendingOffersCount} pending review`}
           />
         </Grid>
       </Grid>
+        </Box>
+      </Box>
 
-      {/* Founding waiver */}
-      <SectionCard title="Founding waiver" padding="default">
-        <Stack direction="row" sx={{ alignItems: "baseline", justifyContent: "space-between", mb: 1 }}>
-          <Typography sx={portalText.body}>
-            <Box component="strong" sx={{ color: INK, fontWeight: 600 }}>
-              {monthsLeftInWaiver}
-            </Box>{" "}
-            month{monthsLeftInWaiver === 1 ? "" : "s"} left at $0/mo
-          </Typography>
-        </Stack>
-        <LinearProgress variant="determinate" value={waiverProgress} />
-        <Typography sx={{ ...portalText.meta, mt: 1 }}>
-          From month 7 you bill at $29/mo (launch rate locked).
-        </Typography>
-      </SectionCard>
-
-      {/* Referral link, partners can share this on their own marketing */}
-      <ReferralCard endpoint="/api/vendor/referral" accent={NAVY} />
-
+      {/* Two-column area */}
       <Grid container spacing={3}>
-        <Grid size={{ xs: 12, md: 6 }}>
-          <SectionCard title="This week" subtitle="Where to focus" padding="default">
-            <Stack spacing={1.25}>
+        <Grid size={{ xs: 12, md: 5 }}>
+          <SectionCard title="This week" subtitle="Where to focus" padding="none" sx={{ height: "100%" }}>
+            <Stack divider={<ListDivider />}>
               {!vendor.verified && (
-                <ActionRow label="Your application is under review by the team" href="/vendor/agreement" />
+                <ActionRow label="Your application is under review by the team" hint="Read the agreement while you wait" href="/vendor/agreement" />
               )}
               {k.pendingOffersCount > 0 && (
                 <ActionRow
                   label={`${k.pendingOffersCount} offer${k.pendingOffersCount === 1 ? "" : "s"} pending team review`}
+                  hint="Usually approved within one business day"
                   href="/vendor/offers"
                 />
               )}
               {vendor.verified && k.leadsThisMonth > 0 && (
                 <ActionRow
                   label={`${k.leadsThisMonth} new lead${k.leadsThisMonth === 1 ? "" : "s"} this month`}
+                  hint="See who redeemed and follow up"
                   href="/vendor/redemptions"
                 />
               )}
-              {vendor.verified && k.pendingOffersCount === 0 && k.leadsThisMonth === 0 && (
-                <Typography sx={portalText.body}>
-                  Nothing urgent. Consider adding a new offer to keep the listing fresh.
-                </Typography>
+              {!hasFocusItems && (
+                <Box sx={{ px: 3, py: 2.5 }}>
+                  <Typography sx={portalText.body}>
+                    Nothing urgent. Consider adding a new offer to keep the listing fresh.
+                  </Typography>
+                </Box>
               )}
             </Stack>
-          </SectionCard>
-        </Grid>
 
-        <Grid size={{ xs: 12, md: 6 }}>
-          <SectionCard
-            title="Recent redemptions"
-            subtitle="Latest members using your offers"
-            padding="none"
-            action={<TextLink href="/vendor/redemptions">See all</TextLink>}
-          >
+            <Box sx={{ px: 3, pt: 2, pb: 1, borderTop: `1px solid ${CP.border}` }}>
+              <Stack direction="row" sx={{ alignItems: "center", justifyContent: "space-between" }}>
+                <Typography sx={{ fontSize: "0.8125rem", fontWeight: 600, color: MUTED }}>Latest redemptions</Typography>
+                <TextLink href="/vendor/redemptions">See all</TextLink>
+              </Stack>
+            </Box>
             {redemptions.length === 0 ? (
-              <Box sx={{ px: 3, py: 3, color: MUTED, fontSize: "0.875rem" }}>
+              <Box sx={{ px: 3, pb: 3, pt: 1, color: MUTED, fontSize: "0.875rem", lineHeight: 1.6 }}>
                 No redemptions yet. They&apos;ll appear here once members start using your offers.
               </Box>
             ) : (
-              <Stack divider={<Box sx={{ borderTop: `1px solid ${LINE}` }} />}>
+              <Stack divider={<ListDivider />}>
                 {redemptions.map((r) => (
                   <Box
                     key={r.id}
                     sx={{
+                      ...(listRowSx as object),
                       display: "grid",
                       gridTemplateColumns: "minmax(0, 1fr) auto",
-                      px: 3,
-                      py: 1.5,
-                      "&:hover": { bgcolor: HOVER },
+                      gap: 1.5,
                     }}
                   >
                     <Box sx={{ minWidth: 0 }}>
-                      <Typography sx={{ fontSize: "0.875rem", fontWeight: 500, color: INK }} noWrap>
+                      <Typography sx={{ fontSize: "0.875rem", fontWeight: 600, color: INK }} noWrap>
                         {r.member_display ?? "Member"}
                         {r.member_city ? `, ${r.member_city}` : ""}
                       </Typography>
@@ -302,7 +352,7 @@ export default function VendorOverview() {
                       </Typography>
                     </Box>
                     <Box sx={{ textAlign: "right" }}>
-                      <Typography sx={{ fontWeight: 600, color: INK, fontSize: "0.875rem", fontVariantNumeric: "tabular-nums" }}>
+                      <Typography sx={{ fontWeight: 700, color: INK, fontSize: "0.875rem", fontVariantNumeric: "tabular-nums" }}>
                         ${Number(r.amount_saved ?? 0).toLocaleString()}
                       </Typography>
                       <Typography sx={{ fontSize: "0.75rem", color: MUTED }}>
@@ -316,20 +366,21 @@ export default function VendorOverview() {
           </SectionCard>
         </Grid>
 
-        <Grid size={{ xs: 12 }}>
+        <Grid size={{ xs: 12, md: 7 }}>
           <SectionCard
             title="Your offers"
             subtitle="Status snapshot across all listings"
             padding="none"
             action={<TextLink href="/vendor/offers">Manage offers</TextLink>}
+            sx={{ height: "100%" }}
           >
             {offers.length === 0 ? (
-              <Box sx={{ px: 3, py: 3, color: MUTED, fontSize: "0.875rem" }}>
+              <Box sx={{ px: 3, py: 3, color: MUTED, fontSize: "0.875rem", lineHeight: 1.6 }}>
                 No offers yet.{" "}
                 <Box
                   component={Link}
                   href="/vendor/catalog/new"
-                  sx={{ color: NAVY, fontWeight: 500, textDecoration: "none", "&:hover": { textDecoration: "underline" } }}
+                  sx={{ color: NAVY, fontWeight: 600, textDecoration: "none", "&:hover": { textDecoration: "underline" } }}
                 >
                   Add a catalog item first
                 </Box>
@@ -340,42 +391,46 @@ export default function VendorOverview() {
                 <Box
                   sx={{
                     display: { xs: "none", md: "grid" },
-                    gridTemplateColumns: "minmax(0, 2fr) 130px 110px 180px",
+                    gridTemplateColumns: "minmax(0, 2fr) 110px 120px 170px",
+                    gap: 1.5,
                     px: 3,
                     py: 1.25,
-                    borderBottom: `1px solid ${LINE}`,
+                    borderBottom: `1px solid ${CP.border}`,
                     fontSize: "0.75rem",
                     fontWeight: 600,
                     color: MUTED,
-                    letterSpacing: 0,
-                    textTransform: "none",
                   }}
                 >
                   <Box>Offer</Box>
-                  <Box>Discount</Box>
+                  <Box sx={{ textAlign: "right" }}>Discount</Box>
                   <Box>Status</Box>
                   <Box>Valid</Box>
                 </Box>
-                <Stack divider={<Box sx={{ borderTop: `1px solid ${LINE}` }} />}>
-                  {offers.slice(0, 5).map((o) => (
+                <Stack divider={<ListDivider />}>
+                  {offers.slice(0, 6).map((o) => (
                     <Box
                       key={o.id}
                       sx={{
+                        ...(listRowSx as object),
                         display: { xs: "block", md: "grid" },
-                        gridTemplateColumns: "minmax(0, 2fr) 130px 110px 180px",
-                        alignItems: "center",
-                        px: 3,
-                        py: 1.5,
-                        "&:hover": { bgcolor: HOVER },
+                        gridTemplateColumns: "minmax(0, 2fr) 110px 120px 170px",
+                        gap: 1.5,
                       }}
                     >
-                      <Typography sx={{ fontSize: "0.875rem", fontWeight: 500, color: INK }} noWrap>
-                        {o.headline}
-                      </Typography>
-                      <Typography sx={{ display: { xs: "none", md: "block" }, fontSize: "0.875rem", fontWeight: 500, color: INK }}>
+                      <Box sx={{ minWidth: 0 }}>
+                        <Typography sx={{ fontSize: "0.875rem", fontWeight: 600, color: INK }} noWrap>
+                          {o.headline}
+                        </Typography>
+                        <Typography sx={{ display: { xs: "block", md: "none" }, fontSize: "0.8125rem", color: MUTED, mt: 0.25 }}>
+                          {o.discount_value} · {o.valid_from} to {o.valid_to}
+                        </Typography>
+                      </Box>
+                      <Typography
+                        sx={{ display: { xs: "none", md: "block" }, fontSize: "0.875rem", fontWeight: 600, color: INK, textAlign: "right", fontVariantNumeric: "tabular-nums" }}
+                      >
                         {o.discount_value}
                       </Typography>
-                      <Box sx={{ display: { xs: "none", md: "block" } }}>
+                      <Box sx={{ display: { xs: "inline-flex", md: "block" }, mt: { xs: 0.75, md: 0 } }}>
                         <StatusPill status={o.review_status} size="sm" />
                       </Box>
                       <Typography sx={{ display: { xs: "none", md: "block" }, fontSize: "0.8125rem", color: MUTED }}>
@@ -389,7 +444,145 @@ export default function VendorOverview() {
           </SectionCard>
         </Grid>
       </Grid>
+
+      {/* Pricing card: sand card with a navy header strip. Website and
+          founding-ladder companies see the 12-month launch-rate bar
+          ($39, then $149); founding flat has no bar. */}
+      <SectionCard accent padding="none">
+        <Stack
+          direction="row"
+          spacing={1.5}
+          sx={{ alignItems: "center", justifyContent: "space-between", px: 3, py: 1.75, bgcolor: CP.navy, color: CP.ivory }}
+        >
+          <Stack direction="row" spacing={1} sx={{ alignItems: "center" }}>
+            <Box sx={{ width: 8, height: 8, borderRadius: "50%", bgcolor: CP.gold }} />
+            <Typography sx={{ fontSize: "1rem", fontWeight: 700, letterSpacing: "-0.01em", color: "#FFFFFF" }}>
+              {isWebsite ? "Your rate" : "Founding company"}
+            </Typography>
+          </Stack>
+          <HeroChip tone={isWebsite ? "neutral" : "gold"} label={isWebsite ? "Website" : "Founding"} />
+        </Stack>
+        <Stack
+          direction={{ xs: "column", md: "row" }}
+          spacing={{ xs: 2.5, md: 5 }}
+          sx={{ alignItems: { md: "center" }, p: 3 }}
+        >
+          <Box sx={{ flex: 1, minWidth: 0 }}>
+            {isWebsite || billingPlan === "founding_ladder" ? (
+              <>
+                <Typography sx={{ ...portalText.body, mb: 2 }}>
+                  <Box component="strong" sx={{ color: INK, fontWeight: 700 }}>
+                    {isWebsite
+                      ? "Company: $39 a month for 12 months, then $149"
+                      : "Founding company: $39 a month for 12 months, then $149"}
+                  </Box>
+                  . You are in month {months} of 12.
+                </Typography>
+                <LinearProgress variant="determinate" value={foundingProgress} sx={{ bgcolor: "rgba(255,255,255,0.8)" }} />
+                <Stack direction="row" sx={{ justifyContent: "space-between", mt: 0.75 }}>
+                  <Typography sx={{ fontSize: "0.75rem", color: MUTED }}>Month 1</Typography>
+                  <Typography sx={{ fontSize: "0.75rem", color: MUTED }}>Month 12</Typography>
+                </Stack>
+              </>
+            ) : (
+              <Typography sx={portalText.body}>
+                <Box component="strong" sx={{ color: INK, fontWeight: 700 }}>
+                  Founding company: $39 a month, no increase
+                </Box>
+                . Your rate stays the same for as long as you are in the network.
+              </Typography>
+            )}
+          </Box>
+          <Stack
+            direction="row"
+            spacing={0}
+            sx={{
+              flexShrink: 0,
+              bgcolor: CP.white,
+              border: `1px solid ${CP.border}`,
+              borderRadius: "12px",
+              overflow: "hidden",
+              width: { xs: "100%", md: "auto" },
+            }}
+          >
+            {ramp.rows.map((row, i) => (
+              <RampCell
+                key={row.label}
+                period={row.label}
+                price={row.price}
+                current={row.label === currentRow.label}
+                last={i === ramp.rows.length - 1}
+              />
+            ))}
+          </Stack>
+        </Stack>
+      </SectionCard>
+
+      {/* Referral link, companies can share this on their own marketing */}
+      <ReferralCard endpoint="/api/vendor/referral" accent={NAVY} />
     </Stack>
+  );
+}
+
+function HeroChip({
+  label,
+  tone,
+  icon,
+}: {
+  label: string;
+  tone: "success" | "warning" | "gold" | "neutral";
+  icon?: React.ReactNode;
+}) {
+  const palette =
+    tone === "gold"
+      ? { bg: CP.gold, fg: CP.ink }
+      : tone === "success"
+        ? { bg: "rgba(34,197,94,0.18)", fg: "#BBF7D0" }
+        : tone === "warning"
+          ? { bg: "rgba(245,158,11,0.18)", fg: "#FDE68A" }
+          : { bg: "rgba(255,255,255,0.10)", fg: CP.ivory };
+  return (
+    <Box
+      component="span"
+      sx={{
+        display: "inline-flex",
+        alignItems: "center",
+        gap: 0.6,
+        px: 1.1,
+        height: 24,
+        borderRadius: "8px",
+        bgcolor: palette.bg,
+        color: palette.fg,
+        fontSize: "0.75rem",
+        fontWeight: 600,
+        whiteSpace: "nowrap",
+      }}
+    >
+      {icon}
+      {label}
+    </Box>
+  );
+}
+
+function RampCell({ period, price, current, last }: { period: string; price: string; current: boolean; last?: boolean }) {
+  return (
+    <Box
+      sx={{
+        flex: 1,
+        px: { xs: 1.5, md: 2.25 },
+        py: 1.5,
+        minWidth: { md: 118 },
+        borderRight: last ? 0 : `1px solid ${CP.border}`,
+        bgcolor: current ? CP.goldTint : "transparent",
+        textAlign: "center",
+      }}
+    >
+      <Typography sx={{ fontSize: "0.6875rem", fontWeight: 600, color: current ? CP.goldText : MUTED, whiteSpace: "nowrap" }}>{period}</Typography>
+      <Typography sx={{ fontSize: "1.125rem", fontWeight: 800, letterSpacing: "-0.02em", color: INK, lineHeight: 1.2, mt: 0.25, fontVariantNumeric: "tabular-nums" }}>
+        {price}
+        <Box component="span" sx={{ fontSize: "0.75rem", fontWeight: 500, color: MUTED }}>/mo</Box>
+      </Typography>
+    </Box>
   );
 }
 
@@ -399,14 +592,14 @@ function TextLink({ href, children }: { href: string; children: React.ReactNode 
       component={Link}
       href={href}
       sx={{
-        fontSize: "0.875rem",
-        fontWeight: 500,
+        fontSize: "0.8125rem",
+        fontWeight: 600,
         color: NAVY,
         textDecoration: "none",
         display: "inline-flex",
         alignItems: "center",
         gap: 0.5,
-        "&:hover": { color: NAVY_HOVER, textDecoration: "underline" },
+        "&:hover": { textDecoration: "underline" },
       }}
     >
       {children} <ArrowForwardIcon sx={{ fontSize: 14 }} />
@@ -414,27 +607,25 @@ function TextLink({ href, children }: { href: string; children: React.ReactNode 
   );
 }
 
-function ActionRow({ label, href }: { label: string; href: string }) {
+function ActionRow({ label, hint, href }: { label: string; hint?: string; href: string }) {
   return (
     <Box
       component={Link}
       href={href}
       sx={{
+        ...(listRowSx as object),
         display: "flex",
-        alignItems: "center",
-        gap: 1.25,
-        px: 1.5,
-        py: 1.25,
-        borderRadius: "6px",
-        bgcolor: "#FFFFFF",
-        border: `1px solid ${LINE}`,
+        gap: 1.5,
         textDecoration: "none",
         color: "inherit",
-        "&:hover": { bgcolor: HOVER },
       }}
     >
-      <Typography sx={{ flex: 1, fontSize: "0.875rem", color: INK, lineHeight: 1.4 }}>{label}</Typography>
-      <ArrowForwardIcon sx={{ fontSize: 16, color: NAVY }} />
+      <Box sx={{ width: 8, height: 8, borderRadius: "50%", bgcolor: CP.gold, flexShrink: 0 }} />
+      <Box sx={{ flex: 1, minWidth: 0 }}>
+        <Typography sx={{ fontSize: "0.875rem", fontWeight: 600, color: INK, lineHeight: 1.4 }}>{label}</Typography>
+        {hint && <Typography sx={{ fontSize: "0.8125rem", color: MUTED, lineHeight: 1.4 }}>{hint}</Typography>}
+      </Box>
+      <ChevronRightRoundedIcon sx={{ fontSize: 18, color: CP.faint }} />
     </Box>
   );
 }

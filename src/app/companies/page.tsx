@@ -10,14 +10,14 @@ import { vendorCategories } from "@/lib/vendorData";
 // Copy source: the previous ASN site / _asn-source-copy/partners.html
 // (approved ASN copy). The application form posts to DMN's
 // /api/vendor/signup; the roster reads DMN's /api/directory/partners.
-// Provider ramp per the ASN canon: $0 months 1 to 6, $29 months 7 to 12,
-// $99 from month 13. Referral: $50 per referred member, paid after their
-// first payment.
+// Company ramp per the ASN canon: $39 a month for months 1 to 12, then
+// $149 a month from month 13. No free period. Referral: $50 per referred
+// member, paid after their first payment.
 
 export const metadata: Metadata = {
   title: "Become a Company",
   description:
-    "Get in front of aesthetics' most engaged buyers through a trusted shortlist instead of a cold ad. Free for the first six months; the channel pays for itself as deals close.",
+    "Get in front of aesthetics' most engaged buyers through a trusted shortlist instead of a cold ad. $39 a month for your first year, then $149 a month; the channel pays for itself as deals close.",
   alternates: { canonical: "/companies" },
 };
 
@@ -203,33 +203,26 @@ export default function PartnersPage() {
         <div className="wrap center">
           <span className="kicker">What it costs</span>
           <h2 className="title">
-            Free for six months. It pays for itself as <em>deals close</em>.
+            $39 a month for your first year. It pays for itself as <em>deals close</em>.
           </h2>
           <p className="lead">
-            Prove the channel before you pay, then keep a locked launch rate as the leads come in.
+            A locked launch rate for 12 months from the day you add a card, then the standard rate as the leads keep coming in.
           </p>
           <div className="pgrid">
             <div className="pc hot">
-              <div className="badge">Founding</div>
-              <div className="tier">Months 1 to 6</div>
-              <div className="price">$0</div>
-              <div className="desc">Get listed and start receiving leads, free.</div>
+              <div className="badge">Launch</div>
+              <div className="tier">Months 1 to 12</div>
+              <div className="price">
+                $39<span>/mo</span>
+              </div>
+              <div className="desc">Get listed and start receiving leads. Your first $39 charge is the day you add a card.</div>
             </div>
             <div className="pc">
-              <div className="tier">Months 7 to 12</div>
+              <div className="tier">Month 13 onward</div>
               <div className="price">
-                $29<span>/mo</span>
+                $149<span>/mo</span>
               </div>
-              <div className="desc">Founding locked rate.</div>
-            </div>
-            <div className="pc">
-              <div className="tier">Month 13+</div>
-              <div className="price">
-                $99<span>/mo</span>
-              </div>
-              <div className="desc">
-                Featured Company standard rate, or $990/yr annual (two months free).
-              </div>
+              <div className="desc">Featured Company standard rate.</div>
             </div>
           </div>
           <p className="guarantee">
@@ -267,7 +260,7 @@ export default function PartnersPage() {
             </div>
             <div className="cc">
               <div className="n">05</div>
-              <p>Pay the fee after your free period.</p>
+              <p>Pay the fee: $39 a month for months 1 to 12, then $149 a month from month 13.</p>
             </div>
           </div>
           <p className="guarantee">

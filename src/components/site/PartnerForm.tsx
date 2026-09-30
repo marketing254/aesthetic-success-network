@@ -225,7 +225,7 @@ export default function PartnerForm({
           <input id="p-booking" type="url" name="booking" placeholder="https://" />
         </div>
         <div className="field">
-          <label htmlFor="p-billing">Billing contact email (after free period)</label>
+          <label htmlFor="p-billing">Billing contact email</label>
           <input id="p-billing" type="email" name="billing" />
         </div>
       </div>

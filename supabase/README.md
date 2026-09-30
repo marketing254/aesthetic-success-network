@@ -36,7 +36,7 @@ The old launch-phase tables use the same names as the new schema with different 
 2. Dashboard → Storage → open the `agreements` bucket and delete any files in it.
 3. Dashboard → Authentication → Users → delete every old TEST member, expert and partner user. Keep the admin users.
 4. SQL editor → paste and run `supabase/reset/reset-existing-project.sql` once. Check with `select table_name from information_schema.tables where table_schema = 'public';` → 0 rows.
-5. Continue with section 2 below: run `0001_waitlist.sql` through `0069_asn_application_fields.sql` in order.
+5. Continue with section 2 below: run `0001_waitlist.sql` through `0070_vendor_billing_plan.sql` in order.
 6. Authentication → Users → add any admin listed in `0005_admin_seed.sql` that does not exist yet (auto-confirm, no password), e.g. `fathimarushdhaakbar28@gmail.com`.
 7. Because the same Magic Link template now serves members, experts and partners as well as admins, paste the role-neutral `supabase/templates/admin-otp-email.html` over the old admin-only one (optional but recommended).
 
@@ -116,8 +116,9 @@ Run these files, in this order. There is no `0009` and no `0035`. That is normal
 | 65 | `0067_asn_security_hardening.sql` | **New for ASN.** Security fixes: locks Stripe event log, protects member/partner/expert billing columns, tidies resource access, creates bucket `avatars`, adds the rate limiter. |
 | 66 | `0068_notifications_reconcile.sql` | **New for ASN.** Lets the app send in-app notifications to experts and members, not only partners and admins. |
 | 67 | `0069_asn_application_fields.sql` | **New for ASN.** Adds the ASN form fields (waitlist name/role/locations/challenge/agreement, expert bio/sample/courses/ownership, partner contact role). |
+| 68 | `0070_vendor_billing_plan.sql` | **New for ASN.** Adds `vendors.billing_plan` (website, founding_ladder, founding_flat) so the company portal shows the right price ramp, and pins it client-side. |
 
-When all 62 files have run, go to step 3.
+When all 67 files have run, go to step 3.
 
 ## 3. Check the storage buckets
 

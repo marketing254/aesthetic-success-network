@@ -29,14 +29,13 @@ export const vendorPlans: VendorPlan[] = [
   {
     id: "founding",
     name: "Launch",
-    priceLabel: "$0",
-    cadenceLabel: "/mo · waived for months 1 to 6",
+    priceLabel: "$39",
+    cadenceLabel: "/mo for months 1 to 12",
     blurb:
-      "Six months free as part of the founding cohort. Then $39/mo for months 7 to 12 and $199/mo from month 13. Founding badge in the directory.",
+      "$39/mo for your first 12 months, charged from the day you add a card. Then $149/mo from month 13. Founding badge in the directory.",
     features: [
-      "Months 1 to 6: $0 waiver",
-      "Months 7 to 12: $39/mo locked launch rate",
-      "Month 13 onward: $199/mo Featured Partner rate",
+      "Months 1 to 12: $39/mo locked launch rate",
+      "Month 13 onward: $149/mo Featured Partner rate",
       "Founding Partner badge in the directory",
       "Featured Partner benefits",
       "Verified Partner badge",
@@ -46,9 +45,8 @@ export const vendorPlans: VendorPlan[] = [
     ctaLabel: "Apply to the cohort",
     badge: "LIMITED · LAUNCH PROGRAM",
   },
-  // The Standard ($199/mo) and Standard Annual ($1,990/yr) plans are reached by
-  // the ramp above rather than picked at signup, so only the launch plan is
-  // listed here.
+  // The Standard ($149/mo) rate is reached by the ramp above rather than
+  // picked at signup, so only the launch plan is listed here.
 ];
 
 // Canonical ASN partner categories (ASN-SWAP-CANON section 4). Shared by the
@@ -381,9 +379,9 @@ export const vendorCommitments: VendorCommitment[] = [
   },
   {
     number: "05",
-    title: "Pay the fee, waived for your first six months.",
+    title: "Pay the fee.",
     body:
-      "$0 for months 1 to 6 (founding waiver), $39 per month for months 7 to 12 (locked launch rate), and $199 per month from month 13 (Featured Partner rate). Annual prepay earns two months free.",
+      "$39 per month for months 1 to 12 (locked launch rate, first charge the day you add a card), then $149 per month from month 13 (Featured Partner rate). Annual prepay earns two months free.",
   },
 ];
 
@@ -395,17 +393,15 @@ export type FeeScheduleRow = {
 };
 
 export const vendorFeeSchedule: FeeScheduleRow[] = [
-  { period: "Months 1 to 6", fee: "$0", note: "Founding waiver, applies automatically" },
-  { period: "Months 7 to 12", fee: "$39", note: "Locked launch rate" },
-  { period: "Month 13 onward", fee: "$199", note: "Featured Partner rate ($1,990/yr prepaid)" },
+  { period: "Months 1 to 12", fee: "$39", note: "Locked launch rate, first charge the day you add a card" },
+  { period: "Month 13 onward", fee: "$149", note: "Featured Partner rate" },
 ];
 
 // Headline numbers shown above the agreement (the "key terms band").
 // 12-month initial term and 30 days' notice come from provider agreement section 08.
 export const vendorAgreementKeyTerms = [
-  { label: "Months 1 to 6", value: "$0", sub: "Waived" },
-  { label: "Months 7 to 12", value: "$39", sub: "per month" },
-  { label: "Month 13+", value: "$199", sub: "per month" },
+  { label: "Months 1 to 12", value: "$39", sub: "per month" },
+  { label: "Month 13+", value: "$149", sub: "per month" },
   { label: "Commitment", value: "12 mo", sub: "Initial term" },
   { label: "Cancel", value: "30 d", sub: "Written notice" },
 ];

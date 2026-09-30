@@ -1,9 +1,10 @@
 "use client";
 
 import { Suspense } from "react";
+import SitePage from "@/components/site/SitePage";
+import SiteNav from "@/components/site/SiteNav";
+import SiteFooter from "@/components/site/SiteFooter";
 import { Box, Container, Stack, Typography } from "@mui/material";
-import Header from "@/components/sections/Header";
-import Footer from "@/components/sections/Footer";
 import WaitlistSection from "@/components/sections/WaitlistSection";
 import { COLORS } from "@/theme";
 
@@ -36,7 +37,7 @@ import { COLORS } from "@/theme";
 export default function JoinPage() {
   return (
     <Box sx={{ minHeight: "100vh", bgcolor: COLORS.surface }}>
-      <Header />
+      <SitePage><SiteNav /></SitePage>
 
       {/* HERO — dark navy band, mirrors the /experts + /partners hero
           treatment so visitors recognise this as a signup page, not a
@@ -90,7 +91,7 @@ export default function JoinPage() {
         <WaitlistSection lockedRole="member" sectionId="join" />
       </Suspense>
 
-      <Footer />
+      <SitePage><SiteFooter /></SitePage>
     </Box>
   );
 }

@@ -5,20 +5,16 @@ import {
   Alert,
   Avatar,
   Box,
-  Chip,
   CircularProgress,
   Stack,
   Typography,
 } from "@mui/material";
 import PersonOutlineRoundedIcon from "@mui/icons-material/PersonOutlineRounded";
 import ScheduleOutlinedIcon from "@mui/icons-material/ScheduleOutlined";
-import { EmptyState, PageHeader } from "@/components/vendor/PortalUI";
-
-const INK = "#111827";
-const MUTED = "#6B7280";
-const LINE = "#E5E7EB";
-const NAVY = "#0E2A3D";
-const NAVY_TINT = "rgba(14,42,61,0.08)";
+import SmartToyOutlinedIcon from "@mui/icons-material/SmartToyOutlined";
+import { CP } from "@/components/shared/CommunityPortalShell";
+import { EP, topNavCardSx as cardSx } from "@/components/shared/TopNavPortalShell";
+import { EmptyState, ListDivider, PageHeader, TagPill, portalText } from "@/components/vendor/PortalUI";
 
 type Conversation = {
   id: string;
@@ -67,13 +63,30 @@ export default function ExpertChatbotPage() {
         subtitle="When members ask your AI helper a question, you see the thread here. You can take over any conversation manually; the bot keeps members covered while you're away."
       />
 
-      {/* Stub notice */}
-      <Alert severity="warning">
-        <Typography sx={{ fontWeight: 600, fontSize: "0.875rem", mb: 0.25 }}>Coming soon</Typography>
-        <Typography sx={{ fontSize: "0.8125rem", lineHeight: 1.55 }}>
-          Your AI helper is being trained on your published resources. Members will soon be able to ask questions and get answers in your voice. We&apos;ll let you know when it&apos;s ready.
-        </Typography>
-      </Alert>
+      {/* Stub notice: a moss-tinted card with a green rule, in the portal's own language */}
+      <Box
+        sx={{
+          ...(cardSx as object),
+          bgcolor: EP.bronzeTint,
+          borderColor: "rgba(176,122,44,0.30)",
+          px: 3,
+          py: 2.5,
+          display: "grid",
+          gridTemplateColumns: "auto 1fr",
+          gap: 2,
+          alignItems: "flex-start",
+        }}
+      >
+        <Box sx={{ width: 40, height: 40, borderRadius: "50%", bgcolor: CP.white, color: EP.bronze, display: "grid", placeItems: "center" }}>
+          <SmartToyOutlinedIcon sx={{ fontSize: 20 }} />
+        </Box>
+        <Box>
+          <Typography sx={{ fontSize: "0.9375rem", fontWeight: 700, color: CP.ink, letterSpacing: "-0.01em", mb: 0.25 }}>Coming soon</Typography>
+          <Typography sx={{ fontSize: "0.8125rem", color: CP.body, lineHeight: 1.55 }}>
+            Your AI helper is being trained on your published resources. Members will soon be able to ask questions and get answers in your voice. We&apos;ll let you know when it&apos;s ready.
+          </Typography>
+        </Box>
+      </Box>
 
       {error && (
         <Alert severity="error" onClose={() => setError(null)}>
@@ -88,12 +101,13 @@ export default function ExpertChatbotPage() {
         </Stack>
       ) : rows.length === 0 ? (
         <EmptyState
+          icon={SmartToyOutlinedIcon}
           title="No conversations yet"
           body="Once a member asks your AI helper a question (usually from one of your posts in the feed), the thread shows up here. Reply directly when you want to take over."
         />
       ) : (
-        <Box sx={{ bgcolor: "#FFFFFF", border: `1px solid ${LINE}`, borderRadius: "8px", overflow: "hidden" }}>
-          <Stack divider={<Box sx={{ borderTop: `1px solid ${LINE}` }} />}>
+        <Box sx={{ ...(cardSx as object), overflow: "hidden" }}>
+          <Stack divider={<ListDivider />}>
             {rows.map((r) => (
               <ConversationRow key={r.id} c={r} />
             ))}
@@ -106,15 +120,15 @@ export default function ExpertChatbotPage() {
 
 function ConversationRow({ c }: { c: Conversation }) {
   return (
-    <Box sx={{ px: 3, py: 2, "&:hover": { bgcolor: "#F9FAFB" } }}>
+    <Box sx={{ px: 3, py: 1.5, minHeight: 56, transition: "background-color 120ms ease", "&:hover": { bgcolor: EP.bronzeTint } }}>
       <Stack direction="row" spacing={1.5} sx={{ alignItems: "flex-start" }}>
         <Avatar
           sx={{
             width: 36,
             height: 36,
-            bgcolor: NAVY_TINT,
-            color: NAVY,
-            fontWeight: 600,
+            bgcolor: EP.bronzeTint,
+            color: EP.bronze,
+            fontWeight: 700,
             fontSize: "0.8125rem",
             flexShrink: 0,
           }}
@@ -122,13 +136,13 @@ function ConversationRow({ c }: { c: Conversation }) {
           {initials(c.member_display_name)}
         </Avatar>
         <Box sx={{ flex: 1, minWidth: 0 }}>
-          <Stack direction="row" spacing={1} sx={{ alignItems: "center", flexWrap: "wrap", mb: 0.5 }}>
-            <Typography sx={{ fontWeight: 600, color: INK, fontSize: "0.875rem" }}>
+          <Stack direction="row" spacing={1} sx={{ alignItems: "center", flexWrap: "wrap", rowGap: 0.5, mb: 0.5 }}>
+            <Typography sx={{ fontWeight: 600, color: CP.ink, fontSize: "0.875rem" }}>
               {c.member_display_name}
             </Typography>
             <StatusChip status={c.status} />
           </Stack>
-          <Stack direction="row" spacing={2} sx={{ flexWrap: "wrap", color: MUTED, fontSize: "0.8125rem", alignItems: "center" }}>
+          <Stack direction="row" spacing={2} sx={{ flexWrap: "wrap", alignItems: "center", ...(portalText.meta as object) }}>
             <Stack direction="row" spacing={0.5} sx={{ alignItems: "center" }}>
               <PersonOutlineRoundedIcon sx={{ fontSize: 14 }} />
               <Box>
@@ -147,18 +161,15 @@ function ConversationRow({ c }: { c: Conversation }) {
 }
 
 function StatusChip({ status }: { status: Conversation["status"] }) {
-  const map: Record<
-    Conversation["status"],
-    { label: string; color: "default" | "primary" | "success" | "warning" }
-  > = {
-    open: { label: "Bot handling", color: "primary" },
-    escalated: { label: "Needs your attention", color: "warning" },
-    expert_handling: { label: "You're handling", color: "primary" },
-    resolved: { label: "Resolved", color: "success" },
-    abandoned: { label: "Inactive", color: "default" },
+  const map: Record<Conversation["status"], { label: string; tone: "neutral" | "green" | "gold" | "navy" }> = {
+    open: { label: "Bot handling", tone: "navy" },
+    escalated: { label: "Needs your attention", tone: "gold" },
+    expert_handling: { label: "You're handling", tone: "green" },
+    resolved: { label: "Resolved", tone: "green" },
+    abandoned: { label: "Inactive", tone: "neutral" },
   };
   const m = map[status];
-  return <Chip label={m.label} size="small" color={m.color} />;
+  return <TagPill label={m.label} tone={m.tone} size="sm" />;
 }
 
 function initials(name: string): string {

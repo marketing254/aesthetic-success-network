@@ -13,6 +13,7 @@ import {
   Typography,
 } from "@mui/material";
 import LockRoundedIcon from "@mui/icons-material/LockRounded";
+import CheckRoundedIcon from "@mui/icons-material/CheckRounded";
 import { loadStripe, type Stripe } from "@stripe/stripe-js";
 import {
   Elements,
@@ -22,31 +23,37 @@ import {
 } from "@stripe/react-stripe-js";
 
 /**
- * TrialStartCard — the standard-checkout-style "sign & pay" box shown
- * on first portal login. Modeled on the one-page checkout in the
- * e-sign proposal PDF:
+ * TrialStartCard: the checkout-style "sign and pay" box shown on first
+ * portal login. Modeled on the one-page checkout in the e-sign proposal:
  *
  *   Due today $0.00 · ramp summary · payment element ·
  *   agreement checkbox · "Agree and subscribe"
  *
- * The SetupIntent is prepared on mount so the payment element is
- * usually ready before the user finishes reading — no visible
- * "connecting" state, just a brief skeleton like any standard
- * checkout. The submit button stays disabled until the agreement box
- * is ticked.
+ * The SetupIntent is prepared on mount so the payment element is usually
+ * ready before the user finishes reading: no visible "connecting" state,
+ * just a brief skeleton like any standard checkout. The submit button
+ * stays disabled until the agreement box is ticked.
  *
- * `audience` is kept for API compatibility; the card is neutral with a
- * navy primary action for both experts and companies.
+ * `audience` picks the benefits list AND the ramp ("green" = expert,
+ * "gold" = company). Website experts: $0 months 1 to 6, then $39 for good.
+ * Website companies: no free period. $39 a month for months 1 to 12
+ * (first charge today), then $149 a month from month 13. The card itself
+ * uses the community palette for both.
  */
 const STRIPE_PK = process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY;
 const AGREEMENT_VERSION = "v1";
 
-const NAVY = "#0E2A3D";
-const NAVY_HOVER = "#0B2232";
-const INK = "#111827";
-const BODY = "#374151";
+const NAVY = "#0A1320";
+const NAVY_HOVER = "#141F30";
+const INK = "#0A1320";
+const BODY = "#3B4451";
 const MUTED = "#6B7280";
-const LINE = "#E5E7EB";
+const LINE = "rgba(10,19,32,0.06)";
+const SAND = "#F3EBDD";
+const SAND_SOFT = "#F8F4EC";
+const GOLD = "#D9A84B";
+const GOLD_TEXT = "#7A5B17";
+const SHADOW = "0 1px 2px rgba(10,19,32,0.04), 0 8px 24px -16px rgba(10,19,32,0.12)";
 
 let stripePromise: Promise<Stripe | null> | null = null;
 function getStripePromise() {
@@ -66,8 +73,8 @@ export default function TrialStartCard({
   audience: "gold" | "green";
   onSuccess?: () => void;
 }) {
-  // ASN has ONE Provider Agreement covering experts, partners and
-  // expert+partner. The prepare endpoint may still override the link
+  // ASN has ONE Provider Agreement covering experts, companies and
+  // expert+company. The prepare endpoint may still override the link
   // (e.g. a versioned PDF), so it stays in state.
   const defaultAgreementLink = "/agreements/asn-provider-agreement.pdf";
 
@@ -75,11 +82,11 @@ export default function TrialStartCard({
   const [agreementLink, setAgreementLink] = useState<string>(defaultAgreementLink);
   const [prepareError, setPrepareError] = useState<string | null>(null);
 
-  // Prepare the SetupIntent immediately on mount — by the time the user
+  // Prepare the SetupIntent immediately on mount. By the time the user
   // has read the summary and ticked the box, the card fields are ready.
   // NOTE: no once-only ref guard here. React dev StrictMode mounts twice;
   // a ref guard makes the FIRST (discarded) mount own the fetch and the
-  // second mount skip it — skeleton forever. Letting each mount fetch is
+  // second mount skip it: skeleton forever. Letting each mount fetch is
   // correct: the stale one is discarded via `cancelled`, and an abandoned
   // SetupIntent on Stripe's side is harmless.
   useEffect(() => {
@@ -116,36 +123,62 @@ export default function TrialStartCard({
     <Stack direction={{ xs: "column", md: "row" }} spacing={3} sx={{ alignItems: "flex-start", justifyContent: "center" }}>
     <Box
       sx={{
-        borderRadius: "8px",
+        borderRadius: "16px",
         bgcolor: "#FFFFFF",
         border: `1px solid ${LINE}`,
+        boxShadow: SHADOW,
         overflow: "hidden",
         maxWidth: 560,
         width: "100%",
       }}
     >
       <Box sx={{ p: 3 }}>
-        <Typography sx={{ fontSize: "1rem", fontWeight: 600, color: INK, mb: 0.5 }}>Start your membership</Typography>
-        <Typography sx={{ fontSize: "0.8125rem", color: MUTED, mb: 2 }}>
-          Add a card and accept the agreement. Nothing is charged until month 7.
+        <Typography sx={{ fontSize: "1.125rem", fontWeight: 700, letterSpacing: "-0.02em", color: INK, mb: 0.5 }}>
+          {_audience === "green" ? "Start your membership" : "Start your company membership"}
+        </Typography>
+        <Typography sx={{ fontSize: "0.8125rem", color: MUTED, mb: 2.5, lineHeight: 1.55 }}>
+          {_audience === "green"
+            ? "Add a card and accept the agreement. Nothing is charged until month 7."
+            : "Add a card and accept the agreement. Your first $39 charge is today."}
         </Typography>
 
         {/* Due today */}
-        <Stack direction="row" sx={{ justifyContent: "space-between", alignItems: "baseline", mb: 2 }}>
-          <Typography sx={{ fontSize: "0.875rem", color: BODY, fontWeight: 500 }}>Due today</Typography>
-          <Typography sx={{ fontSize: "1.5rem", fontWeight: 600, color: INK, lineHeight: 1 }}>$0.00</Typography>
+        <Stack
+          direction="row"
+          sx={{
+            justifyContent: "space-between",
+            alignItems: "baseline",
+            mb: 2,
+            px: 2,
+            py: 1.5,
+            borderRadius: "12px",
+            bgcolor: SAND,
+          }}
+        >
+          <Typography sx={{ fontSize: "0.875rem", color: GOLD_TEXT, fontWeight: 600 }}>Due today</Typography>
+          <Typography sx={{ fontSize: "1.75rem", fontWeight: 800, letterSpacing: "-0.02em", color: INK, lineHeight: 1, fontVariantNumeric: "tabular-nums" }}>
+            {_audience === "green" ? "$0.00" : "$39.00"}
+          </Typography>
         </Stack>
 
-        {/* Ramp summary */}
-        <Box sx={{ border: `1px solid ${LINE}`, borderRadius: "6px", px: 2, py: 1.25, mb: 2.5 }}>
-          <RampLine label="Months 1 to 6" price="$0/mo" bold />
-          <RampLine label="Months 7 to 12" price="$39/mo" />
-          <RampLine label="Month 13 onward" price="$199/mo" />
+        {/* Ramp summary: expert = free period then $39; company = $39 x 12 then $149 */}
+        <Box sx={{ border: `1px solid ${LINE}`, borderRadius: "12px", px: 2, py: 1.25, mb: 2.5 }}>
+          {_audience === "green" ? (
+            <>
+              <RampLine label="Months 1 to 6" price="$0/mo" bold />
+              <RampLine label="From month 7" price="$39/mo" />
+            </>
+          ) : (
+            <>
+              <RampLine label="Months 1 to 12" price="$39/mo" bold />
+              <RampLine label="Month 13 onward" price="$149/mo" />
+            </>
+          )}
         </Box>
 
-        {/* Payment element — skeleton while it boots, no status text */}
+        {/* Payment element: skeleton while it boots, no status text */}
         {prepareError ? (
-          <Alert severity="error" sx={{ fontSize: "0.875rem", mb: 2, borderRadius: "6px" }}>
+          <Alert severity="error" sx={{ fontSize: "0.875rem", mb: 2, borderRadius: "12px" }}>
             {prepareError}
           </Alert>
         ) : clientSecret ? (
@@ -153,13 +186,15 @@ export default function TrialStartCard({
             stripe={stripeInstance}
             options={{
               clientSecret,
+              fonts: [{ cssSrc: "https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600&display=swap" }],
               appearance: {
                 theme: "stripe",
                 variables: {
                   colorPrimary: NAVY,
                   colorText: INK,
-                  fontFamily: "Inter, system-ui, sans-serif",
-                  borderRadius: "8px",
+                  colorTextSecondary: MUTED,
+                  fontFamily: "'Plus Jakarta Sans', system-ui, sans-serif",
+                  borderRadius: "10px",
                 },
               },
             }}
@@ -172,7 +207,7 @@ export default function TrialStartCard({
       </Box>
 
       {/* Footer strip */}
-      <Box sx={{ borderTop: `1px solid ${LINE}`, bgcolor: "#F9FAFB", px: 3, py: 1.25 }}>
+      <Box sx={{ borderTop: `1px solid ${LINE}`, bgcolor: SAND_SOFT, px: 3, py: 1.25 }}>
         <Stack direction="row" spacing={0.75} sx={{ alignItems: "center", justifyContent: "center" }}>
           <LockRoundedIcon sx={{ fontSize: 13, color: MUTED }} />
           <Typography sx={{ fontSize: "0.75rem", color: MUTED, textAlign: "center", lineHeight: 1.5 }}>
@@ -186,19 +221,19 @@ export default function TrialStartCard({
   );
 }
 
-/** Grey placeholder matching the PaymentElement's footprint — standard
- *  checkout skeleton, no "connecting…" copy. */
+/** Placeholder matching the PaymentElement's footprint: standard checkout
+ *  skeleton, no "connecting" copy. */
 function PaymentSkeleton() {
   return (
     <Box>
-      <Skeleton variant="rounded" height={44} sx={{ mb: 1.25, borderRadius: "8px" }} />
+      <Skeleton variant="rounded" height={44} sx={{ mb: 1.25, borderRadius: "10px" }} />
       <Stack direction="row" spacing={1.25} sx={{ mb: 1.25 }}>
-        <Skeleton variant="rounded" height={44} sx={{ flex: 1, borderRadius: "8px" }} />
-        <Skeleton variant="rounded" height={44} sx={{ flex: 1, borderRadius: "8px" }} />
+        <Skeleton variant="rounded" height={44} sx={{ flex: 1, borderRadius: "10px" }} />
+        <Skeleton variant="rounded" height={44} sx={{ flex: 1, borderRadius: "10px" }} />
       </Stack>
-      <Skeleton variant="rounded" height={44} sx={{ mb: 2, borderRadius: "8px" }} />
-      <Skeleton variant="rounded" height={24} width="70%" sx={{ mb: 2, borderRadius: "6px" }} />
-      <Skeleton variant="rounded" height={40} sx={{ borderRadius: "6px" }} />
+      <Skeleton variant="rounded" height={44} sx={{ mb: 2, borderRadius: "10px" }} />
+      <Skeleton variant="rounded" height={24} width="70%" sx={{ mb: 2, borderRadius: "8px" }} />
+      <Skeleton variant="rounded" height={44} sx={{ borderRadius: "10px" }} />
     </Box>
   );
 }
@@ -275,17 +310,17 @@ function CheckoutInner({
     <Box component="form" onSubmit={submit}>
       <PaymentElement options={{ layout: "tabs" }} />
 
-      {/* Agreement — one compact terms row between the card fields and
-          the button, like a standard checkout. Checkbox top-aligns to
-          the first line of text; the agreement name is the direct link
-          to the PDF. */}
+      {/* Agreement: one compact terms row between the card fields and the
+          button, like a standard checkout. Checkbox top-aligns to the
+          first line of text; the agreement name is the direct link to
+          the PDF. */}
       <Box sx={{ mt: 2, display: "flex", alignItems: "flex-start", gap: 1 }}>
         <Checkbox
           checked={agreed}
           onChange={(e) => setAgreed(e.target.checked)}
           size="small"
           disableRipple
-          sx={{ p: 0, mt: "1px", color: "#9CA3AF", "&.Mui-checked": { color: NAVY } }}
+          sx={{ p: 0, mt: "1px", color: "#9AA3AF", "&.Mui-checked": { color: NAVY } }}
           slotProps={{ input: { "aria-label": "Agree to the ASN Provider Agreement" } }}
         />
         <Typography sx={{ fontSize: "0.8125rem", color: BODY, lineHeight: 1.55 }}>
@@ -295,7 +330,7 @@ function CheckoutInner({
             href={agreementLink}
             target="_blank"
             rel="noopener noreferrer"
-            sx={{ color: NAVY, fontWeight: 500, textDecoration: "underline", textUnderlineOffset: 2 }}
+            sx={{ color: NAVY, fontWeight: 600, textDecoration: "underline", textUnderlineOffset: 2 }}
           >
             ASN Provider Agreement ({AGREEMENT_VERSION})
           </Box>
@@ -319,17 +354,17 @@ function CheckoutInner({
         disabled={!stripe || !elements || !agreed || busy}
         sx={{
           mt: 2,
-          borderRadius: "6px",
-          minHeight: 40,
-          fontSize: "0.875rem",
-          fontWeight: 500,
+          borderRadius: "10px",
+          minHeight: 44,
+          fontSize: "0.9375rem",
+          fontWeight: 600,
           textTransform: "none",
           bgcolor: NAVY,
           color: "#FFFFFF",
           backgroundImage: "none",
-          boxShadow: "none",
-          "&:hover": { bgcolor: NAVY_HOVER, boxShadow: "none", transform: "none" },
-          "&.Mui-disabled": { bgcolor: "#E5E7EB", color: "#9CA3AF", backgroundImage: "none" },
+          boxShadow: "inset 0 1px 0 rgba(255,255,255,0.10), 0 1px 2px rgba(10,19,32,0.12)",
+          "&:hover": { bgcolor: NAVY_HOVER, boxShadow: "inset 0 1px 0 rgba(255,255,255,0.10), 0 6px 16px -8px rgba(10,19,32,0.45)", transform: "translateY(-1px)" },
+          "&.Mui-disabled": { bgcolor: "#E6E2D9", color: "#9AA3AF", backgroundImage: "none", boxShadow: "none" },
         }}
         startIcon={busy ? <CircularProgress size={16} sx={{ color: "inherit" }} /> : null}
       >
@@ -337,7 +372,7 @@ function CheckoutInner({
       </Button>
 
       {error && (
-        <Alert severity="error" sx={{ mt: 1.5, fontSize: "0.8125rem", borderRadius: "6px" }}>
+        <Alert severity="error" sx={{ mt: 1.5, fontSize: "0.8125rem", borderRadius: "12px" }}>
           {error}
         </Alert>
       )}
@@ -347,11 +382,14 @@ function CheckoutInner({
 
 function RampLine({ label, price, bold }: { label: string; price: string; bold?: boolean }) {
   return (
-    <Stack direction="row" sx={{ justifyContent: "space-between", py: 0.35 }}>
-      <Typography sx={{ fontSize: "0.875rem", color: bold ? INK : BODY, fontWeight: bold ? 600 : 400 }}>
-        {label}
-      </Typography>
-      <Typography sx={{ fontSize: "0.875rem", color: bold ? INK : BODY, fontWeight: bold ? 600 : 400, fontVariantNumeric: "tabular-nums" }}>
+    <Stack direction="row" sx={{ justifyContent: "space-between", alignItems: "center", py: 0.45 }}>
+      <Stack direction="row" spacing={1} sx={{ alignItems: "center" }}>
+        {bold && <Box sx={{ width: 6, height: 6, borderRadius: "50%", bgcolor: GOLD }} />}
+        <Typography sx={{ fontSize: "0.875rem", color: bold ? INK : BODY, fontWeight: bold ? 600 : 400 }}>
+          {label}
+        </Typography>
+      </Stack>
+      <Typography sx={{ fontSize: "0.875rem", color: bold ? INK : BODY, fontWeight: bold ? 700 : 500, fontVariantNumeric: "tabular-nums" }}>
         {price}
       </Typography>
     </Stack>
@@ -382,23 +420,39 @@ function BenefitsPanel({ audience }: { audience: "gold" | "green" }) {
   return (
     <Box
       sx={{
-        borderRadius: "8px",
-        bgcolor: "#FFFFFF",
-        border: `1px solid ${LINE}`,
+        borderRadius: "16px",
+        bgcolor: SAND,
+        border: "1px solid rgba(217,168,75,0.35)",
         p: 3,
         width: "100%",
         maxWidth: { xs: 560, md: 360 },
       }}
     >
-      <Typography sx={{ fontSize: "1rem", fontWeight: 600, color: INK, mb: 0.5 }}>What your membership includes</Typography>
-      <Typography sx={{ fontSize: "0.8125rem", color: MUTED, mb: 2 }}>
-        Free for months 1 to 6, then $39 a month for months 7 to 12, then $199 a month from month 13. Cancel with 30 days notice.
+      <Typography sx={{ fontSize: "1rem", fontWeight: 700, letterSpacing: "-0.01em", color: INK, mb: 0.5 }}>What your membership includes</Typography>
+      <Typography sx={{ fontSize: "0.8125rem", color: BODY, mb: 2, lineHeight: 1.55 }}>
+        {expert
+          ? "Free for months 1 to 6, then $39 a month, and it stays $39. Cancel with 30 days notice."
+          : "$39 a month for your first 12 months, starting today, then $149 a month from month 13. Cancel with 30 days notice."}
       </Typography>
       <Stack component="ul" spacing={1.25} sx={{ listStyle: "none", p: 0, m: 0 }}>
         {items.map((t) => (
           <Stack key={t} component="li" direction="row" spacing={1.25} sx={{ alignItems: "flex-start" }}>
-            <Box sx={{ width: 18, height: 18, borderRadius: "50%", bgcolor: "#ECFDF5", color: "#166534", fontSize: 12, fontWeight: 700, display: "flex", alignItems: "center", justifyContent: "center", flex: "none", mt: "2px" }}>
-              &#10003;
+            <Box
+              sx={{
+                width: 20,
+                height: 20,
+                borderRadius: "50%",
+                bgcolor: "#FFFFFF",
+                color: GOLD_TEXT,
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                flex: "none",
+                mt: "1px",
+                border: "1px solid rgba(217,168,75,0.5)",
+              }}
+            >
+              <CheckRoundedIcon sx={{ fontSize: 13 }} />
             </Box>
             <Typography sx={{ fontSize: "0.875rem", color: BODY, lineHeight: 1.5 }}>{t}</Typography>
           </Stack>

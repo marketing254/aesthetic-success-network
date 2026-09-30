@@ -184,17 +184,20 @@ export async function applySubscriptionToMember(
 export type BusinessRef = {
   table: "vendors" | "experts";
   id: string;
-  /** experts only — lifetime-free founding expert. */
+  /** experts only — billing-exempt expert (manual admin override). */
   billingExempt: boolean;
 };
 
 /**
- * Resolve a Stripe customer to the vendor or expert row that owns it.
+ * Resolve a Stripe customer (and, when known, the subscription) to the
+ * vendor or expert row that owns it.
  *
- * Vendors are checked first: a dual-role person (expert + company) shares
- * ONE customer/subscription across both roles, and the company is the
- * side that actually pays — the expert row is detached once they're in
- * the lifetime-free founding cohort.
+ * A dual-role founding person (expert + company) has TWO subscriptions on
+ * ONE customer: the expert trial subscription mirrored on `experts`, and
+ * the company schedule mirrored on `vendors`. So when a subscription id is
+ * supplied we match on `stripe_subscription_id` first, and only fall back
+ * to the customer id (vendors first, then experts) for rows that have not
+ * stored a subscription yet.
  *
  * Returns null when nothing matches, or when the only match is a
  * billing-exempt expert (see applySubscriptionToBusiness).
@@ -202,20 +205,40 @@ export type BusinessRef = {
 export async function businessForCustomer(
   sb: SupabaseClient,
   customerId: string,
+  subscriptionId?: string | null,
 ): Promise<BusinessRef | null> {
+  if (subscriptionId) {
+    const { data: vBySub } = await sb
+      .from("vendors")
+      .select("id")
+      .eq("stripe_subscription_id", subscriptionId)
+      .maybeSingle();
+    if (vBySub) return { table: "vendors", id: vBySub.id, billingExempt: false };
+    const { data: eBySub } = await sb
+      .from("experts")
+      .select("id, billing_exempt")
+      .eq("stripe_subscription_id", subscriptionId)
+      .maybeSingle();
+    if (eBySub) return { table: "experts", id: eBySub.id, billingExempt: !!eBySub.billing_exempt };
+  }
+
   const { data: vendor } = await sb
     .from("vendors")
-    .select("id")
+    .select("id, stripe_subscription_id")
     .eq("stripe_customer_id", customerId)
     .maybeSingle();
-  if (vendor) return { table: "vendors", id: vendor.id, billingExempt: false };
+  // A vendor row already bound to a DIFFERENT subscription must not absorb
+  // events from the expert-side subscription on the same customer.
+  if (vendor && !(subscriptionId && vendor.stripe_subscription_id && vendor.stripe_subscription_id !== subscriptionId)) {
+    return { table: "vendors", id: vendor.id, billingExempt: false };
+  }
 
   const { data: expert } = await sb
     .from("experts")
-    .select("id, billing_exempt")
+    .select("id, billing_exempt, stripe_subscription_id")
     .eq("stripe_customer_id", customerId)
     .maybeSingle();
-  if (expert) {
+  if (expert && !(subscriptionId && expert.stripe_subscription_id && expert.stripe_subscription_id !== subscriptionId)) {
     return { table: "experts", id: expert.id, billingExempt: !!expert.billing_exempt };
   }
   return null;
@@ -226,9 +249,9 @@ export async function businessForCustomer(
  *
  * Two deliberate safety properties:
  *
- *  1. A billing-exempt expert is NEVER written to. Founding experts are
- *     free for life; re-attaching a customer/subscription to their row
- *     would resurrect the paywall and the trial-ending emails.
+ *  1. A billing-exempt expert is NEVER written to. The exemption is a
+ *     manual admin override; re-attaching a customer/subscription to
+ *     their row would resurrect the paywall and the trial-ending emails.
  *
  *  2. Card brand/last4 are only written when we actually resolved them.
  *     If hydration fails we leave whatever is already on the row rather

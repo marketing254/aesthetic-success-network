@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { isOtpThrottle, sendOtpViaFallback } from "@/lib/auth/otpFallback";
+import { isOtpThrottle, sendOtpViaFallback, requestOtp } from "@/lib/auth/otpFallback";
 import { createServerSupabase } from "@/lib/supabase/server-ssr";
 import { getSupabaseAdmin } from "@/lib/supabase/server";
 import { checkRateLimit } from "@/lib/waitlist/rateLimit";
@@ -107,15 +107,7 @@ export async function POST(req: Request) {
   // at /api/expert/verify-otp.
   const supabase = await createServerSupabase();
   let otpProvider: "supabase" | "fallback" = "supabase";
-  const { error } = await supabase.auth.signInWithOtp({
-    email,
-    options: {
-      // Never auto-create accounts. Only emails that already exist in
-      // auth.users (which is only populated when admin invites an
-      // approved expert) can sign in here.
-      shouldCreateUser: false,
-    },
-  });
+  const { error } = await requestOtp(supabase, email, "expert:login");
 
   if (error) {
     const msg = error.message ?? "";

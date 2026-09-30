@@ -6,11 +6,8 @@ import {
   Avatar,
   Box,
   Button,
-  Chip,
   CircularProgress,
   Stack,
-  Tab,
-  Tabs,
   TextField,
   Typography,
 } from "@mui/material";
@@ -18,15 +15,17 @@ import ChatBubbleOutlineRoundedIcon from "@mui/icons-material/ChatBubbleOutlineR
 import OpenInNewRoundedIcon from "@mui/icons-material/OpenInNewRounded";
 import SendRoundedIcon from "@mui/icons-material/SendRounded";
 import { createBrowserSupabase } from "@/lib/supabase/browser";
-import { EmptyState, PageHeader } from "@/components/vendor/PortalUI";
+import { CP } from "@/components/shared/CommunityPortalShell";
+import { EP, topNavCardSx as cardSx } from "@/components/shared/TopNavPortalShell";
+import { EmptyState, ListDivider, PageHeader, SegmentedFilter, TagPill } from "@/components/vendor/PortalUI";
 
-const INK = "#111827";
-const INK_SOFT = "#374151";
-const INK_MUTED = "#6B7280";
-const LINE = "#E5E7EB";
-const NAVY = "#0E2A3D";
-const NAVY_TINT = "rgba(14,42,61,0.08)";
-const NEUTRAL_BG = "#F3F4F6";
+const INK = CP.ink;
+const INK_SOFT = CP.body;
+const INK_MUTED = CP.muted;
+const BRONZE = EP.bronze;
+const BRONZE_TINT = EP.bronzeTint;
+const ROW_HOVER = EP.bronzeTint;
+const NEUTRAL_BG = CP.neutralBg;
 
 type AuthorKind = "member" | "expert" | "partner" | "admin";
 
@@ -130,36 +129,17 @@ export default function ExpertInquiriesPage() {
         subtitle="Every inquiry a member posts on a resource you authored shows up here. Reply directly: the whole thread is visible to every member viewing that resource, so a good answer compounds."
       />
 
-      <Box sx={{ borderBottom: `1px solid ${LINE}` }}>
-        <Tabs value={filter} onChange={(_, v) => setFilter(v as StatusFilter)}>
-          <Tab
-            value="all"
-            label={
-              <Stack direction="row" spacing={0.85} sx={{ alignItems: "center" }}>
-                <Box>All</Box>
-                <CountChip count={counts.all} active={filter === "all"} />
-              </Stack>
-            }
-          />
-          <Tab
-            value="open"
-            label={
-              <Stack direction="row" spacing={0.85} sx={{ alignItems: "center" }}>
-                <Box>Needs reply</Box>
-                <CountChip count={counts.open} active={filter === "open"} />
-              </Stack>
-            }
-          />
-          <Tab
-            value="answered"
-            label={
-              <Stack direction="row" spacing={0.85} sx={{ alignItems: "center" }}>
-                <Box>Answered</Box>
-                <CountChip count={counts.answered} active={filter === "answered"} />
-              </Stack>
-            }
-          />
-        </Tabs>
+      <Box>
+        <SegmentedFilter<StatusFilter>
+          value={filter}
+          onChange={setFilter}
+          ariaLabel="Filter inquiries"
+          options={[
+            { key: "all", label: "All", count: counts.all },
+            { key: "open", label: "Needs reply", count: counts.open },
+            { key: "answered", label: "Answered", count: counts.answered },
+          ]}
+        />
       </Box>
 
       {error && <Alert severity="error">{error}</Alert>}
@@ -175,15 +155,8 @@ export default function ExpertInquiriesPage() {
           body="When a member asks a question on one of your published resources, it lands here. You'll also get a notification."
         />
       ) : (
-        <Box
-          sx={{
-            borderRadius: "8px",
-            border: `1px solid ${LINE}`,
-            bgcolor: "#FFFFFF",
-            overflow: "hidden",
-          }}
-        >
-          <Stack divider={<Box sx={{ borderTop: `1px solid ${LINE}` }} />}>
+        <Box sx={{ ...(cardSx as object), overflow: "hidden" }}>
+          <Stack divider={<ListDivider />}>
             {rows.map((inq) => (
               <InboxRow
                 key={inq.id}
@@ -200,10 +173,6 @@ export default function ExpertInquiriesPage() {
       )}
     </Stack>
   );
-}
-
-function CountChip({ count, active }: { count: number; active: boolean }) {
-  return <Chip label={count} size="small" color={active ? "primary" : "default"} />;
 }
 
 function InboxRow({
@@ -287,14 +256,16 @@ function InboxRow({
   };
 
   return (
-    <Box sx={{ bgcolor: expanded ? "#F9FAFB" : "transparent" }}>
+    <Box sx={{ bgcolor: expanded ? ROW_HOVER : "transparent", transition: "background-color 120ms ease" }}>
       <Box
         component="button"
         type="button"
         onClick={onToggle}
         sx={{
           all: "unset",
+          boxSizing: "border-box",
           width: "100%",
+          minHeight: 56,
           display: "grid",
           gridTemplateColumns: "auto 1fr auto",
           gap: 1.5,
@@ -302,9 +273,10 @@ function InboxRow({
           px: 3,
           py: 2,
           cursor: "pointer",
-          "&:hover": { bgcolor: "#F9FAFB" },
+          transition: "background-color 120ms ease",
+          "&:hover": { bgcolor: ROW_HOVER },
           "&:focus-visible": {
-            outline: `2px solid ${NAVY}`,
+            outline: `2px solid ${BRONZE}`,
             outlineOffset: -2,
           },
         }}
@@ -313,10 +285,10 @@ function InboxRow({
           sx={{
             width: 36,
             height: 36,
-            bgcolor: NAVY_TINT,
-            color: NAVY,
+            bgcolor: BRONZE_TINT,
+            color: BRONZE,
             fontSize: "0.8125rem",
-            fontWeight: 600,
+            fontWeight: 700,
             flexShrink: 0,
           }}
         >
@@ -401,7 +373,7 @@ function InboxRow({
           )}
           <Box
             sx={{
-              borderLeft: `2px solid ${LINE}`,
+              borderLeft: `3px solid ${BRONZE_TINT}`,
               pl: { xs: 1.5, md: 2 },
               maxHeight: 380,
               overflowY: "auto",
@@ -454,7 +426,7 @@ function InboxRow({
                   )
                 }
               >
-                {submitting ? "Posting…" : "Post reply"}
+                {submitting ? "Posting..." : "Post reply"}
               </Button>
             </Stack>
           </Stack>
@@ -472,10 +444,10 @@ function ReplyView({ reply }: { reply: Reply }) {
         sx={{
           width: 28,
           height: 28,
-          bgcolor: isMine ? NAVY_TINT : NEUTRAL_BG,
-          color: isMine ? NAVY : INK_SOFT,
+          bgcolor: isMine ? BRONZE_TINT : NEUTRAL_BG,
+          color: isMine ? BRONZE : INK_SOFT,
           fontSize: "0.6875rem",
-          fontWeight: 600,
+          fontWeight: 700,
           flexShrink: 0,
           mt: 0.25,
         }}
@@ -489,7 +461,11 @@ function ReplyView({ reply }: { reply: Reply }) {
           >
             {reply.author_display_name}
           </Typography>
-          <Chip label={reply.author_kind === "partner" ? "Company" : reply.author_kind.charAt(0).toUpperCase() + reply.author_kind.slice(1)} size="small" color={isMine ? "primary" : "default"} />
+          <TagPill
+            label={reply.author_kind === "partner" ? "Company" : reply.author_kind.charAt(0).toUpperCase() + reply.author_kind.slice(1)}
+            tone={isMine ? "green" : "neutral"}
+            size="sm"
+          />
           <Typography sx={{ fontSize: "0.75rem", color: INK_MUTED }}>
             · {formatRelative(reply.created_at)}
           </Typography>
@@ -511,14 +487,15 @@ function ReplyView({ reply }: { reply: Reply }) {
   );
 }
 
+/** Amber for open, green for answered, gray for closed. */
 function StatusChip({ status }: { status: Inquiry["status"] }) {
-  const map: Record<Inquiry["status"], { label: string; color: "warning" | "success" | "default" }> = {
-    open: { label: "Needs reply", color: "warning" },
-    answered: { label: "Answered", color: "success" },
-    closed: { label: "Closed", color: "default" },
+  const map: Record<Inquiry["status"], { label: string; tone: "gold" | "green" | "neutral" }> = {
+    open: { label: "Needs reply", tone: "gold" },
+    answered: { label: "Answered", tone: "green" },
+    closed: { label: "Closed", tone: "neutral" },
   };
   const m = map[status];
-  return <Chip label={m.label} size="small" color={m.color} />;
+  return <TagPill label={m.label} tone={m.tone} size="sm" />;
 }
 
 function initials(name: string): string {

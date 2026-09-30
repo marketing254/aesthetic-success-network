@@ -1,5 +1,13 @@
 import { NextResponse } from "next/server";
-import { getStripe, appOrigin, partnerPriceIdFor, appUrl, TRIAL_DAYS, FOUNDING_TRIAL_END_ISO, FOUNDING_STANDARD_START_ISO } from "@/lib/stripe";
+import {
+  getStripe,
+  appOrigin,
+  partnerPriceIdFor,
+  expertPriceIdFor,
+  appUrl,
+  FOUNDING_EXPERT_TRIAL_DAYS,
+  createCompanyLadderSchedule,
+} from "@/lib/stripe";
 import { getSupabaseAdmin } from "@/lib/supabase/server";
 import { renderFoundingAgreementPdf } from "@/lib/pdf/foundingAgreementPdf";
 import { sendJoinConfirmationEmail } from "@/lib/email/joinConfirmation";
@@ -11,26 +19,45 @@ export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
 
-// Founding billing anchor. The founding ramp is a fixed-date schedule tied
-// to the Aug 1, 2026 launch, the same for every founding partner regardless
-// of when they accept (the "clock anchors to launch" rule). Verify/adjust
-// the dates if the launch shifts.
-//   • Free ($0)      : acceptance → FOUNDING_TRIAL_END_ISO
-//   • Growth ($29/mo): FOUNDING_TRIAL_END_ISO onward
-//   • Standard ($99): FOUNDING_STANDARD_START_ISO onward — ONLY when the
-//     invite's pricing_plan is "ladder" (0066). The flat_49 plan (default
-//     since 2026-09-15) never leaves the $29 phase.
+// Founding billing (owner decision 2026-09-30). Every founding invite saves
+// a card at acceptance; what happens next depends on the role:
+//   • Expert side (role expert / both): ONE subscription on the expert
+//     growth price with a 365-day trial (FOUNDING_EXPERT_TRIAL_DAYS).
+//     $0 for 12 months, then $39/month for good. No billing_exempt.
+//   • Company side (role partner / both): $39/month from day 1.
+//       pricing_plan "ladder" (default): subscription schedule, phase 1 =
+//         partner growth price x 12 iterations, phase 2 = the $149
+//         founding standard price (open-ended).
+//       pricing_plan "flat_49": plain subscription on the growth price,
+//         $39/month with no increase.
+//   • Role "both": both of the above on the SAME Stripe customer. The
+//     expert row mirrors the expert subscription, the vendor row mirrors
+//     the company subscription.
 
 type Body = { setupIntentId?: string; paymentMethodId?: string };
+
+type BillingSnapshot = {
+  subscriptionId: string;
+  priceId: string;
+  status: string;
+  periodEnd: string | null;
+  /** Trial end (expert side) as ISO, when trialing. */
+  trialEnd: string | null;
+};
+
+function periodEndIso(sub: { items: { data: { current_period_end?: number }[] } }): string | null {
+  const v = sub.items.data[0]?.current_period_end;
+  return typeof v === "number" ? new Date(v * 1000).toISOString() : null;
+}
 
 
 /**
  * POST /api/founding/[code]/accept
  *
  * Completes a founding invite: verifies the saved card, provisions the
- * expert and/or vendor row(s) + auth user, creates the trial
- * subscription, records the acceptance (who / version / when / IP),
- * regenerates the signed PDF, emails it, and marks the invite accepted.
+ * expert and/or vendor row(s) + auth user, creates the subscription(s),
+ * records the acceptance (who / version / when / IP), regenerates the
+ * signed PDF, emails it, and marks the invite accepted.
  */
 export async function POST(req: Request, ctx: { params: Promise<{ code: string }> }) {
   const { code } = await ctx.params;
@@ -63,10 +90,12 @@ export async function POST(req: Request, ctx: { params: Promise<{ code: string }
 
   const wantsExpert = invite.role === "expert" || invite.role === "both";
   const wantsPartner = invite.role === "partner" || invite.role === "both";
-  if (wantsPartner && (!setupIntentId || !paymentMethodId)) {
+  // Every founding role saves a card now (experts start a 12-month trial
+  // that converts to $39/month; companies are billed from day 1).
+  if (!setupIntentId || !paymentMethodId) {
     return NextResponse.json({ error: "Missing payment references." }, { status: 400 });
   }
-  if (wantsPartner && !invite.stripe_customer_id) {
+  if (!invite.stripe_customer_id) {
     return NextResponse.json({ error: "Payment not set up. Refresh and retry." }, { status: 400 });
   }
 
@@ -76,122 +105,137 @@ export async function POST(req: Request, ctx: { params: Promise<{ code: string }
   const ipHash = hashIp(clientIp(req));
   const userAgent = req.headers.get("user-agent") ?? null;
 
-  let customerId: string | null = null;
-  let priceId: string | null = null;
-  let subscriptionId: string | null = null;
-  let subscriptionStatus: string | null = null;
-  let periodEnd: string | null = null;
+  let stripe;
+  try {
+    stripe = getStripe();
+  } catch (err) {
+    return serverError(err, { route: "POST /api/founding/[code]/accept", status: 503 });
+  }
+
+  const si = await stripe.setupIntents.retrieve(setupIntentId);
+  if (
+    si.status !== "succeeded" ||
+    typeof si.customer !== "string" ||
+    si.customer !== invite.stripe_customer_id ||
+    si.payment_method !== paymentMethodId
+  ) {
+    return NextResponse.json({ error: "Payment setup didn't complete." }, { status: 400 });
+  }
+
+  const customerId: string = invite.stripe_customer_id;
+  try {
+    await stripe.paymentMethods.attach(paymentMethodId, { customer: customerId });
+  } catch {
+    /* already attached */
+  }
+  await stripe.customers.update(customerId, {
+    invoice_settings: { default_payment_method: paymentMethodId },
+  });
 
   // Card details for the portal.
   let cardBrand: string | null = null;
   let cardLast4: string | null = null;
-  if (wantsPartner) {
-    let stripe;
+  try {
+    const pm = await stripe.paymentMethods.retrieve(paymentMethodId);
+    cardBrand = pm.card?.brand ?? null;
+    cardLast4 = pm.card?.last4 ?? null;
+  } catch {
+    /* best effort */
+  }
+
+  const ladder = invite.pricing_plan !== "flat_49";
+  let expertGrowthPrice: string | null = null;
+  let partnerGrowthPrice: string | null = null;
+  let partnerFoundingStandardPrice: string | null = null;
+  try {
+    if (wantsExpert) expertGrowthPrice = expertPriceIdFor("expert_growth_monthly");
+    if (wantsPartner) {
+      partnerGrowthPrice = partnerPriceIdFor("partner_growth_monthly");
+      if (ladder) partnerFoundingStandardPrice = partnerPriceIdFor("partner_founding_standard_monthly");
+    }
+  } catch (err) {
+    return serverError(err, { route: "POST /api/founding/[code]/accept", status: 503 });
+  }
+
+  // ---- Expert side: 365-day trial on the expert growth price, then $39.
+  let expertBilling: BillingSnapshot | null = null;
+  if (wantsExpert && expertGrowthPrice) {
     try {
-      stripe = getStripe();
+      const sub = await stripe.subscriptions.create({
+        customer: customerId,
+        items: [{ price: expertGrowthPrice }],
+        trial_period_days: FOUNDING_EXPERT_TRIAL_DAYS,
+        default_payment_method: paymentMethodId,
+        trial_settings: { end_behavior: { missing_payment_method: "pause" } },
+        metadata: {
+          founding_invite: code,
+          role: invite.role,
+          pricing_plan: invite.pricing_plan,
+          audience: "expert",
+          plan: "expert_growth_monthly",
+          ramp: "founding-expert-12mo-free",
+        },
+      });
+      expertBilling = {
+        subscriptionId: sub.id,
+        priceId: expertGrowthPrice,
+        status: sub.status,
+        periodEnd: periodEndIso(sub),
+        trialEnd: typeof sub.trial_end === "number" ? new Date(sub.trial_end * 1000).toISOString() : null,
+      };
     } catch (err) {
-      return serverError(err, { route: "POST /api/founding/[code]/accept", status: 503 });
+      return serverError(err, {
+        route: "POST /api/founding/[code]/accept",
+        status: 502,
+        publicMessage: "Stripe rejected the subscription. Check the card details and try again.",
+      });
     }
+  }
 
-    const si = await stripe.setupIntents.retrieve(setupIntentId);
-    if (
-      si.status !== "succeeded" ||
-      typeof si.customer !== "string" ||
-      si.customer !== invite.stripe_customer_id ||
-      si.payment_method !== paymentMethodId
-    ) {
-      return NextResponse.json({ error: "Payment setup didn't complete." }, { status: 400 });
-    }
-
-    customerId = invite.stripe_customer_id;
-    if (!customerId) {
-      return NextResponse.json({ error: "Payment not set up. Refresh and retry." }, { status: 400 });
-    }
+  // ---- Company side: $39/month from day 1 (x12), then $149 (ladder) or
+  // $39 for good (flat_49).
+  let partnerBilling: BillingSnapshot | null = null;
+  let partnerStandardStartsAt: string | null = null;
+  if (wantsPartner && partnerGrowthPrice) {
     try {
-      await stripe.paymentMethods.attach(paymentMethodId, { customer: customerId });
-    } catch {
-      /* already attached */
-    }
-    await stripe.customers.update(customerId, {
-      invoice_settings: { default_payment_method: paymentMethodId },
-    });
-
-    try {
-      const pm = await stripe.paymentMethods.retrieve(paymentMethodId);
-      cardBrand = pm.card?.brand ?? null;
-      cardLast4 = pm.card?.last4 ?? null;
-    } catch {
-      /* best effort */
-    }
-
-    // Partner-bearing invites keep ONE Stripe subscription for the paid
-    // partner ramp. Expert-only founding invites do not enter Stripe.
-    // The ramp is a phased subscription schedule: $0 (trial) → $29 growth,
-    // and for "ladder" invites a third $99 phase from month 13.
-    const ladder = invite.pricing_plan === "ladder";
-    let growthPrice: string;
-    let standardPrice: string | null = null;
-    try {
-      growthPrice = partnerPriceIdFor("partner_growth_monthly");
-      if (ladder) standardPrice = partnerPriceIdFor("partner_standard_monthly");
-    } catch (err) {
-      return serverError(err, { route: "POST /api/founding/[code]/accept", status: 503 });
-    }
-    priceId = growthPrice; // stored as the "current" price on the row
-
-    const nowSec = Math.floor(Date.now() / 1000);
-    const trialEndSec = Math.floor(new Date(FOUNDING_TRIAL_END_ISO).getTime() / 1000);
-    const standardStartSec = Math.floor(new Date(FOUNDING_STANDARD_START_ISO).getTime() / 1000);
-    const canSchedule = trialEndSec > nowSec && (!ladder || standardStartSec > trialEndSec);
-
-    let subscription;
-    try {
-      if (canSchedule) {
-        // Fixed-date founding ramp.
-        const schedule = await stripe.subscriptionSchedules.create({
-          customer: customerId,
-          start_date: nowSec,
-          end_behavior: "release",
-          default_settings: {
-            default_payment_method: paymentMethodId,
-            collection_method: "charge_automatically",
-          },
-          phases:
-            ladder && standardPrice
-              ? [
-                  // $0 until the free period ends (card on file, no charge).
-                  { items: [{ price: growthPrice }], trial: true, end_date: trialEndSec },
-                  // $29/mo growth phase (months 7–12).
-                  { items: [{ price: growthPrice }], end_date: standardStartSec },
-                  // $99/mo standard, month 13 onward (open-ended).
-                  { items: [{ price: standardPrice }] },
-                ]
-              : [
-                  // $0 until the free period ends (card on file, no charge).
-                  { items: [{ price: growthPrice }], trial: true, end_date: trialEndSec },
-                  // $29/mo, month 7 onward (open-ended, no increase).
-                  { items: [{ price: growthPrice }] },
-                ],
+      if (ladder && partnerFoundingStandardPrice) {
+        // Shared with the website company sign-and-pay route: $39 x 12
+        // months from today, then $149 open-ended, as one schedule.
+        const result = await createCompanyLadderSchedule({
+          customerId,
+          paymentMethodId,
           metadata: { founding_invite: code, role: invite.role, pricing_plan: invite.pricing_plan },
         });
-        const subId =
-          typeof schedule.subscription === "string"
-            ? schedule.subscription
-            : schedule.subscription?.id;
-        if (!subId) throw new Error("Schedule did not create a subscription.");
-        subscription = await stripe.subscriptions.retrieve(subId);
+        partnerBilling = {
+          subscriptionId: result.subscription.id,
+          priceId: partnerGrowthPrice,
+          status: result.subscription.status,
+          periodEnd: periodEndIso(result.subscription),
+          trialEnd: null,
+        };
+        partnerStandardStartsAt = result.standardStartsAt;
       } else {
-        // Safety fallback (only if the anchor dates have already passed):
-        // a simple 180-day trial on the growth price so acceptance never
-        // breaks.
-        subscription = await stripe.subscriptions.create({
+        // Flat plan: $39/month from today with no increase.
+        const sub = await stripe.subscriptions.create({
           customer: customerId,
-          items: [{ price: growthPrice }],
-          trial_period_days: TRIAL_DAYS,
+          items: [{ price: partnerGrowthPrice }],
           default_payment_method: paymentMethodId,
-          trial_settings: { end_behavior: { missing_payment_method: "pause" } },
-          metadata: { founding_invite: code, role: invite.role, pricing_plan: invite.pricing_plan, ramp: "fallback-no-schedule" },
+          metadata: {
+            founding_invite: code,
+            role: invite.role,
+            pricing_plan: invite.pricing_plan,
+            audience: "vendor",
+            plan: "partner_growth_monthly",
+            ramp: "founding-company-flat",
+          },
         });
+        partnerBilling = {
+          subscriptionId: sub.id,
+          priceId: partnerGrowthPrice,
+          status: sub.status,
+          periodEnd: periodEndIso(sub),
+          trialEnd: null,
+        };
       }
     } catch (err) {
       return serverError(err, {
@@ -200,12 +244,6 @@ export async function POST(req: Request, ctx: { params: Promise<{ code: string }
         publicMessage: "Stripe rejected the subscription. Check the card details and try again.",
       });
     }
-    subscriptionId = subscription.id;
-    subscriptionStatus = subscription.status;
-    periodEnd =
-      typeof subscription.items.data[0]?.current_period_end === "number"
-        ? new Date(subscription.items.data[0].current_period_end * 1000).toISOString()
-        : null;
   }
 
   // Pre-create the auth user so they can log into the portal later.
@@ -236,19 +274,30 @@ export async function POST(req: Request, ctx: { params: Promise<{ code: string }
     agreement_ip_hash: ipHash,
     agreement_user_agent: userAgent,
   };
-  const billingFields = wantsPartner
-    ? {
-        stripe_customer_id: customerId,
-        stripe_subscription_id: subscriptionId,
-        stripe_price_id: priceId,
-        subscription_status: subscriptionStatus,
-        subscription_interval: "month",
-        current_period_end: periodEnd,
-        card_brand: cardBrand,
-        card_last4: cardLast4,
-      }
-    : {};
-  const subFields = { ...agreementFields, ...billingFields };
+  const billingFieldsFor = (b: BillingSnapshot | null) =>
+    b
+      ? {
+          stripe_customer_id: customerId,
+          stripe_subscription_id: b.subscriptionId,
+          stripe_price_id: b.priceId,
+          subscription_status: b.status,
+          subscription_interval: "month",
+          current_period_end: b.periodEnd,
+          card_brand: cardBrand,
+          card_last4: cardLast4,
+        }
+      : {};
+  // Expert row mirrors the expert subscription; vendor row mirrors the
+  // company subscription. For "both" these are two different subscriptions
+  // on the same customer.
+  const expertSubFields = { ...agreementFields, ...billingFieldsFor(expertBilling) };
+  // vendors.billing_plan (0070) drives the price ramp the company portal
+  // shows: ladder = $39 months 1 to 12 then $149; flat_49 = $39 for good.
+  const partnerSubFields = {
+    ...agreementFields,
+    ...billingFieldsFor(partnerBilling),
+    billing_plan: ladder ? "founding_ladder" : "founding_flat",
+  };
 
   let expertId: string | null = null;
   let vendorId: string | null = null;
@@ -259,7 +308,7 @@ export async function POST(req: Request, ctx: { params: Promise<{ code: string }
       expertId = existing.id;
       await sb
         .from("experts")
-        .update({ ...subFields, status: "active", founding_expert_locked: true } as never)
+        .update({ ...expertSubFields, status: "active", founding_expert_locked: true } as never)
         .eq("id", expertId);
     } else {
       const { data: ins } = await sb
@@ -279,7 +328,7 @@ export async function POST(req: Request, ctx: { params: Promise<{ code: string }
           status: "active",
           months_in_program: 0,
           founding_expert_locked: true,
-          ...subFields,
+          ...expertSubFields,
         } as never)
         .select("id")
         .single();
@@ -324,7 +373,7 @@ export async function POST(req: Request, ctx: { params: Promise<{ code: string }
       vendorId = existing.id;
       await sb
         .from("vendors")
-        .update({ ...subFields, status: "approved", verified: true, founding_partner_locked: true } as never)
+        .update({ ...partnerSubFields, status: "approved", verified: true, founding_partner_locked: true } as never)
         .eq("id", vendorId);
     } else {
       const { data: ins } = await sb
@@ -346,7 +395,7 @@ export async function POST(req: Request, ctx: { params: Promise<{ code: string }
           verified: true,
           months_in_program: 0,
           founding_partner_locked: true,
-          ...subFields,
+          ...partnerSubFields,
         } as never)
         .select("id")
         .single();
@@ -453,7 +502,9 @@ export async function POST(req: Request, ctx: { params: Promise<{ code: string }
       accepted_at: signedAt.toISOString(),
       accepted_ip_hash: ipHash,
       accepted_user_agent: userAgent,
-      stripe_subscription_id: subscriptionId,
+      // One column on the invite: prefer the company subscription (the one
+      // billed from day 1), else the expert one.
+      stripe_subscription_id: partnerBilling?.subscriptionId ?? expertBilling?.subscriptionId ?? null,
       agreement_pdf_path: signedPath ?? invite.agreement_pdf_path,
       expert_id: expertId,
       vendor_id: vendorId,
@@ -477,32 +528,36 @@ export async function POST(req: Request, ctx: { params: Promise<{ code: string }
       signedAt,
       memberOffer: invite.member_offer,
       companies: invite.companies ?? undefined,
-      trialEndsAt: periodEnd,
-      cardCaptured: invite.role === "partner" || invite.role === "both",
+      founding: true,
+      expertTrialEndsAt: expertBilling?.trialEnd ?? expertBilling?.periodEnd ?? null,
+      partnerStandardStartsAt,
+      cardCaptured: true,
     });
   }
 
   // Alert the whole team that the invitee accepted + saved their card so
   // they know this person is ready to sign in.
-  const cardCaptured = invite.role === "partner" || invite.role === "both";
-  const trialEndsNice = periodEnd
-    ? new Date(periodEnd).toLocaleDateString("en-US", { year: "numeric", month: "long", day: "numeric" })
-    : null;
+  const nice = (iso: string | null) =>
+    iso ? new Date(iso).toLocaleDateString("en-US", { year: "numeric", month: "long", day: "numeric" }) : null;
   void notifyTeamEvent({
     kind: "invite_accepted",
     role: invite.role,
     name: signerName,
     email,
     adminLink: appUrl("/admin/founding"),
-    highlight: cardCaptured
-      ? "Card on file. They're ready to sign in."
-      : "Accepted. They're ready to sign in.",
+    highlight: "Card on file. They're ready to sign in.",
     fields: [
-      { label: "Role", value: invite.role === "both" ? "Expert + Partner" : invite.role },
+      { label: "Role", value: invite.role === "both" ? "Expert + Company" : invite.role },
       { label: "Company", value: invite.company_name },
-      { label: "Payment method", value: cardCaptured ? "On file" : null },
-      { label: "Subscription", value: subscriptionStatus },
-      { label: "Free trial ends", value: trialEndsNice },
+      { label: "Payment method", value: "On file" },
+      { label: "Expert subscription", value: expertBilling?.status ?? null },
+      { label: "Expert free period ends", value: nice(expertBilling?.trialEnd ?? null) },
+      { label: "Company subscription", value: partnerBilling?.status ?? null },
+      {
+        label: "Company rate",
+        value: partnerBilling ? (ladder ? "$39/month for 12 months, then $149/month" : "$39/month, no increase") : null,
+      },
+      { label: "Company $149 starts", value: nice(partnerStandardStartsAt) },
       { label: "Member offer", value: invite.member_offer },
     ],
   });

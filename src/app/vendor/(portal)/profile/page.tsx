@@ -15,17 +15,19 @@ import {
 } from "@mui/material";
 import CloudUploadOutlinedIcon from "@mui/icons-material/CloudUploadOutlined";
 import CheckCircleOutlinedIcon from "@mui/icons-material/CheckCircleOutlined";
+import VerifiedRoundedIcon from "@mui/icons-material/VerifiedRounded";
 import { vendorCategories } from "@/lib/vendorData";
 import { PageHeader, SectionCard, StatusPill, TagPill, portalText } from "@/components/vendor/PortalUI";
+import { CP } from "@/components/shared/CommunityPortalShell";
 import { createBrowserSupabase } from "@/lib/supabase/browser";
 import { fetchCurrentVendor, updateCurrentVendor } from "@/lib/supabase/vendorQueries";
 import type { VendorsRow } from "@/lib/supabase/types";
 
-const INK = "#111827";
-const BODY = "#374151";
-const MUTED = "#6B7280";
-const LINE = "#E5E7EB";
-const NAVY = "#0E2A3D";
+const INK = CP.ink;
+const BODY = CP.body;
+const MUTED = CP.muted;
+const LINE = CP.border;
+const NAVY = CP.navy;
 
 export default function VendorProfilePage() {
   const [loading, setLoading] = useState(true);
@@ -151,9 +153,9 @@ export default function VendorProfilePage() {
 
   if (loading) {
     return (
-      <Stack sx={{ alignItems: "center", py: 8, gap: 2 }}>
+      <Stack sx={{ alignItems: "center", py: 10, gap: 2 }}>
         <CircularProgress size={24} />
-        <Typography sx={{ color: MUTED, fontSize: "0.875rem" }}>Loading profile…</Typography>
+        <Typography sx={{ color: MUTED, fontSize: "0.875rem" }}>Loading profile...</Typography>
       </Stack>
     );
   }
@@ -192,7 +194,7 @@ export default function VendorProfilePage() {
               ) : undefined
             }
           >
-            {saving ? "Saving…" : saved ? "Saved" : "Save changes"}
+            {saving ? "Saving..." : saved ? "Saved" : "Save changes"}
           </Button>
         }
       />
@@ -203,28 +205,51 @@ export default function VendorProfilePage() {
           <Stack spacing={3}>
             <SectionCard padding="default">
               <Stack spacing={1.5} sx={{ alignItems: "center", textAlign: "center" }}>
-                <Avatar
-                  src={vendor.logo_url ?? undefined}
-                  sx={{
-                    width: 72,
-                    height: 72,
-                    bgcolor: "rgba(14,42,61,0.08)",
-                    color: NAVY,
-                    fontSize: "1.5rem",
-                    fontWeight: 600,
-                    border: `1px solid ${LINE}`,
-                  }}
-                >
-                  {initials || "VP"}
-                </Avatar>
+                <Box sx={{ position: "relative" }}>
+                  <Avatar
+                    src={vendor.logo_url ?? undefined}
+                    variant="rounded"
+                    sx={{
+                      width: 84,
+                      height: 84,
+                      borderRadius: "20px",
+                      bgcolor: NAVY,
+                      color: CP.gold,
+                      fontSize: "1.5rem",
+                      fontWeight: 800,
+                      border: `1px solid ${LINE}`,
+                      boxShadow: CP.shadow,
+                    }}
+                  >
+                    {initials || "CO"}
+                  </Avatar>
+                  {vendor.verified && (
+                    <Box
+                      sx={{
+                        position: "absolute",
+                        right: -6,
+                        bottom: -6,
+                        width: 26,
+                        height: 26,
+                        borderRadius: "50%",
+                        bgcolor: CP.white,
+                        display: "grid",
+                        placeItems: "center",
+                        boxShadow: CP.shadow,
+                      }}
+                    >
+                      <VerifiedRoundedIcon sx={{ fontSize: 18, color: CP.gold }} titleAccess="Verified company" />
+                    </Box>
+                  )}
+                </Box>
                 <Box>
-                  <Typography sx={{ fontSize: "0.9375rem", fontWeight: 600, color: INK }}>
+                  <Typography sx={{ fontSize: "1.0625rem", fontWeight: 700, letterSpacing: "-0.02em", color: INK }}>
                     {displayName}
                   </Typography>
                   <Typography sx={portalText.meta}>{category}</Typography>
                 </Box>
                 <Stack direction="row" spacing={0.5} sx={{ flexWrap: "wrap", justifyContent: "center", gap: 0.5 }}>
-                  {vendor.verified && <TagPill label="VERIFIED" tone="gold" size="sm" />}
+                  {vendor.verified && <TagPill label="Verified company" tone="gold" size="sm" />}
                   <TagPill label={(vendor.plan_id ?? "FOUNDING").toUpperCase()} tone="neutral" size="sm" />
                 </Stack>
                 <Button
@@ -241,7 +266,7 @@ export default function VendorProfilePage() {
                   }
                   sx={{ mt: 0.5 }}
                 >
-                  {uploadingLogo ? "Uploading…" : vendor.logo_url ? "Replace logo" : "Upload logo"}
+                  {uploadingLogo ? "Uploading..." : vendor.logo_url ? "Replace logo" : "Upload logo"}
                   <input
                     type="file"
                     hidden
@@ -250,14 +275,14 @@ export default function VendorProfilePage() {
                   />
                 </Button>
                 {logoError && (
-                  <Typography sx={{ fontSize: "0.75rem", color: "#991B1B", textAlign: "center", mt: 0.5 }}>
+                  <Typography sx={{ fontSize: "0.75rem", color: CP.errorFg, textAlign: "center", mt: 0.5 }}>
                     {logoError}
                   </Typography>
                 )}
               </Stack>
             </SectionCard>
 
-            <SectionCard title="Listing health" padding="default">
+            <SectionCard title="Listing health" subtitle="A complete profile ranks higher in the directory." padding="default">
               <Stack spacing={1.25}>
                 <HealthRow label="Logo" ok />
                 <HealthRow label="Description" ok={description.length >= 60} />
@@ -293,7 +318,7 @@ export default function VendorProfilePage() {
         {/* Form */}
         <Grid size={{ xs: 12, md: 8 }}>
           <Stack spacing={3}>
-            <SectionCard title="Company" padding="default">
+            <SectionCard title="Company" subtitle="How your company appears in the directory." padding="default">
               <Grid container spacing={2.5}>
                 <Grid size={{ xs: 12, md: 6 }}>
                   <FormField
@@ -316,7 +341,7 @@ export default function VendorProfilePage() {
                     label="Website"
                     value={website}
                     onChange={setWebsite}
-                    placeholder="https://www.henryschein.com"
+                    placeholder="https://www.yourcompany.com"
                   />
                 </Grid>
                 <Grid size={{ xs: 12, md: 6 }}>
@@ -412,19 +437,22 @@ export default function VendorProfilePage() {
 function HealthRow({ label, ok }: { label: string; ok: boolean }) {
   return (
     <Stack direction="row" spacing={1} sx={{ alignItems: "center", justifyContent: "space-between" }}>
-      <Typography sx={{ fontSize: "0.875rem", color: BODY }}>{label}</Typography>
+      <Stack direction="row" spacing={1} sx={{ alignItems: "center" }}>
+        <Box sx={{ width: 8, height: 8, borderRadius: "50%", bgcolor: ok ? "#22C55E" : CP.gold }} />
+        <Typography sx={{ fontSize: "0.875rem", color: BODY }}>{label}</Typography>
+      </Stack>
       <Box
         component="span"
         sx={{
           display: "inline-flex",
           alignItems: "center",
-          px: 0.75,
-          height: 20,
-          borderRadius: "6px",
-          bgcolor: ok ? "#DCFCE7" : "#FEF3C7",
-          color: ok ? "#166534" : "#92400E",
+          px: 0.9,
+          height: 22,
+          borderRadius: "8px",
+          bgcolor: ok ? CP.successBg : CP.warningBg,
+          color: ok ? CP.successFg : CP.warningFg,
           fontSize: "0.6875rem",
-          fontWeight: 500,
+          fontWeight: 600,
           letterSpacing: 0,
         }}
       >

@@ -58,13 +58,20 @@ const EMPTY_COPY: Record<NotificationAudience, string> = {
   vendor: "Updates about your approvals, offers, and redemptions will show up here.",
   admin: "New company applications, offer submissions, and team actions will land here.",
   expert: "Updates about your kits, member inquiries and replies will show up here.",
-  member: "New kits, partner offers and replies to your questions will show up here.",
+  member: "New kits, company offers and replies to your questions will show up here.",
 };
 
-const NAVY = "#0E2A3D";
-const INK = "#111827";
+// Community palette (warm off-white, navy ink, gold highlight).
+const NAVY = "#0A1320";
+const INK = "#0A1320";
 const MUTED = "#6B7280";
-const LINE = "#E5E7EB";
+const LINE = "rgba(10,19,32,0.06)";
+const LINE_STRONG = "rgba(10,19,32,0.14)";
+const SAND = "#F3EBDD";
+const SAND_SOFT = "#F8F4EC";
+const GOLD = "#D9A84B";
+const GOLD_TINT = "#FBF3E1";
+const GOLD_TEXT = "#7A5B17";
 
 function iconFor(kind: string): SvgIconComponent {
   return KIND_ICON[kind] ?? NotificationsNoneOutlinedIcon;
@@ -90,8 +97,12 @@ export default function NotificationsBell({
   tone = "light",
 }: {
   audience: NotificationAudience;
-  /** "dark" for navy top bars (admin, member); "light" for white top bars. */
-  tone?: "light" | "dark";
+  /**
+   * "dark" for navy top bars (admin, member); "light" for white top bars;
+   * "community" for the transparent community-portal top bar (36px white
+   * circle with a 1px border).
+   */
+  tone?: "light" | "dark" | "community";
 }) {
   const router = useRouter();
   const anchorRef = useRef<HTMLButtonElement | null>(null);
@@ -160,7 +171,23 @@ export default function NotificationsBell({
     if (n.link) router.push(n.link);
   };
 
-  const iconColor = tone === "dark" ? "rgba(255,255,255,0.85)" : MUTED;
+  const buttonSx =
+    tone === "community"
+      ? {
+          width: 36,
+          height: 36,
+          borderRadius: "50%",
+          bgcolor: "#FFFFFF",
+          border: `1px solid ${open ? NAVY : LINE_STRONG}`,
+          color: NAVY,
+          boxShadow: "0 1px 2px rgba(10,19,32,0.04)",
+          "&:hover": { bgcolor: SAND_SOFT, color: NAVY, borderColor: NAVY },
+          "&:focus-visible": { outline: `2px solid ${NAVY}`, outlineOffset: 2 },
+        }
+      : {
+          color: tone === "dark" ? "rgba(255,255,255,0.85)" : MUTED,
+          borderRadius: "8px",
+        };
 
   return (
     <>
@@ -169,7 +196,7 @@ export default function NotificationsBell({
           ref={anchorRef}
           size="small"
           onClick={() => setOpen((v) => !v)}
-          sx={{ color: iconColor, borderRadius: "6px" }}
+          sx={buttonSx}
           aria-label="Notifications"
         >
           <Badge
@@ -178,19 +205,22 @@ export default function NotificationsBell({
             overlap="circular"
             sx={{
               "& .MuiBadge-badge": {
-                fontWeight: 600,
-                fontSize: "0.65rem",
+                fontWeight: 700,
+                fontSize: "0.625rem",
                 minWidth: 16,
                 height: 16,
-                bgcolor: "#B91C1C",
-                color: "#FFFFFF",
+                bgcolor: GOLD,
+                color: INK,
+                border: "2px solid #FFFFFF",
+                top: -2,
+                right: -2,
               },
             }}
           >
             {unread > 0 ? (
-              <NotificationsActiveOutlinedIcon sx={{ fontSize: 20 }} />
+              <NotificationsActiveOutlinedIcon sx={{ fontSize: 19 }} />
             ) : (
-              <NotificationsNoneOutlinedIcon sx={{ fontSize: 20 }} />
+              <NotificationsNoneOutlinedIcon sx={{ fontSize: 19 }} />
             )}
           </Badge>
         </IconButton>
@@ -206,20 +236,20 @@ export default function NotificationsBell({
           paper: {
             sx: {
               mt: 1,
-              width: { xs: "92vw", sm: 380 },
-              maxHeight: 480,
-              borderRadius: "8px",
+              width: { xs: "92vw", sm: 384 },
+              maxHeight: 500,
+              borderRadius: "16px",
               border: `1px solid ${LINE}`,
-              boxShadow: "0 4px 16px -4px rgba(17,24,39,0.12)",
+              boxShadow: "0 4px 12px rgba(10,19,32,0.06), 0 24px 48px -24px rgba(10,19,32,0.24)",
               backgroundImage: "none",
               overflow: "hidden",
             },
           },
         }}
       >
-        <Stack direction="row" sx={{ alignItems: "center", px: 2, py: 1.5 }}>
+        <Stack direction="row" sx={{ alignItems: "center", px: 2.5, py: 1.75 }}>
           <Box sx={{ flex: 1 }}>
-            <Typography sx={{ fontSize: "0.875rem", fontWeight: 600, color: INK }}>Notifications</Typography>
+            <Typography sx={{ fontSize: "0.9375rem", fontWeight: 700, letterSpacing: "-0.01em", color: INK }}>Notifications</Typography>
             <Typography sx={{ fontSize: "0.75rem", color: MUTED }}>
               {unread > 0 ? `${unread} unread` : "All caught up"}
             </Typography>
@@ -232,11 +262,12 @@ export default function NotificationsBell({
             sx={{
               textTransform: "none",
               fontSize: "0.8125rem",
-              fontWeight: 500,
+              fontWeight: 600,
               color: NAVY,
-              borderRadius: "6px",
-              "&:hover": { bgcolor: "#F3F4F6", transform: "none" },
-              "&.Mui-disabled": { color: "#9CA3AF" },
+              borderRadius: "8px",
+              minHeight: 32,
+              "&:hover": { bgcolor: SAND, transform: "none" },
+              "&.Mui-disabled": { color: "#9AA3AF" },
             }}
           >
             Mark all read
@@ -244,17 +275,31 @@ export default function NotificationsBell({
         </Stack>
         <Divider sx={{ borderColor: LINE }} />
 
-        <Box sx={{ maxHeight: 400, overflowY: "auto" }}>
+        <Box sx={{ maxHeight: 410, overflowY: "auto" }}>
           {loading ? (
             <Stack sx={{ py: 4, alignItems: "center" }}>
               <CircularProgress size={20} sx={{ color: NAVY }} />
             </Stack>
           ) : rows.length === 0 ? (
             <Stack sx={{ py: 5, px: 3, alignItems: "center", textAlign: "center" }}>
-              <Typography sx={{ fontSize: "0.875rem", fontWeight: 600, color: INK, mb: 0.5 }}>
+              <Box
+                sx={{
+                  width: 44,
+                  height: 44,
+                  borderRadius: "50%",
+                  bgcolor: SAND,
+                  color: "#B8862F",
+                  display: "grid",
+                  placeItems: "center",
+                  mb: 1.5,
+                }}
+              >
+                <NotificationsNoneOutlinedIcon sx={{ fontSize: 20 }} />
+              </Box>
+              <Typography sx={{ fontSize: "0.875rem", fontWeight: 700, color: INK, mb: 0.5 }}>
                 No notifications yet
               </Typography>
-              <Typography sx={{ fontSize: "0.8125rem", color: MUTED, maxWidth: 260 }}>{EMPTY_COPY[audience]}</Typography>
+              <Typography sx={{ fontSize: "0.8125rem", color: MUTED, maxWidth: 260, lineHeight: 1.55 }}>{EMPTY_COPY[audience]}</Typography>
             </Stack>
           ) : (
             rows.map((n) => {
@@ -270,37 +315,39 @@ export default function NotificationsBell({
                     if (e.key === "Enter") void onItemClick(n);
                   }}
                   sx={{
-                    px: 2,
+                    px: 2.5,
                     py: 1.5,
                     display: "flex",
                     gap: 1.5,
                     borderBottom: `1px solid ${LINE}`,
-                    bgcolor: isUnread ? "#F9FAFB" : "transparent",
+                    bgcolor: isUnread ? SAND_SOFT : "transparent",
                     cursor: "pointer",
-                    "&:hover": { bgcolor: "#F3F4F6" },
+                    transition: "background-color 120ms ease",
+                    "&:hover": { bgcolor: SAND },
                     "&:last-of-type": { borderBottom: 0 },
+                    "&:focus-visible": { outline: `2px solid ${NAVY}`, outlineOffset: -2 },
                   }}
                 >
                   <Box
                     sx={{
-                      width: 32,
-                      height: 32,
-                      borderRadius: "6px",
-                      bgcolor: isUnread ? "rgba(14,42,61,0.08)" : "#F3F4F6",
-                      color: isUnread ? NAVY : MUTED,
+                      width: 36,
+                      height: 36,
+                      borderRadius: "50%",
+                      bgcolor: isUnread ? GOLD_TINT : "#F1EFEA",
+                      color: isUnread ? GOLD_TEXT : MUTED,
                       display: "grid",
                       placeItems: "center",
                       flexShrink: 0,
                     }}
                   >
-                    <Icon sx={{ fontSize: 16 }} />
+                    <Icon sx={{ fontSize: 17 }} />
                   </Box>
                   <Box sx={{ flex: 1, minWidth: 0 }}>
                     <Stack direction="row" sx={{ alignItems: "baseline", gap: 1 }}>
                       <Typography
                         sx={{
                           fontSize: "0.875rem",
-                          fontWeight: isUnread ? 600 : 500,
+                          fontWeight: isUnread ? 700 : 500,
                           color: INK,
                           flex: 1,
                           minWidth: 0,
@@ -331,9 +378,9 @@ export default function NotificationsBell({
                     )}
                   </Box>
                   {isUnread && (
-                    <Box sx={{ width: 8, height: 8, borderRadius: "50%", bgcolor: NAVY, flexShrink: 0, mt: 1.25 }} />
+                    <Box sx={{ width: 8, height: 8, borderRadius: "50%", bgcolor: GOLD, flexShrink: 0, mt: 1.5 }} />
                   )}
-                  {busyId === n.id && <CircularProgress size={12} sx={{ color: NAVY, mt: 1.25 }} />}
+                  {busyId === n.id && <CircularProgress size={12} sx={{ color: NAVY, mt: 1.5 }} />}
                 </Box>
               );
             })

@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { getSupabaseAdmin } from "@/lib/supabase/server";
 import { requireVendor } from "@/lib/auth/guards";
 import {
-  ALL_PARTNER_PLAN_KEYS,
+  OFFERED_PARTNER_PLAN_KEYS,
   appOrigin,
   getStripe,
   partnerPriceIdFor,
@@ -16,18 +16,18 @@ export const dynamic = "force-dynamic";
 /**
  * POST /api/vendor/billing/checkout
  *
- * Body: { plan: "partner_growth_monthly" | "partner_standard_monthly" | "partner_standard_annual" }
+ * Body: { plan: "partner_growth_monthly" | "partner_founding_standard_monthly" }
  *
  * Creates a Stripe Checkout Session for a partner subscription and
- * returns the redirect URL. Used by the Upgrade card on /vendor/account
- * once the founding waiver runs out.
+ * returns the redirect URL. Used by the re-subscribe card on
+ * /vendor/account when a company's subscription has lapsed. The legacy
+ * partner_standard_* keys are never accepted here.
  *
- * Note: there's no `partner_launch_monthly` option — the launch phase
- * (months 1-6) is admin-activated and doesn't touch Stripe at all.
- * Partners only see this endpoint when the upgrade UI appears.
+ * Note: a fresh company never lands here; the first subscription is the
+ * $39 then $149 ladder schedule created by /api/vendor/billing/trial/start.
  */
 function isValidPlan(p: unknown): p is PartnerPlanKey {
-  return typeof p === "string" && (ALL_PARTNER_PLAN_KEYS as string[]).includes(p);
+  return typeof p === "string" && (OFFERED_PARTNER_PLAN_KEYS as string[]).includes(p);
 }
 
 export async function POST(req: Request) {

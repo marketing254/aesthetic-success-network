@@ -442,9 +442,11 @@ async function handleEvent(event: Stripe.Event, stripe: Stripe): Promise<string 
     // Without this, a cancellation or card change made in the Stripe
     // Dashboard never reached the DB and `subscription_status` drifted.
     // applySubscriptionToBusiness refuses to write to a billing-exempt
-    // expert, so the lifetime-free founding cohort can never have a
-    // paywall resurrected by a stray Stripe event.
-    const business = await businessForCustomer(sb, customerId);
+    // expert (manual admin override), so an exempt expert can never have
+    // a paywall resurrected by a stray Stripe event. The subscription id
+    // is passed so a dual-role founding person (two subscriptions on one
+    // customer) mirrors each subscription onto the right row.
+    const business = await businessForCustomer(sb, customerId, sub.id);
     if (business) {
       await applySubscriptionToBusiness(sb, business, hydrated, stripe);
       return business.id;
@@ -500,9 +502,9 @@ async function handleEvent(event: Stripe.Event, stripe: Stripe): Promise<string 
         .eq("stripe_customer_id", customerId)
         .maybeSingle();
       if (expert) {
-        // Lifetime-free founding experts are never charged — never warn
-        // them about a trial ending. (Their expert row shouldn't carry a
-        // Stripe customer at all; this is a belt-and-braces guard.)
+        // Billing-exempt experts (manual override) are never charged —
+        // never warn them about a trial ending. (Their expert row shouldn't
+        // carry a Stripe customer at all; this is a belt-and-braces guard.)
         if (expert.billing_exempt) return null;
         void sendTrialEndingReminder({
           role: "expert",
@@ -514,11 +516,10 @@ async function handleEvent(event: Stripe.Event, stripe: Stripe): Promise<string 
         });
         return null;
       }
-      // No expert matched. Dual-role people share ONE subscription across
-      // their expert + company rows, and once the expert side is detached
-      // (founding experts are free) only the company row still points at
-      // this customer. Fall back to it so the company — which IS billed —
-      // still gets its trial-ending warning instead of silence.
+      // No expert matched. A legacy dual-role row may only point at this
+      // customer from the company side. Fall back to it so the company,
+      // which IS billed, still gets its trial-ending warning instead of
+      // silence.
       const { data: vendorFallback } = await sb
         .from("vendors")
         .select("id, contact_name, contact_email, billing_email")

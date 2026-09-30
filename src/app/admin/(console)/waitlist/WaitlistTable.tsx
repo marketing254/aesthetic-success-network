@@ -137,6 +137,35 @@ export default function WaitlistTable({
     });
   };
 
+  const [activating, setActivating] = useState<string | null>(null);
+  const [notice, setNotice] = useState<string | null>(null);
+
+  // Launch phase: members stay on the waitlist until the team activates
+  // them here. Activation creates the members row and sends the welcome
+  // email (same route the Members page uses).
+  const activate = async (row: WaitlistRow) => {
+    if (!window.confirm(`Activate ${row.full_name ?? row.email} as a member and send the welcome email?`)) return;
+    setActivating(row.id);
+    try {
+      const res = await fetch("/api/admin/members/activate", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ waitlist_signup_id: row.id }),
+      });
+      const body = (await res.json().catch(() => ({}))) as { ok?: boolean; error?: string };
+      if (!res.ok || body.error) {
+        setNotice(body.error ?? `Activate failed (${res.status})`);
+        return;
+      }
+      setRows((r) => r.map((x) => (x.id === row.id ? { ...x, status: "converted" } : x)));
+      setNotice(`${row.full_name ?? row.email} activated. Welcome email sent.`);
+    } catch {
+      setNotice("Network error. Please try again.");
+    } finally {
+      setActivating(null);
+    }
+  };
+
   const refresh = () => {
     startTransition(() => {
       fetch(`/api/admin/waitlist`, { method: "GET", cache: "no-store" })
@@ -162,7 +191,12 @@ export default function WaitlistTable({
             {counts.last_24h > 0 ? ` · ${counts.last_24h} in the last 24h` : ""}
           </Typography>
         </Box>
-        <Stack direction="row" spacing={1}>
+        <Stack direction="row" spacing={1} sx={{ alignItems: "center" }}>
+          {notice && (
+            <Typography variant="body2" sx={{ color: "text.secondary", mr: 1 }}>
+              {notice}
+            </Typography>
+          )}
           <Tooltip title="Refresh">
             <IconButton onClick={refresh} disabled={isPending}>
               <RefreshOutlinedIcon />
@@ -386,6 +420,17 @@ export default function WaitlistTable({
                         </Typography>
                       </Box>
                       <Box component="td">
+                        {row.status !== "converted" && (
+                          <Button
+                            size="small"
+                            variant="contained"
+                            disabled={activating === row.id}
+                            onClick={() => void activate(row)}
+                            sx={{ mr: 1, whiteSpace: "nowrap" }}
+                          >
+                            {activating === row.id ? "Activating..." : "Activate member"}
+                          </Button>
+                        )}
                         <Tooltip title={`Email ${row.email}`}>
                           <IconButton component="a" href={`mailto:${row.email}`} size="small">
                             <EmailOutlinedIcon fontSize="small" />

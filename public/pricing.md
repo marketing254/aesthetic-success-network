@@ -41,9 +41,9 @@ Companies serving aesthetic practices apply at
 https://www.aestheticsuccessnetwork.com/partners. Same Featured Partner
 benefits at every phase.
 
-- **Months 1 to 6**: $0/month (180-day trial)
-- **Months 7 to 12**: $39/month
-- **Month 13 onward**: $199/month or $1,990/year
+- **Months 1 to 12**: $39/month, charged from the day a card is added (no
+  free period)
+- **Month 13 onward**: $149/month
 - **Referral**: $50 per referred member, paid after their first payment
 - **Includes (every phase)**: profile and placement in your category,
   lead flow with a dashboard, Verified Partner badge, inclusion in the
@@ -60,8 +60,7 @@ https://www.aestheticsuccessnetwork.com/experts. Same Featured Expert
 benefits at every phase.
 
 - **Months 1 to 6**: $0/month (180-day trial)
-- **Months 7 to 12**: $39/month
-- **Month 13 onward**: $199/month or $1,990/year
+- **Month 7 onward**: $39/month, and it stays $39 (no later increase)
 - **Course revenue split**: experts keep **70%** of net paid-course
   revenue; the network keeps 30% and runs the platform (checkout,
   hosting, refunds)

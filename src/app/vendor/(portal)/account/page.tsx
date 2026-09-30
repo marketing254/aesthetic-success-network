@@ -17,16 +17,20 @@ import {
 import DownloadOutlinedIcon from "@mui/icons-material/DownloadOutlined";
 import OpenInNewRoundedIcon from "@mui/icons-material/OpenInNewRounded";
 import ReceiptLongOutlinedIcon from "@mui/icons-material/ReceiptLongOutlined";
-import { PageHeader, SectionCard, StatCard, TagPill, portalText } from "@/components/vendor/PortalUI";
+import CreditCardOutlinedIcon from "@mui/icons-material/CreditCardOutlined";
+import WorkspacePremiumOutlinedIcon from "@mui/icons-material/WorkspacePremiumOutlined";
+import EventOutlinedIcon from "@mui/icons-material/EventOutlined";
+import TimelineOutlinedIcon from "@mui/icons-material/TimelineOutlined";
+import { ListDivider, PageHeader, SectionCard, StatCard, TagPill, listHeadSx, listRowSx, portalText } from "@/components/vendor/PortalUI";
+import { CP } from "@/components/shared/CommunityPortalShell";
 import { createBrowserSupabase } from "@/lib/supabase/browser";
 import { fetchCurrentVendor } from "@/lib/supabase/vendorQueries";
 import type { VendorsRow } from "@/lib/supabase/types";
 import TrialStartCard from "@/components/shared/TrialStartCard";
+import { currentRampRow, normalizeVendorPlan, vendorRamp } from "@/lib/vendorPricing";
 
-const INK = "#111827";
-const MUTED = "#6B7280";
-const LINE = "#E5E7EB";
-const HOVER = "#F9FAFB";
+const INK = CP.ink;
+const MUTED = CP.muted;
 
 type Invoice = {
   id: string;
@@ -41,11 +45,9 @@ type Invoice = {
   hostedUrl: string | null;
 };
 
-const PLAN_LABELS: Record<string, { name: string; cadenceLabel: string }> = {
-  founding: { name: "Founding Company", cadenceLabel: "Growth rate $29/month, waived months 1 to 6" },
-  growth: { name: "Growth Company", cadenceLabel: "$29/month, months 7 to 12" },
-  standard: { name: "Standard Company", cadenceLabel: "$99/month from month 13 ($990/year)" },
-};
+// Price ramps live in src/lib/vendorPricing.ts, keyed by vendors.billing_plan:
+// website and founding_ladder ($39 months 1 to 12, then $149, no free
+// period), founding_flat ($39, no increase).
 
 export default function VendorAccountPage() {
   const [loading, setLoading] = useState(true);
@@ -71,7 +73,7 @@ export default function VendorAccountPage() {
   // Pull invoices from Stripe as soon as we know there's a customer.
   useEffect(() => {
     if (!vendor?.stripe_customer_id) {
-      // No Stripe customer yet (waiver phase) — render the empty state.
+      // No Stripe customer yet (card not added): render the empty state.
       setInvoices([]);
       return;
     }
@@ -115,9 +117,9 @@ export default function VendorAccountPage() {
 
   if (loading) {
     return (
-      <Stack sx={{ alignItems: "center", py: 8, gap: 2 }}>
+      <Stack sx={{ alignItems: "center", py: 10, gap: 2 }}>
         <CircularProgress size={24} />
-        <Typography sx={portalText.meta}>Loading account…</Typography>
+        <Typography sx={portalText.meta}>Loading account...</Typography>
       </Stack>
     );
   }
@@ -130,35 +132,53 @@ export default function VendorAccountPage() {
     );
   }
 
-  const plan = PLAN_LABELS[vendor.plan_id ?? "founding"] ?? PLAN_LABELS.founding;
-  const monthsLeftInWaiver = Math.max(0, 6 - vendor.months_in_program);
-  const waiverProgress = Math.min(100, (vendor.months_in_program / 6) * 100);
-  const nextBill = monthsLeftInWaiver > 0 ? "$0.00" : "$29.00";
+  const plan = normalizeVendorPlan(vendor.billing_plan);
+  const ramp = vendorRamp(plan);
+  const isWebsite = plan === "website";
+  const months = vendor.months_in_program ?? 0;
+  const hasTrial = vendor.subscription_status === "trialing";
+  const currentRow = currentRampRow(plan, months);
+  const nextBill = ramp.monthlyNow(months, hasTrial);
+  // Progress box: website and founding-ladder companies count down the 12
+  // months at $39 (the 12-month term); founding flat has no step to count
+  // down to.
+  const firstStepEnd = ramp.rows[0]?.to ?? null;
+  const monthsLeftInStep = firstStepEnd === null ? 0 : Math.max(0, firstStepEnd - months);
+  const stepProgress = firstStepEnd === null ? 100 : Math.min(100, (months / firstStepEnd) * 100);
+  const lifetimeBilled = (invoices ?? []).reduce((sum, inv) => sum + (Number(inv.amountPaid) || 0), 0);
 
   return (
     <Stack spacing={3}>
       <PageHeader
         title="Account and billing"
-        subtitle="Your founding rate is locked through month 12. Manage payment method and download past invoices."
+        subtitle={`${ramp.summary}. Manage your payment method and download past invoices.`}
       />
 
       {/* Stat tiles */}
       <Grid container spacing={3}>
         <Grid size={{ xs: 12, sm: 6, lg: 3 }}>
-          <StatCard label="Current plan" value={plan.name} footer={<Box>{plan.cadenceLabel}</Box>} />
+          <StatCard icon={WorkspacePremiumOutlinedIcon} accent="gold" label="Current plan" value={ramp.label} footer={<Box>{ramp.summary}</Box>} />
         </Grid>
         <Grid size={{ xs: 12, sm: 6, lg: 3 }}>
           <StatCard
+            icon={EventOutlinedIcon}
+            accent="navy"
             label="Next billing"
             value={nextBill}
-            footer={`On ${monthsLeftInWaiver > 0 ? "1st next month" : "next renewal"}`}
+            footer={`${currentRow.label} at ${currentRow.price} a month`}
           />
         </Grid>
         <Grid size={{ xs: 12, sm: 6, lg: 3 }}>
-          <StatCard label="Months in program" value={`${vendor.months_in_program}/12`} footer="Founding term" />
+          <StatCard icon={TimelineOutlinedIcon} accent="gold" label="Months in program" value={`${months} of ${ramp.termMonths}`} footer={isWebsite ? "First year" : "Founding term"} />
         </Grid>
         <Grid size={{ xs: 12, sm: 6, lg: 3 }}>
-          <StatCard label="Lifetime billed" value="$0.00" footer="Waiver covers months 1-6" />
+          <StatCard
+            icon={ReceiptLongOutlinedIcon}
+            accent="green"
+            label="Lifetime billed"
+            value={`$${lifetimeBilled.toFixed(2)}`}
+            footer={plan === "founding_flat" ? "$39 a month, no increase" : "$39 a month for months 1 to 12"}
+          />
         </Grid>
       </Grid>
 
@@ -167,48 +187,53 @@ export default function VendorAccountPage() {
         <Grid size={{ xs: 12, lg: 7 }}>
           <SectionCard
             title="Subscription"
-            subtitle="The founding cohort schedule applies for your full first year."
+            subtitle={isWebsite ? "Your first-year schedule, then the standard rate." : "Your founding rate, locked for as long as you stay."}
             padding="default"
             action={
               <Stack direction="row" spacing={0.5} sx={{ flexWrap: "wrap", gap: 0.5 }}>
-                <TagPill label="FOUNDING" tone="gold" size="sm" />
+                <TagPill label={isWebsite ? "WEBSITE" : "FOUNDING"} tone={isWebsite ? "neutral" : "gold"} size="sm" />
                 <TagPill label="MONTH-TO-MONTH" tone="neutral" size="sm" />
               </Stack>
             }
           >
-            <Stack spacing={2}>
-              {/* Waiver progress */}
-              <Box>
-                <Stack direction="row" sx={{ alignItems: "baseline", justifyContent: "space-between", mb: 1 }}>
-                  <Typography sx={{ fontSize: "0.875rem", fontWeight: 600, color: INK }}>
-                    Founding waiver
+            <Stack spacing={2.5}>
+              {/* Step progress: 12 months at $39 (website and founding ladder); no bar for flat */}
+              {firstStepEnd !== null ? (
+                <Box sx={{ p: 2, borderRadius: "12px", bgcolor: CP.sand }}>
+                  <Stack direction="row" sx={{ alignItems: "baseline", justifyContent: "space-between", mb: 1 }}>
+                    <Typography sx={{ fontSize: "0.875rem", fontWeight: 700, color: INK }}>
+                      {isWebsite ? "Launch rate, first year" : "Founding term"}
+                    </Typography>
+                    <Typography sx={{ ...portalText.meta, color: CP.goldText, fontWeight: 600 }}>
+                      {monthsLeftInStep} month{monthsLeftInStep === 1 ? "" : "s"} left at {ramp.rows[0].price}
+                    </Typography>
+                  </Stack>
+                  <LinearProgress variant="determinate" value={stepProgress} sx={{ bgcolor: "rgba(255,255,255,0.8)" }} />
+                </Box>
+              ) : (
+                <Box sx={{ p: 2, borderRadius: "12px", bgcolor: CP.sand }}>
+                  <Typography sx={{ fontSize: "0.875rem", fontWeight: 700, color: INK }}>
+                    Founding company: $39 a month, no increase
                   </Typography>
-                  <Typography sx={portalText.meta}>
-                    {monthsLeftInWaiver} month{monthsLeftInWaiver === 1 ? "" : "s"} left at $0
-                  </Typography>
-                </Stack>
-                <LinearProgress variant="determinate" value={waiverProgress} />
-              </Box>
+                </Box>
+              )}
 
               <Divider />
 
               {/* Pricing ladder */}
-              <Stack spacing={1.25}>
-                <Typography sx={{ fontSize: "0.875rem", fontWeight: 600, color: INK }}>
-                  Pricing ladder
+              <Stack spacing={1}>
+                <Typography sx={{ fontSize: "0.875rem", fontWeight: 700, color: INK }}>
+                  {ramp.rows.length > 1 ? "Pricing ladder" : "Pricing"}
                 </Typography>
-                <LadderRow
-                  period="Months 1-6"
-                  price="$0/mo"
-                  note="Founding waiver, applies automatically"
-                  current={vendor.months_in_program <= 6}
-                />
-                <LadderRow
-                  period="Month 7 onward"
-                  price="$29/mo"
-                  note="Locked launch rate"
-                  current={vendor.months_in_program > 6}
-                />
+                {ramp.rows.map((row) => (
+                  <LadderRow
+                    key={row.label}
+                    period={row.label}
+                    price={`${row.price}/mo`}
+                    note={row.note}
+                    current={row.label === currentRow.label}
+                  />
+                ))}
               </Stack>
             </Stack>
           </SectionCard>
@@ -222,7 +247,7 @@ export default function VendorAccountPage() {
               padding="default"
               action={
                 vendor.card_brand && vendor.card_last4 ? (
-                  <TagPill label="ON FILE" tone="neutral" size="sm" />
+                  <TagPill label="ON FILE" tone="green" size="sm" />
                 ) : (
                   <TagPill label="WAIVED" tone="neutral" size="sm" />
                 )
@@ -231,9 +256,11 @@ export default function VendorAccountPage() {
               {vendor.card_brand && vendor.card_last4 ? (
                 <Stack direction={{ xs: "column", sm: "row" }} spacing={1.5} sx={{ alignItems: { sm: "center" }, justifyContent: "space-between" }}>
                   <Stack direction="row" spacing={1.5} sx={{ alignItems: "center" }}>
-                    <ReceiptLongOutlinedIcon sx={{ fontSize: 20, color: MUTED }} />
+                    <Box sx={{ width: 40, height: 40, borderRadius: "50%", bgcolor: CP.sand, color: CP.goldDeep, display: "grid", placeItems: "center" }}>
+                      <CreditCardOutlinedIcon sx={{ fontSize: 20 }} />
+                    </Box>
                     <Box>
-                      <Typography sx={{ fontSize: "0.875rem", fontWeight: 600, color: INK }}>
+                      <Typography sx={{ fontSize: "0.875rem", fontWeight: 700, color: INK }}>
                         {capitaliseFirst(vendor.card_brand)} ending {vendor.card_last4}
                       </Typography>
                       <Typography sx={portalText.meta}>Default for future charges</Typography>
@@ -257,16 +284,24 @@ export default function VendorAccountPage() {
                 </Stack>
               ) : (
                 <Box>
-                  <Typography sx={{ fontSize: "0.875rem", fontWeight: 600, color: INK, mb: 0.5 }}>
+                  <Typography sx={{ fontSize: "0.875rem", fontWeight: 700, color: INK, mb: 0.5 }}>
                     No payment method required yet
                   </Typography>
                   <Typography sx={portalText.body}>
-                    Your first {monthsLeftInWaiver === 6 ? "6 months" : `${monthsLeftInWaiver} month${monthsLeftInWaiver === 1 ? "" : "s"}`} are <Box component="strong" sx={{ color: INK, fontWeight: 600 }}>completely free</Box> as a founding company. We&apos;ll ask you to add a card a few weeks before month 7. Billing email is {vendor.billing_email ?? vendor.contact_email}.
+                    {isWebsite ? (
+                      <>
+                        Add a card below to start your listing:{" "}
+                        <Box component="strong" sx={{ color: INK, fontWeight: 700 }}>$39 a month for months 1 to 12</Box>, then $149 a month from month 13. Your first $39 charge is today.
+                      </>
+                    ) : (
+                      <>Your card is on file with Stripe. Open the Stripe portal to update it.</>
+                    )}{" "}
+                    Billing email is {vendor.billing_email ?? vendor.contact_email}.
                   </Typography>
                 </Box>
               )}
               {portalError && (
-                <Typography sx={{ fontSize: "0.8125rem", color: "#991B1B", mt: 1 }}>
+                <Typography sx={{ fontSize: "0.8125rem", color: CP.errorFg, mt: 1 }}>
                   {portalError}
                 </Typography>
               )}
@@ -274,7 +309,7 @@ export default function VendorAccountPage() {
 
             <SectionCard title="Cancellation" padding="default">
               <Typography sx={portalText.body}>
-                Cancel anytime with <Box component="strong" sx={{ color: INK, fontWeight: 600 }}>30 days&apos; written notice</Box>{" "}
+                Cancel anytime with <Box component="strong" sx={{ color: INK, fontWeight: 700 }}>30 days&apos; written notice</Box>{" "}
                 through this portal. You remain responsible for fees accrued through the effective date of
                 termination.
               </Typography>
@@ -294,11 +329,12 @@ export default function VendorAccountPage() {
         </Grid>
       </Grid>
 
-      {/* Trial-start card — shown on first login after approval. Captures
-          the card via SetupIntent + <PaymentElement>, then creates a
-          Stripe subscription with 180-day trial. Once trialing/active,
-          this card hides and normal billing UI takes over. */}
-      {!vendor.stripe_subscription_id && (
+      {/* Sign-and-pay card: shown on first login after approval. Captures
+          the card via SetupIntent + <PaymentElement>, then creates the
+          $39 x 12 then $149 subscription schedule (first $39 charged
+          today). Once active, this card hides and normal billing UI
+          takes over. */}
+      {isWebsite && !vendor.stripe_subscription_id && (
         <TrialStartCard
           prepareEndpoint="/api/vendor/billing/trial/prepare"
           startEndpoint="/api/vendor/billing/trial/start"
@@ -306,7 +342,7 @@ export default function VendorAccountPage() {
         />
       )}
 
-      {/* Invoices — live from Stripe via /api/vendor/billing/invoices */}
+      {/* Invoices: live from Stripe via /api/vendor/billing/invoices */}
       <SectionCard
         title="Invoices"
         subtitle="Pulled live from Stripe. PDF receipts available for every charge."
@@ -314,16 +350,9 @@ export default function VendorAccountPage() {
       >
         <Box
           sx={{
+            ...(listHeadSx as object),
             display: { xs: "none", md: "grid" },
-            gridTemplateColumns: "1fr 120px 1.5fr 120px 120px",
-            px: 3,
-            py: 1.25,
-            borderBottom: `1px solid ${LINE}`,
-            fontSize: "0.75rem",
-            fontWeight: 600,
-            color: MUTED,
-            letterSpacing: 0,
-            textTransform: "none",
+            gridTemplateColumns: "1fr 120px 1.5fr 120px 140px",
           }}
         >
           <Box>Invoice</Box>
@@ -338,21 +367,18 @@ export default function VendorAccountPage() {
           </Stack>
         ) : invoices.length === 0 ? (
           <Box sx={{ px: 3, py: 3, color: MUTED, fontSize: "0.875rem" }}>
-            No invoices yet. Your first invoice ships once the waiver period ends.
+            No invoices yet. Your first invoice appears after your first monthly charge.
           </Box>
         ) : (
-          <Stack divider={<Box sx={{ borderTop: `1px solid ${LINE}` }} />}>
+          <Stack divider={<ListDivider />}>
             {invoices.map((inv) => (
               <Box
                 key={inv.id}
                 sx={{
+                  ...(listRowSx as object),
                   display: "grid",
-                  gridTemplateColumns: { xs: "1fr auto", md: "1fr 120px 1.5fr 120px 120px" },
-                  alignItems: "center",
-                  px: 3,
-                  py: 1.5,
+                  gridTemplateColumns: { xs: "1fr auto", md: "1fr 120px 1.5fr 120px 140px" },
                   gap: 1,
-                  "&:hover": { bgcolor: HOVER },
                 }}
               >
                 <Stack direction="row" spacing={1} sx={{ alignItems: "center" }}>
@@ -361,7 +387,7 @@ export default function VendorAccountPage() {
                     {inv.number ?? inv.id.slice(0, 10)}
                   </Typography>
                 </Stack>
-                <Box sx={{ display: { xs: "none", md: "block" }, fontSize: "0.875rem", color: "#374151" }}>
+                <Box sx={{ display: { xs: "none", md: "block" }, fontSize: "0.875rem", color: CP.body }}>
                   {formatInvoiceDate(inv.createdAt)}
                 </Box>
                 <Box sx={{ display: { xs: "none", md: "block" }, fontSize: "0.8125rem", color: MUTED }}>
@@ -371,7 +397,7 @@ export default function VendorAccountPage() {
                   sx={{
                     display: { xs: "none", md: "block" },
                     fontSize: "0.875rem",
-                    fontWeight: 600,
+                    fontWeight: 700,
                     color: INK,
                     textAlign: "right",
                     fontVariantNumeric: "tabular-nums",
@@ -449,23 +475,24 @@ function LadderRow({
       spacing={1.5}
       sx={{
         alignItems: "center",
-        px: 1.5,
+        px: 1.75,
         py: 1.25,
-        borderRadius: "6px",
-        bgcolor: current ? HOVER : "transparent",
-        border: `1px solid ${current ? LINE : "transparent"}`,
+        borderRadius: "10px",
+        bgcolor: current ? CP.goldTint : "transparent",
+        border: `1px solid ${current ? "rgba(217,168,75,0.4)" : "transparent"}`,
       }}
     >
+      <Box sx={{ width: 8, height: 8, borderRadius: "50%", bgcolor: current ? CP.gold : CP.border, flexShrink: 0 }} />
       <Box sx={{ flex: 1, minWidth: 0 }}>
         <Stack direction="row" spacing={1} sx={{ alignItems: "baseline", flexWrap: "wrap" }}>
-          <Typography sx={{ fontSize: "0.875rem", fontWeight: 600, color: INK }}>{period}</Typography>
+          <Typography sx={{ fontSize: "0.875rem", fontWeight: 700, color: INK }}>{period}</Typography>
           <Typography sx={{ fontSize: "0.8125rem", color: MUTED }}>{note}</Typography>
         </Stack>
       </Box>
-      <Typography sx={{ fontSize: "0.9375rem", fontWeight: 600, color: INK, fontVariantNumeric: "tabular-nums" }}>
+      <Typography sx={{ fontSize: "0.9375rem", fontWeight: 700, color: INK, fontVariantNumeric: "tabular-nums" }}>
         {price}
       </Typography>
-      {current && <TagPill label="CURRENT" tone="navy" size="sm" />}
+      {current && <TagPill label="CURRENT" tone="gold" size="sm" />}
     </Stack>
   );
 }

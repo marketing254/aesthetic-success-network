@@ -198,6 +198,9 @@ export type VendorsRow = {
   card_brand: string | null;
   card_last4: string | null;
   founding_partner_locked: boolean;
+  // Added in 0070_vendor_billing_plan.sql. Which price ramp the company
+  // portal shows: website (default), founding_ladder, founding_flat.
+  billing_plan: "website" | "founding_ladder" | "founding_flat";
   // Added in 0039_vendor_billing_parent.sql — when set, this company's
   // billing + access inherit the referenced (paying) partner vendor.
   billing_parent_id: string | null;
@@ -698,8 +701,9 @@ export type ExpertsRow = {
   card_last4: string | null;
   months_in_program: number;
   founding_expert_locked: boolean;
-  // Added in 0042_expert_billing_exempt.sql — lifetime-free founding
-  // expert. Expert-side only; their company still bills via `vendors`.
+  // Added in 0042_expert_billing_exempt.sql — billing exemption, a manual
+  // admin override only (founding invites do not set it). Expert-side
+  // only; their company still bills via `vendors`.
   billing_exempt: boolean;
   billing_exempt_reason: string | null;
   billing_exempt_granted_at: string | null;
@@ -1049,7 +1053,11 @@ export type LeadMagnetLeadsRow = {
 
 export type FoundingInviteStatus = "draft" | "sent" | "viewed" | "accepted" | "revoked";
 export type FoundingInviteRole = "expert" | "partner" | "both";
-/** Partner price plan chosen per invite (0066). ladder = $39 then $199 from month 13; flat_49 = $39 for good. */
+/**
+ * Price plan chosen per founding invite (0066). Company side: ladder = $39 a
+ * month for 12 months then $149; flat_49 = $39 for good. Expert invites are
+ * always ladder = 12 months free, then $39.
+ */
 export type FoundingInvitePricing = "ladder" | "flat_49";
 
 // Added in 0041_founding_invite_companies.sql. One entry per company on a

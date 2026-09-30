@@ -8,12 +8,13 @@ export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
 /**
- * Founding-expert billing exemption — admin control.
+ * Expert billing exemption — admin control (MANUAL OVERRIDE ONLY).
  *
- * The first FOUNDING_EXPERT_CAP (20) real experts are free for life:
+ * Up to FOUNDING_EXPERT_CAP (20) experts can be marked billing-exempt:
  * `experts.billing_exempt = true` means they are never charged, never
- * asked for a card, and never see the billing UI. Expert 21 onward runs
- * on the normal ladder ($0 months 1-6 → $29).
+ * asked for a card, and never see the billing UI. Founding invites do NOT
+ * set this: a founding expert gets 12 months free, then $39/month, and a
+ * website expert gets 6 months free, then $39/month.
  *
  * Expert-side ONLY. A founding expert who also lists a company keeps
  * paying through their `vendors` row — this endpoint never touches it.
@@ -27,7 +28,7 @@ export const dynamic = "force-dynamic";
 
 type Body = { expertId?: string; email?: string; action?: string };
 
-/** GET — how many lifetime-free slots are used / left. */
+/** GET — how many billing-exemption overrides are used / left. */
 export async function GET() {
   const guard = await requireAdmin();
   if (!guard.ok) return guard.response;
@@ -53,7 +54,7 @@ export async function GET() {
 }
 
 /**
- * PATCH — grant the lifetime-free exemption to one expert.
+ * PATCH — grant the billing exemption (manual override) to one expert.
  *
  * Body: { expertId | email, action: "grant_free" }
  *
@@ -103,7 +104,7 @@ export async function PATCH(req: Request) {
     const name = expert.display_name || expert.full_name || expert.email;
 
     if (expert.billing_exempt) {
-      return NextResponse.json({ ok: true, alreadyExempt: true, message: `${name} is already free for life.` });
+      return NextResponse.json({ ok: true, alreadyExempt: true, message: `${name} is already billing-exempt.` });
     }
 
     // Pre-flight so the common case gets a friendly message rather than a
@@ -115,7 +116,7 @@ export async function PATCH(req: Request) {
     if ((count ?? 0) >= FOUNDING_EXPERT_CAP) {
       return NextResponse.json(
         {
-          error: `All ${FOUNDING_EXPERT_CAP} lifetime-free founding slots are used. ${name} goes on the normal paid ladder instead.`,
+          error: `All ${FOUNDING_EXPERT_CAP} billing-exemption overrides are used. ${name} stays on their normal expert billing.`,
           cap: FOUNDING_EXPERT_CAP,
           used: count ?? 0,
           remaining: 0,
@@ -128,7 +129,7 @@ export async function PATCH(req: Request) {
       .from("experts")
       .update({
         billing_exempt: true,
-        billing_exempt_reason: `Founding expert cohort, lifetime free. Granted by ${guard.email}.`,
+        billing_exempt_reason: `Billing exemption (manual admin override). Granted by ${guard.email}.`,
         billing_exempt_granted_at: new Date().toISOString(),
       })
       .eq("id", expert.id);
@@ -146,14 +147,14 @@ export async function PATCH(req: Request) {
       target_type: "expert",
       target_id: expert.id,
       action: "grant_billing_exempt",
-      note: `Lifetime-free founding expert (cap ${FOUNDING_EXPERT_CAP})`,
+      note: `Billing exemption, manual override (cap ${FOUNDING_EXPERT_CAP})`,
       admin_id: guard.adminId,
     });
 
     const used = (count ?? 0) + 1;
     return NextResponse.json({
       ok: true,
-      message: `${name} is now free for life. ${FOUNDING_EXPERT_CAP - used} of ${FOUNDING_EXPERT_CAP} founding slots left.`,
+      message: `${name} is now billing-exempt. ${FOUNDING_EXPERT_CAP - used} of ${FOUNDING_EXPERT_CAP} overrides left.`,
       cap: FOUNDING_EXPERT_CAP,
       used,
       remaining: Math.max(0, FOUNDING_EXPERT_CAP - used),

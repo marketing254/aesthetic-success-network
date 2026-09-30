@@ -31,7 +31,13 @@ export type FoundingInvitePricingValue = "ladder" | "flat_49";
 export type FoundingInviteFormValues = {
   id?: string;
   role: FoundingInviteRoleValue;
-  /** Partner price plan. flat_49 = $39 from month 7 for good; ladder = $39 then $199 from month 13. */
+  /**
+   * Price plan (DB values ladder / flat_49, migration 0066).
+   *   expert invites: always "ladder" = 12 months free, then $39 a month.
+   *   company / both: "ladder" = $39 a month for 12 months, then $149 a
+   *   month (default); "flat_49" = $39 a month with no increase. For
+   *   "both" the plan governs the company side only.
+   */
   pricing_plan: FoundingInvitePricingValue;
   full_name: string;
   email: string;
@@ -54,7 +60,8 @@ export type FoundingInviteFormValues = {
 
 const EMPTY: FoundingInviteFormValues = {
   role: "partner",
-  // Canon: the ladder ($39 months 7 to 12, $199 from month 13) is the default.
+  // Default: founding company ladder ($39 x 12 months, then $149). Expert
+  // invites always use "ladder" (12 months free, then $39).
   pricing_plan: "ladder",
   full_name: "",
   email: "",
@@ -102,9 +109,24 @@ export default function FoundingInviteDialog({
   }, [open, initial]);
 
   const set = (k: keyof FoundingInviteFormValues) => (e: { target: { value: string } }) =>
-    setV((prev) => ({ ...prev, [k]: e.target.value }));
+    setV((prev) => {
+      const next = { ...prev, [k]: e.target.value } as FoundingInviteFormValues;
+      // Expert-only invites have exactly one plan (12 months free, then $39).
+      if (k === "role" && e.target.value === "expert") next.pricing_plan = "ladder";
+      return next;
+    });
 
   const needsCompany = v.role === "partner" || v.role === "both";
+  const pricingHelper =
+    v.role === "expert"
+      ? "Agreement, acceptance page, email and Stripe all show 12 months at $0, then $39 a month with no increase. A card is saved at acceptance; nothing is charged for 12 months."
+      : v.pricing_plan === "ladder"
+        ? `Company listing: $39 a month from acceptance for 12 months, then $149 a month. Agreement, acceptance page, email and Stripe schedule all show this.${
+            v.role === "both" ? " Expert access on the same invite is 12 months free, then $39 a month." : ""
+          }`
+        : `Company listing: one rate only, $39 a month from acceptance with no increase. Nothing they see mentions $149.${
+            v.role === "both" ? " Expert access on the same invite is 12 months free, then $39 a month." : ""
+          }`;
 
   const addCompany = () =>
     setV((p) => ({
@@ -231,25 +253,26 @@ export default function FoundingInviteDialog({
             </TextField>
           </Grid>
 
-          {needsCompany && (
-            <Grid size={{ xs: 12 }}>
-              <TextField
-                label="Company pricing"
-                value={v.pricing_plan}
-                onChange={set("pricing_plan")}
-                fullWidth
-                select
-                helperText={
-                  v.pricing_plan === "ladder"
-                    ? "Agreement, acceptance page, email and Stripe schedule all show $0 for months 1 to 6, $39 for months 7 to 12 and $199 from month 13."
-                    : "One rate only: $0 for months 1 to 6, then $39 a month with no increase. Nothing they see mentions $199."
-                }
-              >
-                <MenuItem value="ladder">$39 → $199 ladder: $0 months 1 to 6, $39 months 7 to 12, then $199/mo from month 13</MenuItem>
-                <MenuItem value="flat_49">$39 flat: $0 months 1 to 6, then $39/mo for good</MenuItem>
-              </TextField>
-            </Grid>
-          )}
+          <Grid size={{ xs: 12 }}>
+            <TextField
+              label={needsCompany ? "Company pricing" : "Expert pricing"}
+              value={v.pricing_plan}
+              onChange={set("pricing_plan")}
+              fullWidth
+              select
+              disabled={v.role === "expert"}
+              helperText={pricingHelper}
+            >
+              {v.role === "expert" ? (
+                <MenuItem value="ladder" sx={{ whiteSpace: "normal" }}>Founding expert: 12 months free, then $39 a month</MenuItem>
+              ) : (
+                [
+                  <MenuItem key="ladder" value="ladder" sx={{ whiteSpace: "normal" }}>Founding company: $39 a month for 12 months, then $149 a month</MenuItem>,
+                  <MenuItem key="flat_49" value="flat_49" sx={{ whiteSpace: "normal" }}>Flat: $39 a month with no increase</MenuItem>,
+                ]
+              )}
+            </TextField>
+          </Grid>
 
           <Grid size={{ xs: 12 }}>
             <SectionLabel>01 · Company{needsCompany ? "" : " (optional for expert-only)"}</SectionLabel>

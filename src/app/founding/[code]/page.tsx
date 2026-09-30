@@ -1,5 +1,7 @@
 import { Box, Container, Typography } from "@mui/material";
-import Header from "@/components/sections/Header";
+import SitePage from "@/components/site/SitePage";
+import SiteNav from "@/components/site/SiteNav";
+import SiteFooter from "@/components/site/SiteFooter";
 import { getSupabaseAdmin } from "@/lib/supabase/server";
 import FoundingAccept from "@/components/founding/FoundingAcceptV4";
 import { COLORS } from "@/theme";
@@ -52,7 +54,7 @@ export default async function FoundingInvitePage({
 
   return (
     <Box sx={{ minHeight: "100vh", bgcolor: COLORS.surface }}>
-      <Header />
+      <SitePage><SiteNav /></SitePage>
       {invalid ? (
         <Message
           title="This invite link isn't valid"

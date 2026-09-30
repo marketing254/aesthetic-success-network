@@ -12,20 +12,33 @@ import {
 import OpenInNewRoundedIcon from "@mui/icons-material/OpenInNewRounded";
 import DownloadRoundedIcon from "@mui/icons-material/DownloadRounded";
 import CreditCardRoundedIcon from "@mui/icons-material/CreditCardRounded";
+import WorkspacePremiumRoundedIcon from "@mui/icons-material/WorkspacePremiumRounded";
 import { createBrowserSupabase } from "@/lib/supabase/browser";
 import type { ExpertsRow } from "@/lib/supabase/types";
-import { phaseForMonth, priceLabelForPhase } from "@/lib/stripe";
+import { phaseForMonth } from "@/lib/stripe";
 import TrialStartCard from "@/components/shared/TrialStartCard";
+import { CP } from "@/components/shared/CommunityPortalShell";
+import { EP } from "@/components/shared/TopNavPortalShell";
 import { PageHeader, SectionCard } from "@/components/vendor/PortalUI";
 
-const INK = "#111827";
-const BODY = "#374151";
-const MUTED = "#6B7280";
-const FAINT = "#9CA3AF";
-const LINE = "#E5E7EB";
-const NAVY = "#0E2A3D";
-const NAVY_TINT = "rgba(14,42,61,0.08)";
-const HOVER = "#F9FAFB";
+const INK = CP.ink;
+const BODY = CP.body;
+const MUTED = CP.muted;
+const FAINT = CP.faint;
+const LINE = CP.border;
+const BRONZE_TINT = EP.bronzeTint;
+const HOVER = EP.bronzeTint;
+
+/**
+ * Expert ramp: a free period, then $39 a month for good. There is no
+ * month-13 step for experts. The free period is 6 months for website
+ * experts and 12 months for founding-invite experts; the "Until" date
+ * comes from the Stripe trial end so both read correctly.
+ */
+const RAMP = {
+  launch: { months: "Free period", price: "$0", note: "Founding waiver" },
+  growth: { months: "After your free period", price: "$39", note: "Locked rate, no increase" },
+} as const;
 
 type Invoice = {
   id: string;
@@ -42,9 +55,10 @@ type Invoice = {
 
 /**
  * Expert billing — mirrors the structure of the member BillingSection
- * but adapted to the ASN provider ramp ($0 months 1 to 6, $29 months 7
- * to 12, $99 from month 13). Adds a "phase ladder" card showing where
- * the expert is today and what's next.
+ * but adapted to the expert ramp (a free period, then $39 a month with
+ * no increase). The header band shows the ramp and where the expert is
+ * today; billing-exempt experts (manual admin override) see an
+ * exemption line instead.
  */
 export default function ExpertBillingPage() {
   const [expert, setExpert] = useState<ExpertsRow | null>(null);
@@ -120,15 +134,22 @@ export default function ExpertBillingPage() {
   };
 
   const monthsInProgram = expert?.months_in_program ?? 0;
-  const phase = phaseForMonth(monthsInProgram);
-  const currentPrice = priceLabelForPhase(phase);
-  const monthsLeftInWaiver = Math.max(0, 6 - monthsInProgram);
+  const trialing = expert?.subscription_status === "trialing";
+  // Experts only ever move launch -> growth. While Stripe says "trialing"
+  // they are in the free period regardless of months_in_program (founding
+  // experts trial for 12 months, website experts for 6).
+  const phase: "launch" | "growth" = trialing ? "launch" : phaseForMonth(monthsInProgram, "expert") === "launch" ? "launch" : "growth";
+  const currentPrice = `${RAMP[phase].price} / mo`;
+  const freePeriodEnds = trialing && expert?.current_period_end ? formatDate(expert.current_period_end) : null;
   const hasSubscription = !!expert?.stripe_subscription_id;
-  // Founding cohort — lifetime free. No card, no subscription, no invoices.
+  // Billing exemption (manual admin override). No card, no subscription, no invoices.
   const billingExempt = !!expert?.billing_exempt;
+  const rampSentence = freePeriodEnds
+    ? `Free until ${freePeriodEnds}, then $39 a month. It stays $39, with no increase. Cancel anytime.`
+    : "Free for your first 6 months, then $39 a month. It stays $39, with no increase. Cancel anytime.";
 
   const planLabel = useMemo(() => {
-    const phaseLabel = phase === "launch" ? "Launch" : phase === "growth" ? "Growth" : "Standard";
+    const phaseLabel = phase === "launch" ? "Launch" : "Growth";
     return `Featured Expert · ${phaseLabel}`;
   }, [phase]);
 
@@ -172,30 +193,88 @@ export default function ExpertBillingPage() {
         title="Plan and billing"
         subtitle={
           billingExempt
-            ? "Your founding expert membership is free for life. There's nothing to manage here."
+            ? "Your expert membership is billing-exempt. There's nothing to manage here."
             : "Manage your subscription, payment method, and invoices. Everything is handled securely through Stripe."
         }
       />
 
-      {/* ---- Lifetime-free founding expert ----
-          Takes precedence over every other state: no card prompt, no
-          plan card, no invoices. Their company (if they run one) bills
-          separately through the partner portal. */}
-      {billingExempt && (
-        <SectionCard
-          title="Founding expert: free for life"
-          subtitle="You're part of the founding bench. We never charge you and we don't keep a card on file."
-        >
-          <Typography sx={{ fontSize: "0.875rem", color: BODY, lineHeight: 1.6 }}>
-            Your expert membership costs nothing, now or later: no trial, no renewal, no
-            payment method required. Everything in your portal stays unlocked.
-          </Typography>
-          <Typography sx={{ fontSize: "0.8125rem", color: MUTED, lineHeight: 1.6, mt: 1.5 }}>
-            If you also list a company, that company is billed separately in the
-            company portal. This page only covers your expert membership.
-          </Typography>
-        </SectionCard>
-      )}
+      {/* ---- Header band: forest gradient with the ramp cells, or the
+          exemption line for billing-exempt experts ---- */}
+      <Box
+        sx={{
+          position: "relative",
+          overflow: "hidden",
+          borderRadius: "16px",
+          bgcolor: EP.espresso,
+          backgroundImage: `linear-gradient(135deg, ${EP.espresso} 0%, ${EP.espressoDeep} 100%)`,
+          color: CP.ivory,
+          px: { xs: 3, md: 4 },
+          py: { xs: 3, md: 3.5 },
+          boxShadow: "0 18px 40px -24px rgba(43,30,20,0.55)",
+          "&::before": {
+            content: '""',
+            position: "absolute",
+            top: -140,
+            right: -100,
+            width: 420,
+            height: 420,
+            borderRadius: "50%",
+            background: "radial-gradient(circle, rgba(176,122,44,0.42) 0%, rgba(176,122,44,0.12) 40%, transparent 70%)",
+            pointerEvents: "none",
+          },
+        }}
+      >
+        {billingExempt ? (
+          <Stack direction={{ xs: "column", md: "row" }} spacing={2.5} sx={{ position: "relative", alignItems: { md: "center" } }}>
+            <Box
+              sx={{
+                width: 48,
+                height: 48,
+                borderRadius: "14px",
+                bgcolor: CP.gold,
+                color: CP.ink,
+                display: "grid",
+                placeItems: "center",
+                flexShrink: 0,
+              }}
+            >
+              <WorkspacePremiumRoundedIcon sx={{ fontSize: 26 }} />
+            </Box>
+            <Box sx={{ minWidth: 0 }}>
+              <Typography sx={{ fontSize: "0.8125rem", fontWeight: 600, color: CP.gold, mb: 0.5 }}>Founding bench</Typography>
+              <Typography sx={{ fontSize: { xs: "1.375rem", md: "1.625rem" }, fontWeight: 800, letterSpacing: "-0.02em", color: "#FFFFFF", lineHeight: 1.2 }}>
+                Expert membership: billing-exempt
+              </Typography>
+              <Typography sx={{ fontSize: "0.875rem", color: CP.ivory80, lineHeight: 1.6, mt: 0.75, maxWidth: 640 }}>
+                Your expert membership costs nothing, now or later: no trial, no renewal, no payment method required.
+                Everything in your portal stays unlocked.
+              </Typography>
+              <Typography sx={{ fontSize: "0.8125rem", color: CP.ivory55, lineHeight: 1.6, mt: 1 }}>
+                If you also list a company, that company is billed separately in the company portal. This page only
+                covers your expert membership.
+              </Typography>
+            </Box>
+          </Stack>
+        ) : (
+          <Box sx={{ position: "relative" }}>
+            <Typography sx={{ fontSize: "0.8125rem", fontWeight: 600, color: "#E4B96A", mb: 0.5 }}>Your ramp</Typography>
+            <Typography sx={{ fontSize: { xs: "1.25rem", md: "1.5rem" }, fontWeight: 800, letterSpacing: "-0.02em", color: "#FFFFFF", lineHeight: 1.2 }}>
+              {phase === "launch"
+                ? freePeriodEnds
+                  ? `Free until ${freePeriodEnds}`
+                  : "Your free period"
+                : `Now: ${RAMP.growth.price} a month`}
+            </Typography>
+            <Typography sx={{ fontSize: "0.875rem", color: CP.ivory80, lineHeight: 1.6, mt: 0.5 }}>
+              {rampSentence}
+            </Typography>
+            <Stack direction={{ xs: "column", sm: "row" }} spacing={1.5} sx={{ mt: 2.5 }}>
+              <RampCell {...RAMP.launch} note={freePeriodEnds ? `Until ${freePeriodEnds}` : RAMP.launch.note} current={phase === "launch"} />
+              <RampCell {...RAMP.growth} current={phase === "growth"} />
+            </Stack>
+          </Box>
+        )}
+      </Box>
 
       {/* ---- Trial-start (no subscription yet) ---- */}
       {!billingExempt && !hasSubscription && (
@@ -249,7 +328,7 @@ export default function ExpertBillingPage() {
           </Stack>
 
           {portalError && (
-            <Typography sx={{ fontSize: "0.8125rem", color: "#991B1B", mt: 1.5 }}>
+            <Typography sx={{ fontSize: "0.8125rem", color: CP.errorFg, mt: 1.5 }}>
               {portalError}
             </Typography>
           )}
@@ -294,21 +373,22 @@ export default function ExpertBillingPage() {
         </SectionCard>
       )}
 
-      {/* ---- Pricing ladder ---- (never shown to lifetime-free experts) */}
+      {/* ---- Pricing ladder ---- (never shown to billing-exempt experts) */}
       {!billingExempt && (
       <SectionCard
         title="Pricing ladder"
         subtitle={
-          monthsLeftInWaiver > 0
-            ? `${monthsLeftInWaiver} month${monthsLeftInWaiver === 1 ? "" : "s"} left at $0`
-            : "Founding waiver complete"
+          phase === "launch"
+            ? freePeriodEnds
+              ? `Free until ${freePeriodEnds}`
+              : "Your free period"
+            : "Free period complete"
         }
         padding="none"
       >
         <Stack sx={{ p: 2 }} spacing={0.5}>
-          <LadderRow period="Months 1 to 6" price="$0/mo" note="Founding waiver" current={phase === "launch"} />
-          <LadderRow period="Months 7 to 12" price="$29/mo" note="Growth rate" current={phase === "growth"} />
-          <LadderRow period="Month 13 onward" price="$99/mo" note="Standard rate ($990/yr)" current={phase === "standard"} />
+          <LadderRow period={RAMP.launch.months} price={`${RAMP.launch.price}/mo`} note={freePeriodEnds ? `Until ${freePeriodEnds}` : RAMP.launch.note} current={phase === "launch"} />
+          <LadderRow period={RAMP.growth.months} price={`${RAMP.growth.price}/mo`} note={RAMP.growth.note} current={phase === "growth"} />
         </Stack>
         <Box sx={{ px: 3, py: 2, borderTop: `1px solid ${LINE}` }}>
           <Typography sx={{ fontSize: "0.8125rem", color: MUTED, lineHeight: 1.6 }}>
@@ -319,7 +399,7 @@ export default function ExpertBillingPage() {
       </SectionCard>
       )}
 
-      {/* ---- Invoices ---- (lifetime-free experts are never invoiced) */}
+      {/* ---- Invoices ---- (billing-exempt experts are never invoiced) */}
       {!billingExempt && (
       <SectionCard title="Invoices" subtitle="Receipts for every charge. Download for your records." padding="none">
         {effectiveInvoices === null ? (
@@ -375,28 +455,75 @@ function MetaItem({ label, children }: { label: string; children: React.ReactNod
 function StatusPill({ label, tone }: { label: string; tone: "leaf" | "gold" | "red" | "grey" }) {
   const p =
     tone === "leaf"
-      ? { bg: "#DCFCE7", fg: "#166534" }
+      ? { bg: CP.successBg, fg: CP.successFg }
       : tone === "gold"
-        ? { bg: "#FEF3C7", fg: "#92400E" }
+        ? { bg: CP.warningBg, fg: CP.warningFg }
         : tone === "red"
-          ? { bg: "#FEE2E2", fg: "#991B1B" }
-          : { bg: "#F3F4F6", fg: BODY };
+          ? { bg: CP.errorBg, fg: CP.errorFg }
+          : { bg: CP.neutralBg, fg: CP.neutralFg };
   return (
     <Box
       component="span"
       sx={{
         display: "inline-flex",
         alignItems: "center",
-        px: 1,
-        height: 24,
-        borderRadius: "6px",
+        px: 1.1,
+        height: 26,
+        borderRadius: `${CP.radiusChip}px`,
         bgcolor: p.bg,
         color: p.fg,
         fontSize: "0.75rem",
-        fontWeight: 500,
+        fontWeight: 600,
       }}
     >
       {label}
+    </Box>
+  );
+}
+
+/** One cell of the ramp inside the forest header band. */
+function RampCell({ months, price, note, current }: { months: string; price: string; note: string; current: boolean }) {
+  return (
+    <Box
+      sx={{
+        flex: 1,
+        minWidth: 0,
+        px: 2,
+        py: 1.5,
+        borderRadius: "12px",
+        bgcolor: current ? "rgba(176,122,44,0.28)" : "rgba(255,255,255,0.06)",
+        border: `1px solid ${current ? EP.bronze : "rgba(255,255,255,0.10)"}`,
+        position: "relative",
+      }}
+    >
+      <Stack direction="row" spacing={1} sx={{ alignItems: "center", justifyContent: "space-between" }}>
+        <Typography sx={{ fontSize: "0.75rem", fontWeight: 600, color: current ? "#E4B96A" : CP.ivory55 }}>{months}</Typography>
+        {current && (
+          <Box
+            component="span"
+            sx={{
+              px: 0.75,
+              height: 18,
+              borderRadius: 999,
+              bgcolor: EP.bronze,
+              color: "#FFFFFF",
+              fontSize: "0.625rem",
+              fontWeight: 700,
+              display: "inline-grid",
+              placeItems: "center",
+            }}
+          >
+            Now
+          </Box>
+        )}
+      </Stack>
+      <Typography sx={{ fontSize: "1.5rem", fontWeight: 800, letterSpacing: "-0.02em", color: "#FFFFFF", lineHeight: 1.15, mt: 0.5, fontVariantNumeric: "tabular-nums" }}>
+        {price}
+        <Box component="span" sx={{ fontSize: "0.8125rem", fontWeight: 600, color: CP.ivory80, ml: 0.5 }}>
+          /mo
+        </Box>
+      </Typography>
+      <Typography sx={{ fontSize: "0.75rem", color: CP.ivory80, mt: 0.25 }}>{note}</Typography>
     </Box>
   );
 }
@@ -420,8 +547,8 @@ function LadderRow({
         alignItems: "center",
         px: 1.5,
         py: 1.25,
-        borderRadius: "6px",
-        bgcolor: current ? NAVY_TINT : "transparent",
+        borderRadius: "10px",
+        bgcolor: current ? BRONZE_TINT : "transparent",
       }}
     >
       <Box sx={{ flex: 1, minWidth: 0 }}>
@@ -436,8 +563,8 @@ function LadderRow({
       <Typography
         sx={{
           fontSize: "0.875rem",
-          fontWeight: 600,
-          color: current ? NAVY : INK,
+          fontWeight: 700,
+          color: current ? EP.bronzeDeep : INK,
           textAlign: "right",
           minWidth: 64,
           fontVariantNumeric: "tabular-nums",
@@ -517,12 +644,12 @@ function InvoiceRow({ invoice }: { invoice: Invoice }) {
 function InvoiceStatus({ status }: { status: string | null }) {
   const palette =
     status === "paid"
-      ? { bg: "#DCFCE7", fg: "#166534" }
+      ? { bg: CP.successBg, fg: CP.successFg }
       : status === "open"
-        ? { bg: "#FEF3C7", fg: "#92400E" }
+        ? { bg: CP.warningBg, fg: CP.warningFg }
         : status === "void" || status === "uncollectible"
-          ? { bg: "#FEE2E2", fg: "#991B1B" }
-          : { bg: "#F3F4F6", fg: BODY };
+          ? { bg: CP.errorBg, fg: CP.errorFg }
+          : { bg: CP.neutralBg, fg: CP.neutralFg };
   const label = status ? capitalise(status) : "Unknown";
   return (
     <Box
@@ -532,11 +659,11 @@ function InvoiceStatus({ status }: { status: string | null }) {
         alignItems: "center",
         height: 20,
         px: 0.75,
-        borderRadius: "6px",
+        borderRadius: `${CP.radiusChip}px`,
         bgcolor: palette.bg,
         color: palette.fg,
         fontSize: "0.6875rem",
-        fontWeight: 500,
+        fontWeight: 600,
       }}
     >
       {label}

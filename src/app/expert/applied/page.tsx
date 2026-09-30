@@ -1,6 +1,9 @@
 "use client";
 
 import Link from "next/link";
+import SitePage from "@/components/site/SitePage";
+import SiteNav from "@/components/site/SiteNav";
+import SiteFooter from "@/components/site/SiteFooter";
 import {
   Box,
   Button,
@@ -14,8 +17,6 @@ import CheckCircleRoundedIcon from "@mui/icons-material/CheckCircleRounded";
 import MailOutlineRoundedIcon from "@mui/icons-material/MailOutlineRounded";
 import VerifiedUserOutlinedIcon from "@mui/icons-material/VerifiedUserOutlined";
 import CalendarTodayOutlinedIcon from "@mui/icons-material/CalendarTodayOutlined";
-import Header from "@/components/sections/Header";
-import Footer from "@/components/sections/Footer";
 
 /**
  * Expert "application received" thank-you page. Mirror of
@@ -44,13 +45,13 @@ export default function ExpertAppliedPage() {
     {
       icon: CalendarTodayOutlinedIcon,
       title: "Add your card on first login, and your free period starts",
-      body: "Once approved, sign in and add your card in the billing tab. That kicks off your 6 months free (Stripe trial). Nothing is charged until month 7: $29/month for months 7 to 12, then $99/month from month 13. Cancel anytime. Questions? Email experts@aestheticsuccessnetwork.com.",
+      body: "Once approved, sign in and add your card in the billing tab. That kicks off your 6 months free (Stripe trial). Nothing is charged until month 7, then it's $39/month, and it stays $39 with no increase. Cancel anytime. Questions? Email experts@aestheticsuccessnetwork.com.",
     },
   ];
 
   return (
     <>
-      <Header />
+      <SitePage><SiteNav /></SitePage>
       <Box
         component="main"
         sx={{
@@ -181,7 +182,7 @@ export default function ExpertAppliedPage() {
           </Stack>
         </Container>
       </Box>
-      <Footer />
+      <SitePage><SiteFooter /></SitePage>
     </>
   );
 }

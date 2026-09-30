@@ -1,4 +1,5 @@
 import "server-only";
+import { emailBrandHeader } from "@/lib/email/brandHeader";
 import path from "node:path";
 import fs from "node:fs/promises";
 import { existsSync } from "node:fs";
@@ -451,7 +452,7 @@ export async function notifyTeamEvent(opts: {
   const html = `<!doctype html><html><body style="margin:0;background:#F7F5F0;padding:24px;font-family:system-ui,-apple-system,Segoe UI,Roboto,sans-serif;">
   <div style="max-width:600px;margin:0 auto;background:#FFFFFF;border:1px solid #E0DACE;border-radius:12px;overflow:hidden;">
     <div style="background:#0E2A3D;padding:18px 22px;">
-      <img src="${SITE_URL}/asn-logo-email-dark.png" alt="Aesthetic Success Network" width="150" style="display:block;max-width:150px;height:auto;" />
+      ${emailBrandHeader({ dark: true })}
       <div style="color:${meta.accent};font-size:11px;letter-spacing:1.5px;margin-top:3px;font-weight:700;">${escapeHtml(banner)}</div>
     </div>
     <div style="padding:20px 22px;">

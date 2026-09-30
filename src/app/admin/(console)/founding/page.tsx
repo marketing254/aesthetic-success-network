@@ -422,9 +422,14 @@ function InviteCard({
             size="small"
             sx={{ height: 20, fontSize: "0.66rem", fontWeight: 700, bgcolor: "rgba(14,42,61,0.06)" }}
           />
-          {row.role !== "expert" && (
-            <Chip
-              label={row.pricing_plan === "ladder" ? "$29 → $99 ladder" : "$29 flat"}
+          <Chip
+              label={
+                row.role === "expert"
+                  ? "12 mo free, then $39"
+                  : row.pricing_plan === "ladder"
+                    ? `$39 x 12, then $149${row.role === "both" ? " (expert: 12 mo free, then $39)" : ""}`
+                    : `$39 flat${row.role === "both" ? " (expert: 12 mo free, then $39)" : ""}`
+              }
               size="small"
               sx={{
                 height: 20,
@@ -433,8 +438,7 @@ function InviteCard({
                 bgcolor: row.pricing_plan === "ladder" ? "rgba(160,120,35,0.12)" : "rgba(44,122,82,0.12)",
                 color: row.pricing_plan === "ladder" ? "#7A5B17" : "#1F5238",
               }}
-            />
-          )}
+          />
           <StatusChip status={row.status} />
         </Stack>
         <Typography sx={{ color: "text.secondary", fontSize: "0.85rem" }}>

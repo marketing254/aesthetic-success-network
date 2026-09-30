@@ -9,8 +9,6 @@ import {
   IconButton,
   InputAdornment,
   Stack,
-  Tab,
-  Tabs,
   TextField,
   Tooltip,
   Typography,
@@ -34,24 +32,24 @@ import {
 import type { CatalogItemsRow, ReviewStatus } from "@/lib/supabase/types";
 import {
   EmptyState,
+  ListDivider,
   PageHeader,
   SectionCard,
+  SegmentedFilter,
   StatusPill,
   TagPill,
+  listHeadSx,
+  listRowSx,
   portalText,
 } from "@/components/vendor/PortalUI";
+import { CP } from "@/components/shared/CommunityPortalShell";
 
-const INK = "#111827";
-const BODY = "#374151";
-const MUTED = "#6B7280";
-const FAINT = "#9CA3AF";
-const LINE = "#E5E7EB";
-const ROW_HOVER = "#F9FAFB";
-const SOFT = "#F3F4F6";
-const NAVY = "#0E2A3D";
-const NAVY_TINT = "rgba(14,42,61,0.08)";
+const INK = CP.ink;
+const BODY = CP.body;
+const MUTED = CP.muted;
+const FAINT = CP.faint;
 
-const GRID_COLUMNS = "minmax(0, 2.5fr) 130px 120px 150px 130px 56px";
+const GRID_COLUMNS = "minmax(0, 2.5fr) 130px 130px 150px 140px 48px";
 
 type CatalogType = CatalogItemsRow["type"];
 
@@ -134,9 +132,9 @@ export default function VendorOffersPage() {
 
   if (loading) {
     return (
-      <Stack sx={{ alignItems: "center", py: 8, gap: 2 }}>
+      <Stack sx={{ alignItems: "center", py: 10, gap: 2 }}>
         <CircularProgress size={24} />
-        <Typography sx={portalText.meta}>Loading offers…</Typography>
+        <Typography sx={portalText.meta}>Loading offers...</Typography>
       </Stack>
     );
   }
@@ -177,41 +175,12 @@ export default function VendorOffersPage() {
             spacing={2}
             sx={{ alignItems: { md: "center" }, justifyContent: "space-between" }}
           >
-            <Tabs
+            <SegmentedFilter
+              ariaLabel="Filter offers by status"
               value={statusFilter}
-              onChange={(_, v) => setStatusFilter(v)}
-              variant="scrollable"
-              allowScrollButtonsMobile
-              sx={{ borderBottom: `1px solid ${LINE}`, flex: 1, minWidth: 0 }}
-            >
-              {STATUS_FILTERS.map((t) => (
-                <Tab
-                  key={t.key}
-                  value={t.key}
-                  label={
-                    <Stack direction="row" spacing={1} sx={{ alignItems: "center" }}>
-                      <span>{t.label}</span>
-                      <Box
-                        component="span"
-                        sx={{
-                          bgcolor: statusFilter === t.key ? NAVY_TINT : SOFT,
-                          color: statusFilter === t.key ? NAVY : MUTED,
-                          borderRadius: "6px",
-                          px: 0.75,
-                          fontSize: "0.6875rem",
-                          fontWeight: 600,
-                          minWidth: 20,
-                          textAlign: "center",
-                          lineHeight: "18px",
-                        }}
-                      >
-                        {counts[t.key]}
-                      </Box>
-                    </Stack>
-                  }
-                />
-              ))}
-            </Tabs>
+              onChange={setStatusFilter}
+              options={STATUS_FILTERS.map((t) => ({ key: t.key, label: t.label, count: counts[t.key] }))}
+            />
             <TextField
               size="small"
               value={q}
@@ -240,28 +209,21 @@ export default function VendorOffersPage() {
             <SectionCard padding="none">
               <Box
                 sx={{
+                  ...(listHeadSx as object),
                   display: { xs: "none", md: "grid" },
                   gridTemplateColumns: GRID_COLUMNS,
                   alignItems: "center",
                   gap: 1,
-                  px: 2,
-                  py: 1.25,
-                  borderBottom: `1px solid ${LINE}`,
-                  fontSize: "0.75rem",
-                  fontWeight: 600,
-                  color: MUTED,
-                  letterSpacing: 0,
-                  textTransform: "none",
                 }}
               >
                 <Box>Offer and catalog item</Box>
-                <Box>Discount</Box>
+                <Box sx={{ textAlign: "right" }}>Discount</Box>
                 <Box>Status</Box>
                 <Box>Validity</Box>
                 <Box>Promo code</Box>
                 <Box />
               </Box>
-              <Stack divider={<Box sx={{ borderTop: `1px solid ${LINE}` }} />}>
+              <Stack divider={<ListDivider />}>
                 {filtered.map((o) => (
                   <OfferRow key={o.id} offer={o} />
                 ))}
@@ -283,20 +245,17 @@ function OfferRow({ offer }: { offer: OfferWithCatalog }) {
   return (
     <Box
       sx={{
+        ...(listRowSx as object),
         display: { xs: "block", md: "grid" },
         gridTemplateColumns: GRID_COLUMNS,
-        alignItems: "center",
-        px: 2,
-        py: 1.5,
         gap: 1,
-        "&:hover": { bgcolor: ROW_HOVER },
       }}
     >
       <Box sx={{ minWidth: 0 }}>
         <Typography sx={{ fontSize: "0.875rem", fontWeight: 600, color: INK }} noWrap>
           {offer.headline}
         </Typography>
-        <Stack direction="row" spacing={0.75} sx={{ alignItems: "center", flexWrap: "wrap", gap: 0.5 }}>
+        <Stack direction="row" spacing={0.75} sx={{ alignItems: "center", flexWrap: "wrap", gap: 0.5, mt: 0.25 }}>
           {item && (
             <>
               <Box sx={{ color: FAINT, display: "inline-flex" }}>
@@ -311,14 +270,14 @@ function OfferRow({ offer }: { offer: OfferWithCatalog }) {
           <TagPill label={`limit ${offer.redemption_limit_per_member}`} tone="neutral" size="sm" />
         </Stack>
         {offer.review_note && (
-          <Typography sx={{ fontSize: "0.75rem", color: MUTED, mt: 0.5 }}>
+          <Typography sx={{ fontSize: "0.75rem", color: CP.warningFg, mt: 0.5 }}>
             Team note: {offer.review_note}
           </Typography>
         )}
       </Box>
 
-      <Box sx={{ display: { xs: "none", md: "block" } }}>
-        <Typography sx={{ fontSize: "0.875rem", fontWeight: 600, color: INK }} noWrap>
+      <Box sx={{ display: { xs: "none", md: "block" }, textAlign: "right" }}>
+        <Typography sx={{ fontSize: "0.875rem", fontWeight: 600, color: INK, fontVariantNumeric: "tabular-nums" }} noWrap>
           {offer.discount_value}
         </Typography>
       </Box>
@@ -343,12 +302,12 @@ function OfferRow({ offer }: { offer: OfferWithCatalog }) {
             sx={{
               fontFamily: "ui-monospace, SFMono-Regular, Menlo, monospace",
               fontSize: "0.75rem",
-              fontWeight: 500,
-              color: offer.promo_code ? BODY : FAINT,
-              px: 0.75,
-              py: 0.25,
-              borderRadius: "6px",
-              bgcolor: SOFT,
+              fontWeight: 600,
+              color: offer.promo_code ? INK : FAINT,
+              px: 0.9,
+              py: 0.35,
+              borderRadius: "8px",
+              bgcolor: offer.promo_code ? CP.sand : CP.neutralBg,
             }}
           >
             {offer.promo_code || "No code"}
@@ -380,6 +339,7 @@ function OfferRow({ offer }: { offer: OfferWithCatalog }) {
           rowGap: 0.5,
           mt: 1,
           gridColumn: "1 / -1",
+          alignItems: "center",
         }}
       >
         <StatusPill status={offer.review_status} size="sm" />

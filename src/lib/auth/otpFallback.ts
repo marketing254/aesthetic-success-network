@@ -37,3 +37,31 @@ export async function sendOtpViaFallback(email: string, tag: string): Promise<Ot
 export function isOtpThrottle(error: { status?: number; message?: string }): boolean {
   return error.status === 429 || /security purposes|once every/i.test(error.message ?? "");
 }
+
+type OtpClient = { auth: { signInWithOtp: (args: { email: string; options: { shouldCreateUser: boolean } }) => Promise<{ error: { status?: number; message?: string } | null }> } };
+
+/**
+ * Request a sign-in code.
+ *  - OTP_TRANSPORT=app: skip Supabase's own email and send the code through
+ *    the app's SMTP straight away (fast; use while Supabase SMTP is broken).
+ *  - otherwise: ask Supabase to send it, but give up after
+ *    OTP_SUPABASE_TIMEOUT_MS (default 6000) so a hanging SMTP on Supabase's
+ *    side never makes the button spin for half a minute; the caller's
+ *    fallback then sends the code itself.
+ */
+export async function requestOtp(
+  supabase: OtpClient,
+  email: string,
+  tag: string,
+): Promise<{ error: { status?: number; message?: string } | null }> {
+  if ((process.env.OTP_TRANSPORT ?? "").toLowerCase() === "app") {
+    const fb = await sendOtpViaFallback(email, tag);
+    if (fb.ok) return { error: null };
+    return { error: { status: fb.reason === "no_user" ? 422 : 500, message: fb.reason === "no_user" ? "user not found" : fb.detail ?? fb.reason } };
+  }
+  const ms = Number(process.env.OTP_SUPABASE_TIMEOUT_MS ?? "6000");
+  const timeout = new Promise<{ error: { status: number; message: string } }>((resolve) =>
+    setTimeout(() => resolve({ error: { status: 504, message: "supabase otp send timed out" } }), ms),
+  );
+  return Promise.race([supabase.auth.signInWithOtp({ email, options: { shouldCreateUser: false } }), timeout]);
+}

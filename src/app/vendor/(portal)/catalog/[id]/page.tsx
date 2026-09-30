@@ -35,21 +35,23 @@ import {
 } from "@/lib/supabase/vendorQueries";
 import type { CatalogItemsRow } from "@/lib/supabase/types";
 import {
+  ListDivider,
   PageHeader,
   SectionCard,
   StatusPill,
   TagPill,
+  listHeadSx,
+  listRowSx,
   portalText,
 } from "@/components/vendor/PortalUI";
+import { CP } from "@/components/shared/CommunityPortalShell";
 
-const INK = "#111827";
-const BODY = "#374151";
-const MUTED = "#6B7280";
-const FAINT = "#9CA3AF";
-const LINE = "#E5E7EB";
-const NAVY = "#0E2A3D";
-const HOVER_ROW = "#F9FAFB";
-const FILL = "#F3F4F6";
+const INK = CP.ink;
+const BODY = CP.body;
+const MUTED = CP.muted;
+const FAINT = CP.faint;
+const LINE = CP.border;
+const NAVY = CP.navy;
 
 type CatalogType = CatalogItemsRow["type"];
 
@@ -108,9 +110,9 @@ export default function CatalogDetailPage({ params }: { params: RouteParams }) {
 
   if (loading) {
     return (
-      <Stack sx={{ alignItems: "center", py: 8, gap: 2 }}>
+      <Stack sx={{ alignItems: "center", py: 10, gap: 2 }}>
         <CircularProgress size={24} />
-        <Typography sx={{ color: MUTED, fontSize: "0.875rem" }}>Loading item…</Typography>
+        <Typography sx={{ color: MUTED, fontSize: "0.875rem" }}>Loading item...</Typography>
       </Stack>
     );
   }
@@ -145,7 +147,7 @@ export default function CatalogDetailPage({ params }: { params: RouteParams }) {
           variant="text"
           size="small"
           startIcon={<ArrowBackIcon sx={{ fontSize: 16 }} />}
-          sx={{ px: 0.5, ml: -0.5 }}
+          sx={{ px: 1, ml: -1 }}
         >
           Back to catalog
         </Button>
@@ -171,9 +173,12 @@ export default function CatalogDetailPage({ params }: { params: RouteParams }) {
         }
       />
 
-      <Stack direction="row" spacing={0.75} sx={{ flexWrap: "wrap", gap: 0.5 }}>
-        <Box sx={{ display: "inline-flex", alignItems: "center", color: FAINT }} aria-hidden>
-          <TypeIcon type={item.type} size={16} />
+      <Stack direction="row" spacing={0.75} sx={{ flexWrap: "wrap", gap: 0.5, alignItems: "center" }}>
+        <Box
+          sx={{ display: "inline-grid", placeItems: "center", width: 26, height: 26, borderRadius: "50%", bgcolor: CP.sand, color: CP.goldDeep }}
+          aria-hidden
+        >
+          <TypeIcon type={item.type} size={14} />
         </Box>
         <StatusPill status={item.review_status} />
         {(item.tags ?? []).map((t) => (
@@ -184,15 +189,15 @@ export default function CatalogDetailPage({ params }: { params: RouteParams }) {
       {item.review_note && (
         <Box
           sx={{
-            bgcolor: "#FEF3C7",
+            bgcolor: CP.warningBg,
             border: "1px solid #FDE68A",
-            borderRadius: "6px",
+            borderRadius: "12px",
             px: 2,
-            py: 1.25,
+            py: 1.5,
           }}
         >
-          <Typography sx={{ fontSize: "0.8125rem", color: "#92400E", lineHeight: 1.5 }}>
-            <Box component="strong" sx={{ fontWeight: 600, mr: 0.5 }}>
+          <Typography sx={{ fontSize: "0.8125rem", color: CP.warningFg, lineHeight: 1.5 }}>
+            <Box component="strong" sx={{ fontWeight: 700, mr: 0.5 }}>
               Team note:
             </Box>
             {item.review_note}
@@ -210,7 +215,7 @@ export default function CatalogDetailPage({ params }: { params: RouteParams }) {
                     position: "relative",
                     width: "100%",
                     aspectRatio: "16 / 9",
-                    bgcolor: FILL,
+                    bgcolor: CP.sandSoft,
                     overflow: "hidden",
                   }}
                 >
@@ -226,13 +231,13 @@ export default function CatalogDetailPage({ params }: { params: RouteParams }) {
                         position: "absolute",
                         left: 12,
                         bottom: 12,
-                        px: 1,
+                        px: 1.25,
                         py: 0.5,
-                        borderRadius: "4px",
-                        bgcolor: "rgba(17,24,39,0.8)",
+                        borderRadius: "8px",
+                        bgcolor: "rgba(10,19,32,0.8)",
                         color: "#FFFFFF",
                         fontSize: "0.75rem",
-                        fontWeight: 500,
+                        fontWeight: 600,
                       }}
                     >
                       {heroImage.caption}
@@ -244,8 +249,8 @@ export default function CatalogDetailPage({ params }: { params: RouteParams }) {
                     direction="row"
                     spacing={0.75}
                     sx={{
-                      px: 1,
-                      py: 1,
+                      px: 1.25,
+                      py: 1.25,
                       borderTop: `1px solid ${LINE}`,
                       overflowX: "auto",
                     }}
@@ -266,13 +271,14 @@ export default function CatalogDetailPage({ params }: { params: RouteParams }) {
                           width: 64,
                           height: 64,
                           flexShrink: 0,
-                          borderRadius: "6px",
+                          borderRadius: "10px",
                           overflow: "hidden",
                           border: "2px solid",
-                          borderColor: i === activeImage ? NAVY : LINE,
+                          borderColor: i === activeImage ? CP.gold : LINE,
                           cursor: "pointer",
                           opacity: i === activeImage ? 1 : 0.7,
-                          "&:hover": { opacity: 1, borderColor: NAVY },
+                          transition: "opacity 120ms ease, border-color 120ms ease",
+                          "&:hover": { opacity: 1, borderColor: CP.gold },
                           "&:focus-visible": { outline: `2px solid ${NAVY}`, outlineOffset: 2 },
                         }}
                       >
@@ -298,7 +304,21 @@ export default function CatalogDetailPage({ params }: { params: RouteParams }) {
                 <Stack spacing={1.25}>
                   {item.highlights.map((h) => (
                     <Stack key={h} direction="row" spacing={1.25} sx={{ alignItems: "flex-start" }}>
-                      <CheckRoundedIcon sx={{ fontSize: 16, color: MUTED, mt: "3px", flexShrink: 0 }} />
+                      <Box
+                        sx={{
+                          width: 20,
+                          height: 20,
+                          borderRadius: "50%",
+                          bgcolor: CP.sand,
+                          color: CP.goldDeep,
+                          display: "grid",
+                          placeItems: "center",
+                          flexShrink: 0,
+                          mt: "1px",
+                        }}
+                      >
+                        <CheckRoundedIcon sx={{ fontSize: 13 }} />
+                      </Box>
                       <Typography sx={portalText.body}>{h}</Typography>
                     </Stack>
                   ))}
@@ -324,10 +344,11 @@ export default function CatalogDetailPage({ params }: { params: RouteParams }) {
                           display: "block",
                           textDecoration: "none",
                           color: "inherit",
-                          borderRadius: "6px",
+                          borderRadius: "12px",
                           overflow: "hidden",
                           border: `1px solid ${LINE}`,
-                          "&:hover": { borderColor: "#D1D5DB" },
+                          transition: "box-shadow 140ms ease, transform 140ms ease",
+                          "&:hover": { boxShadow: CP.shadowHover, transform: "translateY(-1px)" },
                         }}
                       >
                         <Box
@@ -355,7 +376,9 @@ export default function CatalogDetailPage({ params }: { params: RouteParams }) {
                               color: "#FFFFFF",
                             }}
                           >
-                            <PlayArrowRoundedIcon sx={{ fontSize: 36 }} />
+                            <Box sx={{ width: 48, height: 48, borderRadius: "50%", bgcolor: "rgba(255,255,255,0.18)", display: "grid", placeItems: "center", backdropFilter: "blur(4px)" }}>
+                              <PlayArrowRoundedIcon sx={{ fontSize: 30 }} />
+                            </Box>
                           </Box>
                           {v.duration_label && (
                             <Box
@@ -365,8 +388,8 @@ export default function CatalogDetailPage({ params }: { params: RouteParams }) {
                                 bottom: 8,
                                 px: 0.75,
                                 py: 0.25,
-                                borderRadius: "4px",
-                                bgcolor: "rgba(17,24,39,0.85)",
+                                borderRadius: "6px",
+                                bgcolor: "rgba(10,19,32,0.85)",
                                 color: "#FFFFFF",
                                 fontSize: "0.6875rem",
                                 fontWeight: 600,
@@ -378,7 +401,7 @@ export default function CatalogDetailPage({ params }: { params: RouteParams }) {
                         </Box>
                         {v.caption && (
                           <Box sx={{ px: 1.5, py: 1.25 }}>
-                            <Typography sx={{ fontSize: "0.875rem", fontWeight: 500, color: INK }}>
+                            <Typography sx={{ fontSize: "0.875rem", fontWeight: 600, color: INK }}>
                               {v.caption}
                             </Typography>
                           </Box>
@@ -396,7 +419,7 @@ export default function CatalogDetailPage({ params }: { params: RouteParams }) {
                 subtitle={`${documents.length} file${documents.length === 1 ? "" : "s"} attached`}
                 padding="none"
               >
-                <Stack divider={<Box sx={{ borderTop: `1px solid ${LINE}` }} />}>
+                <Stack divider={<ListDivider />}>
                   {documents.map((d) => {
                     const filename = d.url.split("/").pop() ?? "document";
                     const sizeKb = d.file_size_bytes
@@ -410,19 +433,18 @@ export default function CatalogDetailPage({ params }: { params: RouteParams }) {
                         target="_blank"
                         rel="noopener noreferrer"
                         sx={{
+                          ...(listRowSx as object),
                           display: "flex",
-                          alignItems: "center",
                           gap: 1.5,
-                          px: 3,
-                          py: 1.5,
                           textDecoration: "none",
                           color: "inherit",
-                          "&:hover": { bgcolor: HOVER_ROW },
                         }}
                       >
-                        <DescriptionOutlinedIcon sx={{ fontSize: 20, color: MUTED, flexShrink: 0 }} />
+                        <Box sx={{ width: 40, height: 40, borderRadius: "10px", bgcolor: CP.sand, color: CP.goldDeep, display: "grid", placeItems: "center", flexShrink: 0 }}>
+                          <DescriptionOutlinedIcon sx={{ fontSize: 18 }} />
+                        </Box>
                         <Box sx={{ flex: 1, minWidth: 0 }}>
-                          <Typography sx={{ fontSize: "0.875rem", fontWeight: 500, color: INK }} noWrap>
+                          <Typography sx={{ fontSize: "0.875rem", fontWeight: 600, color: INK }} noWrap>
                             {d.caption || filename}
                           </Typography>
                           <Typography sx={{ fontSize: "0.75rem", color: MUTED }}>
@@ -462,15 +484,10 @@ export default function CatalogDetailPage({ params }: { params: RouteParams }) {
                 <>
                   <Box
                     sx={{
+                      ...(listHeadSx as object),
                       display: { xs: "none", md: "grid" },
-                      gridTemplateColumns: "minmax(0, 2fr) 110px 110px 160px",
+                      gridTemplateColumns: "minmax(0, 2fr) 110px 120px 160px",
                       gap: 1,
-                      px: 3,
-                      py: 1.25,
-                      borderBottom: `1px solid ${LINE}`,
-                      fontSize: "0.75rem",
-                      fontWeight: 600,
-                      color: MUTED,
                     }}
                   >
                     <Box>Offer</Box>
@@ -478,22 +495,19 @@ export default function CatalogDetailPage({ params }: { params: RouteParams }) {
                     <Box>Status</Box>
                     <Box>Valid</Box>
                   </Box>
-                  <Stack divider={<Box sx={{ borderTop: `1px solid ${LINE}` }} />}>
+                  <Stack divider={<ListDivider />}>
                     {offers.map((o) => (
                       <Box
                         key={o.id}
                         sx={{
-                          px: 3,
-                          py: 1.5,
+                          ...(listRowSx as object),
                           display: "grid",
-                          gridTemplateColumns: { xs: "1fr", md: "minmax(0, 2fr) 110px 110px 160px" },
+                          gridTemplateColumns: { xs: "1fr", md: "minmax(0, 2fr) 110px 120px 160px" },
                           gap: 1,
-                          alignItems: "center",
-                          "&:hover": { bgcolor: HOVER_ROW },
                         }}
                       >
                         <Box sx={{ minWidth: 0 }}>
-                          <Typography sx={{ fontSize: "0.875rem", fontWeight: 500, color: INK, mb: 0.25 }} noWrap>
+                          <Typography sx={{ fontSize: "0.875rem", fontWeight: 600, color: INK, mb: 0.25 }} noWrap>
                             {o.headline}
                           </Typography>
                           <Typography sx={{ fontSize: "0.75rem", color: MUTED }} noWrap>
@@ -502,7 +516,7 @@ export default function CatalogDetailPage({ params }: { params: RouteParams }) {
                         </Box>
                         <Box sx={{ display: { xs: "none", md: "block" }, textAlign: "right" }}>
                           <Typography
-                            sx={{ fontSize: "0.875rem", fontWeight: 500, color: INK, fontVariantNumeric: "tabular-nums" }}
+                            sx={{ fontSize: "0.875rem", fontWeight: 600, color: INK, fontVariantNumeric: "tabular-nums" }}
                           >
                             {o.discount_value}
                           </Typography>
@@ -523,7 +537,7 @@ export default function CatalogDetailPage({ params }: { params: RouteParams }) {
         </Grid>
 
         <Grid size={{ xs: 12, lg: 4 }}>
-          <Stack spacing={3} sx={{ position: { lg: "sticky" }, top: { lg: 76 } }}>
+          <Stack spacing={3} sx={{ position: { lg: "sticky" }, top: { lg: 24 } }}>
             <SectionCard title="Details" padding="default">
               <Stack spacing={1.25}>
                 <MetaRow label="Price" value={item.price_label} highlight />
@@ -555,21 +569,21 @@ export default function CatalogDetailPage({ params }: { params: RouteParams }) {
 
             <SectionCard title="Media library" padding="default">
               <Stack direction="row" spacing={2} sx={{ alignItems: "center", color: MUTED }}>
-                <Stack direction="row" spacing={0.5} sx={{ alignItems: "center" }}>
+                <Stack direction="row" spacing={0.75} sx={{ alignItems: "center" }}>
                   <PhotoLibraryOutlinedIcon sx={{ fontSize: 16 }} />
-                  <Typography sx={{ fontSize: "0.875rem", fontWeight: 500, color: INK }}>
+                  <Typography sx={{ fontSize: "0.875rem", fontWeight: 600, color: INK }}>
                     {images.length}
                   </Typography>
                 </Stack>
-                <Stack direction="row" spacing={0.5} sx={{ alignItems: "center" }}>
+                <Stack direction="row" spacing={0.75} sx={{ alignItems: "center" }}>
                   <OndemandVideoOutlinedIcon sx={{ fontSize: 16 }} />
-                  <Typography sx={{ fontSize: "0.875rem", fontWeight: 500, color: INK }}>
+                  <Typography sx={{ fontSize: "0.875rem", fontWeight: 600, color: INK }}>
                     {videos.length}
                   </Typography>
                 </Stack>
-                <Stack direction="row" spacing={0.5} sx={{ alignItems: "center" }}>
+                <Stack direction="row" spacing={0.75} sx={{ alignItems: "center" }}>
                   <DescriptionOutlinedIcon sx={{ fontSize: 16 }} />
-                  <Typography sx={{ fontSize: "0.875rem", fontWeight: 500, color: INK }}>
+                  <Typography sx={{ fontSize: "0.875rem", fontWeight: 600, color: INK }}>
                     {documents.length}
                   </Typography>
                 </Stack>
@@ -581,7 +595,7 @@ export default function CatalogDetailPage({ params }: { params: RouteParams }) {
                 <IconButton
                   size="small"
                   color="error"
-                  sx={{ border: `1px solid ${LINE}`, borderRadius: "6px", color: "#991B1B" }}
+                  sx={{ border: `1px solid ${CP.borderStrong}`, borderRadius: "10px", color: CP.errorFg, bgcolor: CP.white, width: 36, height: 36, "&:hover": { bgcolor: CP.errorBg } }}
                 >
                   <DeleteOutlineOutlinedIcon sx={{ fontSize: 16 }} />
                 </IconButton>
@@ -609,7 +623,7 @@ function MetaRow({
       <Typography
         sx={{
           fontSize: "0.875rem",
-          fontWeight: highlight ? 600 : 500,
+          fontWeight: highlight ? 700 : 600,
           color: highlight ? INK : BODY,
           textAlign: "right",
           minWidth: 0,

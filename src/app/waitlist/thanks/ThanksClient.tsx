@@ -1,5 +1,8 @@
 "use client";
 import { useEffect, useMemo, useState } from "react";
+import SitePage from "@/components/site/SitePage";
+import SiteNav from "@/components/site/SiteNav";
+import SiteFooter from "@/components/site/SiteFooter";
 import { useSearchParams } from "next/navigation";
 import Link from "next/link";
 import {
@@ -14,8 +17,6 @@ import ArrowBackIcon from "@mui/icons-material/ArrowBack";
 import CheckCircleIcon from "@mui/icons-material/CheckCircle";
 import { motion, useReducedMotion } from "framer-motion";
 import Countdown from "@/components/sections/Countdown";
-import Header from "@/components/sections/Header";
-import Footer from "@/components/sections/Footer";
 
 const MotionBox = motion.create(Box);
 
@@ -50,7 +51,7 @@ export default function ThanksClient() {
 
   return (
     <>
-      <Header />
+      <SitePage><SiteNav /></SitePage>
       <Box
         component="main"
         sx={{
@@ -254,7 +255,7 @@ export default function ThanksClient() {
           </Stack>
         </Container>
       </Box>
-      <Footer />
+      <SitePage><SiteFooter /></SitePage>
     </>
   );
 }

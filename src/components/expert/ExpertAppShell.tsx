@@ -5,11 +5,13 @@ import { usePathname, useRouter } from "next/navigation";
 import {
   Box,
   Button,
+  Chip,
   Divider,
   ListItemIcon,
   ListItemText,
   Menu,
   MenuItem,
+  Stack,
   Typography,
 } from "@mui/material";
 import DashboardOutlinedIcon from "@mui/icons-material/DashboardOutlined";
@@ -23,17 +25,15 @@ import LogoutOutlinedIcon from "@mui/icons-material/LogoutOutlined";
 import OpenInNewRoundedIcon from "@mui/icons-material/OpenInNewRounded";
 import SwapHorizRoundedIcon from "@mui/icons-material/SwapHorizRounded";
 import StorefrontOutlinedIcon from "@mui/icons-material/StorefrontOutlined";
+import WorkspacePremiumRoundedIcon from "@mui/icons-material/WorkspacePremiumRounded";
 import { createBrowserSupabase } from "@/lib/supabase/browser";
 import { useAlsoHasRole } from "@/lib/auth/useRoles";
 import type { ExpertsRow } from "@/lib/supabase/types";
 import { checkBillingAccess } from "@/lib/stripe";
 import BillingGate from "@/components/shared/BillingGate";
 import NotificationsBell from "@/components/shared/NotificationsBell";
-import StandardPortalShell, {
-  STD,
-  StandardAvatarButton,
-  type StandardNavItem,
-} from "@/components/shared/StandardPortalShell";
+import { CommunityAvatarButton, type CommunityNavItem } from "@/components/shared/CommunityPortalShell";
+import TopNavPortalShell, { EP, topNavPillButtonSx } from "@/components/shared/TopNavPortalShell";
 
 type CurrentExpert = Pick<
   ExpertsRow,
@@ -91,9 +91,9 @@ function initials(name: string | null | undefined): string {
   return (parts[0]![0]! + parts[parts.length - 1]![0]!).toUpperCase();
 }
 
-// Sidebar sections. Order follows the creator workflow: Dashboard, Resources
-// (upload work), Feed (broadcast), AI helper, Inquiries, Billing, Profile.
-const navItems: StandardNavItem[] = [
+// The seven sections as horizontal tabs. Order follows the creator
+// workflow: Dashboard, Resources, Feed, AI helper, Inquiries, Billing, Profile.
+const navItems: CommunityNavItem[] = [
   { href: "/expert", label: "Dashboard", icon: DashboardOutlinedIcon },
   { href: "/expert/resources", label: "Resources", icon: UploadFileOutlinedIcon },
   { href: "/expert/posts", label: "Feed", icon: ChatBubbleOutlineOutlinedIcon },
@@ -122,8 +122,11 @@ export default function ExpertAppShell({ children }: { children: React.ReactNode
   };
 
   const displayName = expert?.display_name ?? expert?.full_name ?? "Expert";
-  // Lifetime-free founding experts have no billing; hide the tab entirely.
-  const items = expert?.billing_exempt ? navItems.filter((i) => i.href !== "/expert/billing") : navItems;
+  const isFounding = !!expert?.billing_exempt;
+  // Billing-exempt experts (manual admin override) have no billing; hide the tab entirely.
+  const items = isFounding ? navItems.filter((i) => i.href !== "/expert/billing") : navItems;
+
+  const statusLabel = expert?.status === "active" ? "Active expert" : expert?.status ?? "";
 
   const topRight = (
     <>
@@ -133,20 +136,19 @@ export default function ExpertAppShell({ children }: { children: React.ReactNode
           size="small"
           variant="outlined"
           startIcon={<SwapHorizRoundedIcon sx={{ fontSize: 16 }} />}
-          sx={{ display: { xs: "none", sm: "inline-flex" } }}
+          sx={{ ...(topNavPillButtonSx as object), display: { xs: "none", sm: "inline-flex" } }}
         >
           View as company
         </Button>
       )}
-      <NotificationsBell audience="expert" />
-      <StandardAvatarButton
+      <NotificationsBell audience="expert" tone="community" />
+      <CommunityAvatarButton
         anchorRef={userMenuAnchor}
         onClick={() => setUserMenuOpen(true)}
         open={userMenuOpen}
         src={expert?.headshot_url}
         initials={initials(displayName)}
         name={displayName}
-        subline={expert?.status === "active" ? "Active expert" : expert?.status ?? ""}
       />
     </>
   );
@@ -158,13 +160,25 @@ export default function ExpertAppShell({ children }: { children: React.ReactNode
       anchorEl={userMenuAnchor.current}
       anchorOrigin={{ vertical: "bottom", horizontal: "right" }}
       transformOrigin={{ vertical: "top", horizontal: "right" }}
-      slotProps={{ paper: { sx: { mt: 1, minWidth: 260 } } }}
+      slotProps={{ paper: { sx: { mt: 1, minWidth: 272 } } }}
     >
       <Box sx={{ px: 2, pt: 1.5, pb: 1.25 }}>
-        <Typography sx={{ fontSize: "0.875rem", fontWeight: 600, lineHeight: 1.2, color: STD.ink }}>
-          {displayName}
+        <Stack direction="row" spacing={0.75} sx={{ alignItems: "center" }}>
+          <Typography sx={{ fontSize: "0.9375rem", fontWeight: 700, letterSpacing: "-0.01em", lineHeight: 1.2, color: EP.ink }} noWrap>
+            {displayName}
+          </Typography>
+          {isFounding && <WorkspacePremiumRoundedIcon sx={{ fontSize: 16, color: EP.gold }} titleAccess="Founding expert" />}
+        </Stack>
+        <Typography sx={{ fontSize: "0.75rem", color: EP.muted, mt: 0.25 }} noWrap>
+          {expert?.email ?? ""}
         </Typography>
-        <Typography sx={{ fontSize: "0.75rem", color: STD.muted, mt: 0.25 }}>{expert?.email ?? ""}</Typography>
+        <Stack direction="row" spacing={0.5} sx={{ mt: 1.25, flexWrap: "wrap", gap: 0.5 }}>
+          {statusLabel && (
+            <Chip label={statusLabel} size="small" color={expert?.status === "active" ? "success" : "warning"} />
+          )}
+          {isFounding && <Chip label="Founding expert" size="small" color="secondary" sx={{ bgcolor: EP.goldTint, color: EP.goldText }} />}
+          {expert?.specialty && <Chip label={expert.specialty} size="small" />}
+        </Stack>
       </Box>
       <Divider />
       {alsoVendor && (
@@ -216,6 +230,7 @@ export default function ExpertAppShell({ children }: { children: React.ReactNode
         subscriptionStatus: expert.subscription_status ?? null,
         hasSubscription: !!expert.stripe_subscription_id,
         billingExempt: !!expert.billing_exempt,
+        audience: "expert",
       })
     : { allowed: true as const };
   const onBillingPage = pathname.startsWith("/expert/billing");
@@ -229,25 +244,17 @@ export default function ExpertAppShell({ children }: { children: React.ReactNode
     );
 
   return (
-    <StandardPortalShell
+    <TopNavPortalShell
       portalName="Expert portal"
       homeHref="/expert"
       items={items}
       pathname={pathname}
       topRight={topRight}
       overlays={menu}
-      onSignOut={handleSignOut}
-      sidebarFooter={
-        expert?.email ? (
-          <Typography sx={{ fontSize: "0.75rem", color: STD.muted, wordBreak: "break-all", lineHeight: 1.4 }}>
-            {expert.email}
-          </Typography>
-        ) : undefined
-      }
       supportEmail="experts@aestheticsuccessnetwork.com"
       supportPhone="(855) 567-5323"
     >
       {content}
-    </StandardPortalShell>
+    </TopNavPortalShell>
   );
 }

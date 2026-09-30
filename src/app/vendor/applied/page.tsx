@@ -1,6 +1,9 @@
 "use client";
 
 import Link from "next/link";
+import SitePage from "@/components/site/SitePage";
+import SiteNav from "@/components/site/SiteNav";
+import SiteFooter from "@/components/site/SiteFooter";
 import {
   Box,
   Button,
@@ -14,31 +17,33 @@ import CheckCircleRoundedIcon from "@mui/icons-material/CheckCircleRounded";
 import MailOutlineRoundedIcon from "@mui/icons-material/MailOutlineRounded";
 import VerifiedUserOutlinedIcon from "@mui/icons-material/VerifiedUserOutlined";
 import CalendarTodayOutlinedIcon from "@mui/icons-material/CalendarTodayOutlined";
-import Header from "@/components/sections/Header";
-import Footer from "@/components/sections/Footer";
 
 const INTER = "var(--font-body), 'Inter', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif";
-const INK = "#111827";
-const BODY = "#374151";
-const MUTED = "#6B7280";
-const FAINT = "#9CA3AF";
-const LINE = "#E5E7EB";
-const NAVY = "#0E2A3D";
-const NAVY_HOVER = "#0B2232";
+const INK = "#0A1320";
+const BODY = "#3B4451";
+const FAINT = "#9AA3AF";
+const LINE = "rgba(10,19,32,0.06)";
+const LINE_STRONG = "rgba(10,19,32,0.14)";
+const NAVY = "#0A1320";
+const NAVY_HOVER = "#141F30";
+const CANVAS = "#FAF8F4";
+const SAND = "#F3EBDD";
+const GOLD_DEEP = "#B8862F";
+const SHADOW = "0 1px 2px rgba(10,19,32,0.04), 0 8px 24px -16px rgba(10,19,32,0.12)";
 
 /**
- * Vendor "application received" thank-you page.
- * Reached after submitting the partner WaitlistSection on /partners
- * (which posts to /api/vendor/signup). Tells the partner exactly what
- * happens next + points them at /vendor/login so they can hit the
- * portal as soon as the magic-link email arrives.
+ * Company "application received" thank-you page.
+ * Reached after submitting the company WaitlistSection on /companies
+ * (which posts to /api/vendor/signup). Tells the company exactly what
+ * happens next and points them at /vendor/login so they can open the
+ * portal as soon as the sign-in email arrives.
  */
 export default function VendorAppliedPage() {
   const STEPS = [
     {
       icon: MailOutlineRoundedIcon,
-      title: "Check your email for the sign-in link",
-      body: "We sent a one-time link to the contact email on your application. It expires in 30 minutes. Click it to open your company portal.",
+      title: "Check your email for your sign-in code",
+      body: "We sent a one-time sign-in to the contact email on your application. Use it to open your company portal. You can request a fresh 6-digit code from the sign-in page at any time.",
     },
     {
       icon: VerifiedUserOutlinedIcon,
@@ -47,20 +52,20 @@ export default function VendorAppliedPage() {
     },
     {
       icon: CalendarTodayOutlinedIcon,
-      title: "Founding pricing locks in",
-      body: "Six months free, then $29/month for months 7 to 12 and $99/month from month 13. Your portal lets you set up your catalog and offers right away; they go live to members the day your application is approved.",
+      title: "Launch pricing locks in",
+      body: "$39/month for months 1 to 12 from the day you add a card, then $149/month from month 13. Your portal lets you set up your catalog and offers right away; they go live to members the day your application is approved.",
     },
   ];
 
   return (
     <>
-      <Header />
+      <SitePage><SiteNav /></SitePage>
       <Box
         component="main"
         sx={{
           position: "relative",
           minHeight: "100vh",
-          bgcolor: "#FFFFFF",
+          bgcolor: CANVAS,
           color: INK,
           fontFamily: INTER,
         }}
@@ -68,21 +73,23 @@ export default function VendorAppliedPage() {
         <Container maxWidth="md" sx={{ pt: { xs: 6, md: 9 }, pb: { xs: 8, md: 12 } }}>
           {/* Hero */}
           <Stack spacing={2.5} sx={{ textAlign: "center", mb: { xs: 5, md: 6 }, alignItems: "center" }}>
-            <CheckCircleRoundedIcon sx={{ fontSize: 44, color: "#166534" }} />
+            <Box sx={{ width: 64, height: 64, borderRadius: "50%", bgcolor: "#DCFCE7", color: "#166534", display: "grid", placeItems: "center" }}>
+              <CheckCircleRoundedIcon sx={{ fontSize: 36 }} />
+            </Box>
 
             <Box>
-              <Typography sx={{ fontFamily: INTER, fontSize: "0.875rem", fontWeight: 500, color: MUTED, mb: 1 }}>
+              <Typography sx={{ fontFamily: INTER, fontSize: "0.875rem", fontWeight: 600, color: GOLD_DEEP, mb: 1 }}>
                 Application received
               </Typography>
               <Typography
                 component="h1"
                 sx={{
                   fontFamily: INTER,
-                  fontSize: { xs: "1.5rem", md: "1.75rem" },
-                  fontWeight: 600,
+                  fontSize: { xs: "1.625rem", md: "2rem" },
+                  fontWeight: 700,
                   color: INK,
-                  lineHeight: 1.25,
-                  letterSpacing: 0,
+                  lineHeight: 1.2,
+                  letterSpacing: "-0.02em",
                   mb: 1.5,
                 }}
               >
@@ -98,7 +105,7 @@ export default function VendorAppliedPage() {
                   lineHeight: 1.65,
                 }}
               >
-                Your application is in. We sent a sign-in link to your email so you can start setting
+                Your application is in. We sent a sign-in email so you can start setting
                 up your catalog while our team reviews your details.
               </Typography>
             </Box>
@@ -112,8 +119,9 @@ export default function VendorAppliedPage() {
                 fontFamily: INTER,
                 color: INK,
                 fontSize: "1rem",
-                fontWeight: 600,
+                fontWeight: 700,
                 lineHeight: 1.3,
+                letterSpacing: "-0.01em",
                 mb: 2,
               }}
             >
@@ -132,23 +140,40 @@ export default function VendorAppliedPage() {
                       p: 3,
                       bgcolor: "#FFFFFF",
                       border: `1px solid ${LINE}`,
-                      borderRadius: "8px",
+                      borderRadius: "16px",
+                      boxShadow: SHADOW,
                     }}
                   >
-                    <Stack direction="row" spacing={1.25} sx={{ alignItems: "center", flexShrink: 0, pt: 0.25 }}>
-                      <Typography
-                        sx={{ fontFamily: INTER, fontSize: "0.8125rem", fontWeight: 600, color: MUTED, minWidth: 14 }}
+                    <Box sx={{ position: "relative", flexShrink: 0 }}>
+                      <Box sx={{ width: 44, height: 44, borderRadius: "50%", bgcolor: SAND, color: GOLD_DEEP, display: "grid", placeItems: "center" }}>
+                        <Icon sx={{ fontSize: 20 }} />
+                      </Box>
+                      <Box
+                        sx={{
+                          position: "absolute",
+                          top: -4,
+                          left: -4,
+                          width: 20,
+                          height: 20,
+                          borderRadius: "50%",
+                          bgcolor: NAVY,
+                          color: "#FFFFFF",
+                          fontSize: "0.6875rem",
+                          fontWeight: 700,
+                          display: "grid",
+                          placeItems: "center",
+                          fontFamily: INTER,
+                        }}
                       >
                         {i + 1}
-                      </Typography>
-                      <Icon sx={{ fontSize: 20, color: MUTED }} />
-                    </Stack>
+                      </Box>
+                    </Box>
                     <Box sx={{ flex: 1, minWidth: 0 }}>
                       <Typography
                         sx={{
                           fontFamily: INTER,
                           color: INK,
-                          fontWeight: 600,
+                          fontWeight: 700,
                           fontSize: "0.9375rem",
                           mb: 0.5,
                         }}
@@ -180,7 +205,7 @@ export default function VendorAppliedPage() {
                 mx: "auto",
               }}
             >
-              Already got your sign-in link? Open the portal and start adding your catalog.
+              Already got your sign-in email? Open the portal and start adding your catalog.
             </Typography>
             <Stack
               direction={{ xs: "column", sm: "row" }}
@@ -194,18 +219,18 @@ export default function VendorAppliedPage() {
                 disableElevation
                 endIcon={<ArrowForwardIcon sx={{ fontSize: 16 }} />}
                 sx={{
-                  borderRadius: "6px",
+                  borderRadius: "10px",
                   bgcolor: NAVY,
                   color: "#fff",
-                  boxShadow: "none",
+                  boxShadow: "inset 0 1px 0 rgba(255,255,255,0.10), 0 1px 2px rgba(10,19,32,0.12)",
                   backgroundImage: "none",
                   textTransform: "none",
                   fontFamily: INTER,
                   fontSize: "0.875rem",
-                  fontWeight: 500,
-                  minHeight: 36,
-                  px: 2,
-                  "&:hover": { bgcolor: NAVY_HOVER, boxShadow: "none" },
+                  fontWeight: 600,
+                  minHeight: 40,
+                  px: 2.25,
+                  "&:hover": { bgcolor: NAVY_HOVER, boxShadow: "inset 0 1px 0 rgba(255,255,255,0.10), 0 6px 16px -8px rgba(10,19,32,0.45)" },
                 }}
               >
                 Sign in to portal
@@ -216,17 +241,17 @@ export default function VendorAppliedPage() {
                 variant="outlined"
                 startIcon={<ArrowBackIcon sx={{ fontSize: 16 }} />}
                 sx={{
-                  borderRadius: "6px",
-                  borderColor: "#D1D5DB",
+                  borderRadius: "10px",
+                  borderColor: LINE_STRONG,
                   color: INK,
                   textTransform: "none",
                   fontFamily: INTER,
                   fontSize: "0.875rem",
-                  fontWeight: 500,
-                  minHeight: 36,
-                  px: 2,
+                  fontWeight: 600,
+                  minHeight: 40,
+                  px: 2.25,
                   bgcolor: "#FFFFFF",
-                  "&:hover": { borderColor: "#D1D5DB", bgcolor: "#F9FAFB" },
+                  "&:hover": { borderColor: LINE_STRONG, bgcolor: "#F8F4EC" },
                 }}
               >
                 Back to landing
@@ -237,7 +262,7 @@ export default function VendorAppliedPage() {
               <Box
                 component="a"
                 href="mailto:partners@aestheticsuccessnetwork.com"
-                sx={{ color: NAVY, fontWeight: 500, textDecoration: "none", "&:hover": { textDecoration: "underline" } }}
+                sx={{ color: NAVY, fontWeight: 600, textDecoration: "none", "&:hover": { textDecoration: "underline" } }}
               >
                 partners@aestheticsuccessnetwork.com
               </Box>
@@ -245,7 +270,7 @@ export default function VendorAppliedPage() {
           </Stack>
         </Container>
       </Box>
-      <Footer />
+      <SitePage><SiteFooter /></SitePage>
     </>
   );
 }

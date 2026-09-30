@@ -32,7 +32,10 @@ export async function PATCH(req: Request) {
   }
 
   const displayName = (form.get("display_name") as string | null)?.trim();
-  const file = form.get("avatar");
+  const file = form.get("avatar") ?? form.get("headshot");
+  // target=headshot stores the public-facing headshot (experts.headshot_url)
+  // instead of the small portal avatar. Same size/type rules, same bucket.
+  const target = form.get("target") === "headshot" ? "headshot_url" : "avatar_url";
   const patch: Record<string, string | null> = {};
   if (typeof displayName === "string") patch.display_name = displayName;
 
@@ -50,7 +53,7 @@ export async function PATCH(req: Request) {
         .upload(storagePath, buf, { contentType: upload.contentType, upsert: false });
       if (upErr) throw upErr;
       const { data } = admin.storage.from(AVATAR_BUCKET).getPublicUrl(storagePath);
-      patch.avatar_url = data?.publicUrl ?? null;
+      patch[target] = data?.publicUrl ?? null;
     } catch (err) {
       return serverError(err, { route: "PATCH /api/expert/profile/avatar" });
     }
@@ -60,7 +63,7 @@ export async function PATCH(req: Request) {
   try {
     const { error } = await admin.from("experts").update(patch as never).eq("id", guard.expertId);
     if (error) throw error;
-    return NextResponse.json({ ok: true });
+    return NextResponse.json({ ok: true, url: patch[target] ?? null });
   } catch (err) {
     return serverError(err, { route: "PATCH /api/expert/profile/avatar" });
   }

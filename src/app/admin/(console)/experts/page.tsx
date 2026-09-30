@@ -119,15 +119,17 @@ function Inner() {
   }, [load, loadSlots]);
 
   /**
-   * Grant the lifetime-free founding exemption. Expert-side only — if
-   * they also run a company, that company keeps paying normally. The
-   * cap of 20 is enforced by a DB trigger, so a 409 here is expected
-   * once the slots run out and is shown as a normal message.
+   * Grant the billing exemption (manual admin override, never charged).
+   * Expert-side only — if they also run a company, that company keeps
+   * paying normally. The cap of 20 is enforced by a DB trigger, so a 409
+   * here is expected once the slots run out and is shown as a normal
+   * message. Founding invites do NOT use this: a founding expert gets 12
+   * months free, then $39 a month.
    */
   const grantFree = async (email: string, name: string) => {
     if (
       !confirm(
-        `Make ${name} a lifetime-free founding expert?\n\nThey will never be charged and never asked for a card. This cannot be undone.\n\nIf they also list a company, that company keeps paying normally.`,
+        `Make ${name} billing-exempt (manual override)?\n\nThey will never be charged and never asked for a card. This cannot be undone.\n\nThis is not the founding expert offer (12 months free, then $39 a month); use a founding invite for that.\n\nIf they also list a company, that company keeps paying normally.`,
       )
     ) {
       return;
@@ -143,7 +145,7 @@ function Inner() {
         setError(body.error ?? `Could not grant (${res.status})`);
         return;
       }
-      setToast(body.message ?? `${name} is now free for life.`);
+      setToast(body.message ?? `${name} is now billing-exempt.`);
       setError(null);
       await loadSlots();
     } catch (err) {
@@ -227,10 +229,10 @@ function Inner() {
             Expert Bench. Triage new applications and onboard the ones you
             want. Onboarding activates the portal and sends the welcome email.
           </Typography>
-          {/* Founding-expert slots (INTERNAL ONLY, invite link only). The
-              first 20 real experts are free for life; once these run out
-              every new expert is billed on the normal ladder ($0 months
-              1 to 6, $29 months 7 to 12, $99 from month 13). */}
+          {/* Billing-exemption slots (INTERNAL ONLY, manual override, max
+              20). Founding invites do not use these: a founding expert is
+              12 months free, then $39 a month. Website experts are $0 for
+              months 1 to 6, then $39 a month with no increase. */}
           {slots && (
             <Stack direction="row" spacing={1} sx={{ alignItems: "center", mt: 1.5 }}>
               <WorkspacePremiumOutlinedIcon fontSize="small" sx={{ color: slots.remaining > 0 ? "#A07823" : "text.disabled" }} />
@@ -240,12 +242,11 @@ function Inner() {
                     <Box component="strong" sx={{ color: "text.primary" }}>
                       {slots.remaining} of {slots.cap}
                     </Box>{" "}
-                    lifetime-free founding slots left ({slots.used} granted)
+                    billing-exemption overrides left ({slots.used} granted). Founding invites: 12 months free, then $39 a month. Website experts: $0 months 1 to 6, then $39 a month.
                   </>
                 ) : (
                   <>
-                    All {slots.cap} founding slots used. New experts are billed on the
-                    normal ladder: $0 months 1 to 6, $29 months 7 to 12, $99 from month 13.
+                    All {slots.cap} billing-exemption overrides used. Founding invites: 12 months free, then $39 a month. Website experts: $0 months 1 to 6, then $39 a month.
                   </>
                 )}
               </Typography>
@@ -949,7 +950,7 @@ function RowActions({
 }: {
   status: ExpertRow["status"];
   onAction: (a: ActionKey) => void;
-  /** Already a lifetime-free founding expert. */
+  /** Already billing-exempt (manual admin override). */
   isExempt?: boolean;
   /** Founding slots left (null while loading). 0 hides the grant button. */
   slotsLeft?: number | null;
@@ -996,20 +997,21 @@ function RowActions({
   // declined | onboarded
   return (
     <>
-      {/* Lifetime-free founding expert. Only offered once they're
-          onboarded, because the flag lives on the provisioned `experts`
-          row, not on the application. Hidden when the 20 slots are gone , 
-          from then on every new expert goes on the paid ladder. */}
+      {/* Billing exemption (manual admin override). Only offered once
+          they're onboarded, because the flag lives on the provisioned
+          `experts` row, not on the application. Hidden when the 20 slots
+          are gone. Not the founding offer (that is 12 months free, then
+          $39, via a founding invite). */}
       {status === "onboarded" &&
         (isExempt ? (
-          <Tooltip title="Founding expert, free for life. Never charged, never asked for a card. (Their company, if any, still pays.)">
+          <Tooltip title="Billing-exempt (manual override). Never charged, never asked for a card. (Their company, if any, still pays.)">
             <WorkspacePremiumOutlinedIcon fontSize="small" sx={{ color: "#2C7A52" }} />
           </Tooltip>
         ) : slotsLeft == null || slotsLeft > 0 ? (
           <Tooltip
-            title={`Make free for life, founding expert, never charged${
-              slotsLeft == null ? "" : ` (${slotsLeft} of 20 slots left)`
-            }. Their company keeps paying normally. Cannot be undone.`}
+            title={`Make billing-exempt (manual override, never charged)${
+              slotsLeft == null ? "" : ` (${slotsLeft} of 20 overrides left)`
+            }. Not the founding offer. Their company keeps paying normally. Cannot be undone.`}
           >
             <IconButton size="small" sx={{ color: "#A07823" }} onClick={() => onGrantFree?.()}>
               <WorkspacePremiumOutlinedIcon fontSize="small" />

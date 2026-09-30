@@ -1,4 +1,5 @@
 import "server-only";
+import { emailBrandHeader } from "@/lib/email/brandHeader";
 import { readFileSync } from "node:fs";
 import path from "node:path";
 import { escapeHtml } from "@/lib/email/escapeHtml";
@@ -9,11 +10,19 @@ import { applyEmailSandbox } from "@/lib/email/sandbox";
  * signed agreement PDF and points them at their portal.
  *
  * Copy follows Agreements/ASN_Forms_and_Esign_Spec.md: sender and
- * reply-to support@aestheticsuccessnetwork.com, the ASN legal line, the
- * first $39 charge date and the $199 start date as plain calendar dates
- * computed from the trial end, no card details, no em-dashes, and the
- * sign-in email restated (no code is sent from here; the portal login
+ * reply-to support@aestheticsuccessnetwork.com, the ASN legal line, every
+ * billing step as a plain calendar date (the first $39 charge, and for
+ * founding companies the $149 start), no card details, no em-dashes, and
+ * the sign-in email restated (no code is sent from here; the portal login
  * screen sends the 6-digit code once they arrive).
+ *
+ * Billing copy per case:
+ *   Founding expert (invite):   $0 for 12 months, then $39/month for good.
+ *   Founding company (invite):  $39/month from today for 12 months, then
+ *                               $149/month (ladder) or $39 for good (flat).
+ *   Website expert:             $0 for 6 months, then $39/month for good.
+ *   Website company:            $39/month from today for 12 months, then
+ *                               $149/month (same as the founding ladder).
  *
  * Transport strategy mirrors teamNotify.ts: SMTP if configured, Resend
  * fallback, log-only in dev. Same fromAddress().
@@ -78,8 +87,14 @@ function addMonths(date: Date, months: number): Date {
 
 export type JoinConfirmationInput = {
   role: "partner" | "expert" | "both";
-  /** Price plan (founding invites, 0066). "ladder" (the default) adds the $199 line; "flat_49" keeps $39 for good. */
+  /** Company price plan (founding invites, 0066). "ladder" (the default) = $39 for 12 months then $149; "flat_49" = $39 for good. */
   pricing?: "ladder" | "flat_49" | null;
+  /** True when this is a founding-invite acceptance (case A / B pricing). Website flows leave it unset. */
+  founding?: boolean;
+  /** ISO date the EXPERT free period ends (first $39 expert charge). Founding: 12 months; website: 6 months. */
+  expertTrialEndsAt?: string | null;
+  /** ISO date the COMPANY moves to $149/month (month 13; founding ladder and website). */
+  partnerStandardStartsAt?: string | null;
   to: string;
   contactName: string;
   companyName?: string | null;
@@ -95,7 +110,7 @@ export type JoinConfirmationInput = {
    * offer. When 2+ entries exist the email lists offers per company instead
    * of the single memberOffer line. */
   companies?: { name: string; category?: string | null; member_offer?: string | null }[] | null;
-  /** ISO date the trial ends / first $39 charge lands. */
+  /** ISO date the website EXPERT trial ends / first $39 charge lands. Legacy field; expertTrialEndsAt wins. Ignored for companies (no trial). */
   trialEndsAt?: string | null;
   /** Whether a card was actually saved to Stripe as part of this signup (founding invite accept, portal trial start). Public join/apply flows don't capture a card here, so default false. */
   cardCaptured?: boolean;
@@ -251,38 +266,62 @@ type BuiltOpts = JoinConfirmationInput & {
   preheader: string;
 };
 
+const DAY_MS = 24 * 60 * 60 * 1000;
+
 /**
- * The ASN provider ramp in plain calendar dates: $0 through the day before
- * the trial ends, $39/month from the trial end, $199/month six months
- * after that (ladder plan). All computed from the trial end so the email
- * never says "month 7".
+ * Expert-side billing in plain calendar dates. $0 through the day before
+ * the free period ends, then $39/month for good (experts never step up).
+ * Founding invites: 12 months free; website experts: 6 months free.
  */
-function billingDates(opts: BuiltOpts): { freeThrough: string; firstCharge: string; standardStart: string } {
+function expertBillingLines(opts: BuiltOpts): string[] {
   const signedAt = opts.signedAt ?? new Date();
-  const trialEnd = opts.trialEndsAt ? new Date(opts.trialEndsAt) : addMonths(signedAt, 6);
-  const freeThrough = new Date(trialEnd.getTime() - 24 * 60 * 60 * 1000);
-  return {
-    freeThrough: formatDate(freeThrough),
-    firstCharge: formatDate(trialEnd),
-    standardStart: formatDate(addMonths(trialEnd, 6)),
-  };
+  const freeMonths = opts.founding ? 12 : 6;
+  const iso = opts.expertTrialEndsAt ?? opts.trialEndsAt;
+  const trialEnd = iso ? new Date(iso) : addMonths(signedAt, freeMonths);
+  const freeThrough = formatDate(new Date(trialEnd.getTime() - DAY_MS));
+  const sideLabel = opts.role === "both" ? " for your expert access" : "";
+  return [
+    `Today through ${freeThrough}: $0${sideLabel} (your ${freeMonths} founding months)`,
+    `First $39 charge on ${formatDate(trialEnd)}: $39/month${sideLabel} from then on, with no increase`,
+  ];
 }
 
-/** The "from then on" billing line, per plan. Ladder is the ASN default. */
-function ongoingBillingLine(opts: BuiltOpts, dates: { standardStart: string }): string {
-  return opts.pricing === "flat_49"
-    ? `$39/month from then on, with no increase`
-    : `From ${dates.standardStart}: $199/month standard rate`;
+/**
+ * Company-side billing in plain calendar dates. Every company pays from
+ * today; there is no free period.
+ *   Founding (invite): $39/month from today for 12 months, then $149/month
+ *     (ladder) or $39 for good (flat_49).
+ *   Website: $39/month from today for 12 months, then $149/month.
+ */
+function companyBillingLines(opts: BuiltOpts): string[] {
+  const signedAt = opts.signedAt ?? new Date();
+  const sideLabel = opts.role === "both" ? " for your company listing" : "";
+  if (opts.founding && opts.pricing === "flat_49") {
+    return [`Today: first $39 charge${sideLabel}, then $39/month with no increase`];
+  }
+  const standardStart = opts.partnerStandardStartsAt
+    ? new Date(opts.partnerStandardStartsAt)
+    : addMonths(signedAt, 12);
+  const growthThrough = formatDate(new Date(standardStart.getTime() - DAY_MS));
+  const standardLabel = opts.founding ? "founding standard rate" : "standard rate";
+  return [
+    `Today through ${growthThrough}: $39/month${sideLabel} (your first 12 months, first charge today)`,
+    `From ${formatDate(standardStart)}: $149/month${sideLabel} ${standardLabel}`,
+  ];
 }
 
 function billingLines(opts: BuiltOpts): string[] {
-  const dates = billingDates(opts);
-  return [
-    `Today through ${dates.freeThrough}: $0 (your 6 founding months)`,
-    `First $39 charge on ${dates.firstCharge}: $39/month`,
-    ongoingBillingLine(opts, dates),
-    `Cancel anytime with 30 days' written notice. We'll remind you 7 days before your free period ends.`,
-  ];
+  const lines: string[] = [];
+  if (hasExpertRole(opts.role)) lines.push(...expertBillingLines(opts));
+  if (hasPartnerRole(opts.role)) lines.push(...companyBillingLines(opts));
+  // Only experts have a free period. Companies pay from today.
+  const hasFreePeriod = hasExpertRole(opts.role);
+  lines.push(
+    hasFreePeriod
+      ? `Cancel anytime with 30 days' written notice. We'll remind you 7 days before your free period ends.`
+      : `Cancel anytime with 30 days' written notice.`,
+  );
+  return lines;
 }
 
 function billingSubject(opts: BuiltOpts): string {
@@ -296,17 +335,24 @@ function billingSubject(opts: BuiltOpts): string {
 function welcomeLines(opts: BuiltOpts): string[] {
   const billingActive = opts.cardCaptured === true;
   const lines: string[] = [];
+  // Every company (founding invite or website signup) is charged $39 the
+  // day the card is saved.
+  const companyChargedToday = billingActive;
   if (opts.role === "both") {
     lines.push(`Welcome to the Aesthetic Success Network as a Founding Expert and Partner.`);
     lines.push(
       billingActive
-        ? `Your card is safely saved with Stripe and nothing was charged today. The billing below covers ${billingSubject(opts)} under one provider account.`
+        ? companyChargedToday
+          ? `Your card is safely saved with Stripe. Your first $39 company charge was made today; your expert access is free for 12 months. The billing below covers ${billingSubject(opts)} under one provider account.`
+          : `Your card is safely saved with Stripe and nothing was charged today. The billing below covers ${billingSubject(opts)} under one provider account.`
         : `Your application is confirmed, and no payment details were taken today. We'll be in touch once it's reviewed.`,
     );
   } else if (opts.role === "partner") {
     lines.push(
       billingActive
-        ? `Welcome to the Aesthetic Success Network as a Founding Partner. Your card is safely saved with Stripe. Nothing was charged today.`
+        ? companyChargedToday
+          ? `Welcome to the Aesthetic Success Network as a Founding Partner. Your card is safely saved with Stripe and your first $39 charge was made today.`
+          : `Welcome to the Aesthetic Success Network as a Founding Partner. Your card is safely saved with Stripe. Nothing was charged today.`
         : `Welcome to the Aesthetic Success Network as a Founding Partner. Your application is confirmed, and no payment details were taken today. We'll be in touch once it's reviewed.`,
     );
   } else {
@@ -339,8 +385,8 @@ function buildHtml(opts: BuiltOpts): string {
   const billingActive = opts.cardCaptured === true;
 
   const logoHtml = getLogoBuffer()
-    ? `<img src="cid:${LOGO_CID}" alt="Aesthetic Success Network" width="200" style="display:block;margin:0 auto 8px;" />`
-    : `<img src="${process.env.NEXT_PUBLIC_APP_URL ?? "https://www.aestheticsuccessnetwork.com"}/asn-logo-email.png" alt="Aesthetic Success Network" width="200" style="display:block;margin:0 auto 8px;" />`;
+    ? `${emailBrandHeader({ center: true })}`
+    : `${emailBrandHeader({ center: true })}`;
 
   let billingHtml = "";
   if (billingActive) {

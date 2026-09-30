@@ -209,7 +209,9 @@ export async function POST(req: Request, ctx: { params: Promise<{ id: string }> 
         periodEnd = e?.current_period_end ?? null;
         cardOnFile = !!e?.card_last4;
       }
-      const cardCaptured = invite.role === "partner" || invite.role === "both" || cardOnFile;
+      // Every founding role saves a card at acceptance now; cardOnFile
+      // covers legacy rows accepted before that rule.
+      const cardCaptured = invite.role === "partner" || invite.role === "both" || cardOnFile || !!invite.stripe_subscription_id;
       const trialEndsNice = periodEnd
         ? new Date(periodEnd).toLocaleDateString("en-US", { year: "numeric", month: "long", day: "numeric" })
         : null;
@@ -230,7 +232,7 @@ export async function POST(req: Request, ctx: { params: Promise<{ id: string }> 
           { label: "Company", value: invite.company_name },
           { label: "Payment method", value: cardCaptured ? "On file" : null },
           { label: "Subscription", value: subscriptionStatus },
-          { label: "Free trial ends", value: trialEndsNice },
+          { label: invite.role === "partner" ? "Next renewal" : "Free period ends", value: trialEndsNice },
           { label: "Accepted on", value: acceptedNice },
           { label: "Member offer", value: invite.member_offer },
         ],
@@ -318,6 +320,7 @@ export async function POST(req: Request, ctx: { params: Promise<{ id: string }> 
       to: invite.email,
       fullName: signerName,
       role: invite.role,
+      pricing: invite.pricing_plan,
       inviteUrl,
       pdfBuffer,
       pdfFilename: `ASN-Founding-Agreement-${invite.agreement_version}.pdf`,

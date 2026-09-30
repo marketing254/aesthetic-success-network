@@ -180,6 +180,12 @@ export async function POST(req: Request) {
       pdfFilename: `ASN-Provider-Agreement-${agreementVersion}.pdf`,
       portalUrl: `${appOrigin()}/expert/billing`,
       agreementVersion,
+      signedAt,
+      expertTrialEndsAt:
+        typeof subscription.trial_end === "number"
+          ? new Date(subscription.trial_end * 1000).toISOString()
+          : null,
+      cardCaptured: true,
     });
   } catch (err) {
     console.error("[expert:trial:start] PDF/email failed", err);

@@ -31,6 +31,7 @@ import PersonAddAlt1OutlinedIcon from "@mui/icons-material/PersonAddAlt1Outlined
 import VpnKeyOutlinedIcon from "@mui/icons-material/VpnKeyOutlined";
 import DomainAddOutlinedIcon from "@mui/icons-material/DomainAddOutlined";
 import AddCompanyDialog from "@/components/admin/AddCompanyDialog";
+import { normalizeVendorPlan, vendorPlanChipLabel, vendorRamp } from "@/lib/vendorPricing";
 
 type VendorRow = {
   id: string;
@@ -40,6 +41,7 @@ type VendorRow = {
   contact_name: string;
   contact_email: string;
   plan_id: string | null;
+  billing_plan: "website" | "founding_ladder" | "founding_flat" | null;
   status: "pending_review" | "approved" | "rejected" | "suspended" | "churned";
   verified: boolean;
   billing_parent_id: string | null;
@@ -309,7 +311,7 @@ function Inner() {
                 </Box>
               </Cell>
               <Cell>
-                <Box sx={{ display: { xs: "none", md: "inline-block" } }}>
+                <Stack direction="row" sx={{ display: { xs: "none", md: "flex" }, flexWrap: "wrap", gap: 0.5 }}>
                   <Chip
                     label={planLabel(v.plan_id)}
                     size="small"
@@ -322,7 +324,22 @@ function Inner() {
                       textTransform: "capitalize",
                     }}
                   />
-                </Box>
+                  {!v.billing_parent_id && (
+                    <Tooltip title={vendorRamp(normalizeVendorPlan(v.billing_plan)).summary}>
+                      <Chip
+                        label={vendorPlanChipLabel(v.billing_plan)}
+                        size="small"
+                        sx={{
+                          bgcolor: v.billing_plan && v.billing_plan !== "website" ? "rgba(217,168,75,0.16)" : "rgba(14,42,61,0.05)",
+                          color: v.billing_plan && v.billing_plan !== "website" ? "#A07823" : "text.secondary",
+                          fontWeight: 700,
+                          fontSize: "0.68rem",
+                          height: 22,
+                        }}
+                      />
+                    </Tooltip>
+                  )}
+                </Stack>
               </Cell>
               <Box sx={{ display: { xs: "none", md: "block" } }}>
                 <StatusChip status={v.status} />

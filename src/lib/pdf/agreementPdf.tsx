@@ -258,7 +258,7 @@ const PARTNER_COMMITMENTS = [
     n: "5",
     title: "Pay the fee",
     body:
-      "$0 for months 1 to 6 (founding waiver), $39 per month for months 7 to 12 (locked launch rate), $199 per month from month 13 (Featured Partner rate).",
+      "$39 per month for months 1 to 12 (locked launch rate, first charge the day you add a card), then $149 per month from month 13 (Featured Partner rate).",
   },
 ];
 
@@ -270,7 +270,7 @@ const PARTNER_RECEIVES = [
 ];
 
 const EXPERT_TERMS = [
-  "Experts share one recording (up to about one hour) of themselves teaching a topic, plus supporting details. We produce the content kit (training video, action guide, checklist, key takeaways, worksheet, slide deck, wall poster, and extras), and you approve it before it goes live under your profile. You keep ownership of your content and grant ASN a license to produce, host, and distribute the kits to members. Expert access pricing follows the same ramp as partners: $0 for months 1 to 6, then $39 per month, then $199 per month from month 13.",
+  "Experts share one recording (up to about one hour) of themselves teaching a topic, plus supporting details. We produce the content kit (training video, action guide, checklist, key takeaways, worksheet, slide deck, wall poster, and extras), and you approve it before it goes live under your profile. You keep ownership of your content and grant ASN a license to produce, host, and distribute the kits to members. Expert access pricing: $0 for months 1 to 6, then $39 per month, and it stays $39 per month for as long as your expert access remains continuously active.",
   "Paid courses: you may list your own paid courses to members. You keep 70% of net course revenue; the network retains 30%. Payouts are processed monthly. Hotline referrals are routed by fit, never by payment.",
 ];
 
@@ -465,28 +465,53 @@ function AgreementDoc({ input }: { input: AgreementPdfInput }) {
           </Text>
         )}
 
-        {/* Fee schedule (same ramp for both capabilities) */}
-        <Text style={styles.sectionTitle}>Fee schedule</Text>
-        <View style={styles.feeRowHead}>
-          <Text style={[styles.feeColStrong, { flex: 1 }]}>Period</Text>
-          <Text style={[styles.feeColStrong, { flex: 0.7 }]}>Fee</Text>
-          <Text style={[styles.feeColStrong, { flex: 2 }]}>Note</Text>
-        </View>
-        <View style={styles.feeRow}>
-          <Text style={[styles.feeCol, { flex: 1 }]}>Months 1 to 6</Text>
-          <Text style={[styles.feeCol, { flex: 0.7 }]}>$0</Text>
-          <Text style={[styles.feeCol, { flex: 2 }]}>Founding waiver via 180-day Stripe trial; card on file</Text>
-        </View>
-        <View style={styles.feeRow}>
-          <Text style={[styles.feeCol, { flex: 1 }]}>Months 7 to 12</Text>
-          <Text style={[styles.feeCol, { flex: 0.7 }]}>$39/mo</Text>
-          <Text style={[styles.feeCol, { flex: 2 }]}>Locked launch rate</Text>
-        </View>
-        <View style={styles.feeRow}>
-          <Text style={[styles.feeCol, { flex: 1 }]}>Month 13 onward</Text>
-          <Text style={[styles.feeCol, { flex: 0.7 }]}>$199/mo</Text>
-          <Text style={[styles.feeCol, { flex: 2 }]}>Standard rate ($1,990/year prepaid, two months free)</Text>
-        </View>
+        {/* Fee schedule. Partner capability: $39 x 12 months from the day
+            the card is added, then $149 (no free period). Expert
+            capability: a free period, then $39 with no increase. */}
+        {showPartnerSections ? (
+          <>
+            <Text style={styles.sectionTitle}>
+              {showExpertSection ? "Fee schedule: partner listing" : "Fee schedule"}
+            </Text>
+            <View style={styles.feeRowHead}>
+              <Text style={[styles.feeColStrong, { flex: 1 }]}>Period</Text>
+              <Text style={[styles.feeColStrong, { flex: 0.7 }]}>Fee</Text>
+              <Text style={[styles.feeColStrong, { flex: 2 }]}>Note</Text>
+            </View>
+            <View style={styles.feeRow}>
+              <Text style={[styles.feeCol, { flex: 1 }]}>Months 1 to 12</Text>
+              <Text style={[styles.feeCol, { flex: 0.7 }]}>$39/mo</Text>
+              <Text style={[styles.feeCol, { flex: 2 }]}>Locked launch rate; first charge the day the card is added</Text>
+            </View>
+            <View style={styles.feeRow}>
+              <Text style={[styles.feeCol, { flex: 1 }]}>Month 13 onward</Text>
+              <Text style={[styles.feeCol, { flex: 0.7 }]}>$149/mo</Text>
+              <Text style={[styles.feeCol, { flex: 2 }]}>Standard rate</Text>
+            </View>
+          </>
+        ) : null}
+        {showExpertSection ? (
+          <>
+            <Text style={styles.sectionTitle}>
+              {showPartnerSections ? "Fee schedule: expert access" : "Fee schedule"}
+            </Text>
+            <View style={styles.feeRowHead}>
+              <Text style={[styles.feeColStrong, { flex: 1 }]}>Period</Text>
+              <Text style={[styles.feeColStrong, { flex: 0.7 }]}>Fee</Text>
+              <Text style={[styles.feeColStrong, { flex: 2 }]}>Note</Text>
+            </View>
+            <View style={styles.feeRow}>
+              <Text style={[styles.feeCol, { flex: 1 }]}>Months 1 to 6</Text>
+              <Text style={[styles.feeCol, { flex: 0.7 }]}>$0</Text>
+              <Text style={[styles.feeCol, { flex: 2 }]}>Founding waiver via 180-day Stripe trial; card on file</Text>
+            </View>
+            <View style={styles.feeRow}>
+              <Text style={[styles.feeCol, { flex: 1 }]}>Month 7 onward</Text>
+              <Text style={[styles.feeCol, { flex: 0.7 }]}>$39/mo</Text>
+              <Text style={[styles.feeCol, { flex: 2 }]}>Locked rate, no increase</Text>
+            </View>
+          </>
+        ) : null}
 
         {/* Member offer: personalized. Shown for partner / both. */}
         {input.memberOffer && input.role !== "expert" ? (

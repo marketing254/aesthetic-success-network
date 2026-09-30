@@ -9,9 +9,10 @@ import ExpertDirectory from "@/components/site/ExpertDirectory";
 // Copy source: the previous ASN site / _asn-source-copy/experts.html
 // (approved ASN copy). The application form posts to DMN's
 // /api/expert/signup; the bench reads DMN's /api/directory/experts.
-// Provider ramp per the ASN canon: $0 months 1 to 6, $29 months 7 to 12,
-// $99 from month 13. Experts keep 70% of course revenue. Founding experts
-// (free for life) are internal only and never mentioned here.
+// Website expert pricing (case C): $0 months 1 to 6, then $39/month, and
+// it stays $39 (no month-13 step). Experts keep 70% of course revenue.
+// Founding-invite terms (12 months free, then $39) are internal only and
+// never mentioned here.
 
 export const metadata: Metadata = {
   title: "Become an Expert",
@@ -222,25 +223,17 @@ export default function ExpertsPage() {
               <div className="desc">Get set up and build your library first.</div>
             </div>
             <div className="pc">
-              <div className="tier">Months 7 to 12</div>
+              <div className="tier">Month 7 onward</div>
               <div className="price">
-                $29<span>/mo</span>
-              </div>
-              <div className="desc">Locked launch rate as the leads start flowing.</div>
-            </div>
-            <div className="pc">
-              <div className="tier">Month 13+</div>
-              <div className="price">
-                $99<span>/mo</span>
+                $39<span>/mo</span>
               </div>
               <div className="desc">
-                Standard rate once your library is working for you, or $990/yr annual (two
-                months free).
+                Locked rate as the leads start flowing. It stays $39, with no increase.
               </div>
             </div>
           </div>
           <p className="guarantee">
-            <b>Paid courses:</b> you keep 70% &middot; <b>Annual prepay:</b> two months free
+            <b>Paid courses:</b> you keep 70% &middot; <b>Cancel anytime</b>
           </p>
         </div>
       </section>

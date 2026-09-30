@@ -322,7 +322,7 @@ function layout(opts: {
   signed: boolean;
   footer: string;
 }): string {
-  const logo = `${siteUrl()}/asn-logo-email.png`;
+  const logo = process.env.EMAIL_LOGO_URL ?? "https://www.aestheticsuccessnetwork.com/asn-nav-icon.png";
   return `<!doctype html>
 <html lang="en">
 <head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Aesthetic Success Network</title></head>

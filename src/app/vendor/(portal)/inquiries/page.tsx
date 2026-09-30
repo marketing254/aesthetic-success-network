@@ -9,8 +9,6 @@ import {
   Chip,
   CircularProgress,
   Stack,
-  Tab,
-  Tabs,
   TextField,
   Typography,
 } from "@mui/material";
@@ -18,16 +16,15 @@ import ChatBubbleOutlineRoundedIcon from "@mui/icons-material/ChatBubbleOutlineR
 import OpenInNewRoundedIcon from "@mui/icons-material/OpenInNewRounded";
 import SendRoundedIcon from "@mui/icons-material/SendRounded";
 import { createBrowserSupabase } from "@/lib/supabase/browser";
-import { EmptyState, PageHeader, SectionCard } from "@/components/vendor/PortalUI";
+import { EmptyState, ListDivider, PageHeader, SectionCard, SegmentedFilter } from "@/components/vendor/PortalUI";
+import { CP } from "@/components/shared/CommunityPortalShell";
 
-const INK = "#111827";
-const BODY = "#374151";
-const MUTED = "#6B7280";
-const LINE = "#E5E7EB";
-const ROW_HOVER = "#F9FAFB";
-const FILL = "#F3F4F6";
-const NAVY = "#0E2A3D";
-const NAVY_TINT = "rgba(14,42,61,0.08)";
+const INK = CP.ink;
+const BODY = CP.body;
+const MUTED = CP.muted;
+const LINE = CP.border;
+const ROW_HOVER = CP.sandSoft;
+const NAVY = CP.navy;
 
 type AuthorKind = "member" | "expert" | "partner" | "admin";
 
@@ -98,7 +95,7 @@ export default function VendorInquiriesPage() {
     void load();
   }, [load]);
 
-  // Realtime — refresh when an inquiry or reply lands.
+  // Realtime: refresh when an inquiry or reply lands.
   useEffect(() => {
     const supabase = createBrowserSupabase();
     const channel = supabase
@@ -132,39 +129,18 @@ export default function VendorInquiriesPage() {
         subtitle="Every inquiry a member posts on a resource you published shows up here. Reply directly: the whole thread is visible to every member viewing that resource, so a good answer builds your reputation in the network."
       />
 
-      <Tabs
-        value={filter}
-        onChange={(_, v) => setFilter(v as StatusFilter)}
-        sx={{ borderBottom: `1px solid ${LINE}` }}
-      >
-        <Tab
-          value="all"
-          label={
-            <Stack direction="row" spacing={1} sx={{ alignItems: "center" }}>
-              <Box>All</Box>
-              <CountChip count={counts.all} active={filter === "all"} />
-            </Stack>
-          }
+      <Box>
+        <SegmentedFilter
+          ariaLabel="Filter inquiries"
+          value={filter}
+          onChange={setFilter}
+          options={[
+            { key: "all", label: "All", count: counts.all },
+            { key: "open", label: "Needs reply", count: counts.open },
+            { key: "answered", label: "Answered", count: counts.answered },
+          ]}
         />
-        <Tab
-          value="open"
-          label={
-            <Stack direction="row" spacing={1} sx={{ alignItems: "center" }}>
-              <Box>Needs reply</Box>
-              <CountChip count={counts.open} active={filter === "open"} />
-            </Stack>
-          }
-        />
-        <Tab
-          value="answered"
-          label={
-            <Stack direction="row" spacing={1} sx={{ alignItems: "center" }}>
-              <Box>Answered</Box>
-              <CountChip count={counts.answered} active={filter === "answered"} />
-            </Stack>
-          }
-        />
-      </Tabs>
+      </Box>
 
       {error && <Alert severity="error">{error}</Alert>}
 
@@ -182,7 +158,7 @@ export default function VendorInquiriesPage() {
         />
       ) : (
         <SectionCard padding="none">
-          <Stack divider={<Box sx={{ borderTop: `1px solid ${LINE}` }} />}>
+          <Stack divider={<ListDivider />}>
             {rows.map((inq) => (
               <InboxRow
                 key={inq.id}
@@ -198,29 +174,6 @@ export default function VendorInquiriesPage() {
         </SectionCard>
       )}
     </Stack>
-  );
-}
-
-function CountChip({ count, active }: { count: number; active: boolean }) {
-  return (
-    <Box
-      component="span"
-      sx={{
-        display: "inline-flex",
-        alignItems: "center",
-        justifyContent: "center",
-        minWidth: 20,
-        height: 18,
-        px: 0.75,
-        borderRadius: "6px",
-        fontSize: "0.6875rem",
-        fontWeight: 600,
-        bgcolor: active ? NAVY_TINT : FILL,
-        color: active ? NAVY : MUTED,
-      }}
-    >
-      {count}
-    </Box>
   );
 }
 
@@ -307,7 +260,7 @@ function InboxRow({
   };
 
   return (
-    <Box sx={{ bgcolor: expanded ? ROW_HOVER : "transparent" }}>
+    <Box sx={{ bgcolor: expanded ? ROW_HOVER : "transparent", transition: "background-color 120ms ease" }}>
       <Box
         component="button"
         type="button"
@@ -318,10 +271,10 @@ function InboxRow({
           width: "100%",
           display: "grid",
           gridTemplateColumns: "auto 1fr auto",
-          gap: 1.5,
+          gap: 1.75,
           alignItems: "flex-start",
           px: 3,
-          py: 2,
+          py: 2.25,
           cursor: "pointer",
           "&:hover": { bgcolor: ROW_HOVER },
           "&:focus-visible": {
@@ -332,12 +285,12 @@ function InboxRow({
       >
         <Avatar
           sx={{
-            width: 36,
-            height: 36,
-            bgcolor: NAVY_TINT,
-            color: NAVY,
+            width: 40,
+            height: 40,
+            bgcolor: NAVY,
+            color: CP.gold,
             fontSize: "0.75rem",
-            fontWeight: 600,
+            fontWeight: 700,
             flexShrink: 0,
           }}
         >
@@ -348,7 +301,7 @@ function InboxRow({
             <Typography
               sx={{
                 fontSize: "0.875rem",
-                fontWeight: 600,
+                fontWeight: 700,
                 color: INK,
                 lineHeight: 1.3,
               }}
@@ -375,7 +328,7 @@ function InboxRow({
             sx={{
               fontSize: "0.875rem",
               color: BODY,
-              lineHeight: 1.55,
+              lineHeight: 1.6,
               whiteSpace: "pre-wrap",
               wordBreak: "break-word",
               ...(expanded
@@ -414,7 +367,7 @@ function InboxRow({
       </Box>
 
       {expanded && (
-        <Box sx={{ px: 3, pb: 2.5, pt: 0.5 }}>
+        <Box sx={{ px: 3, pb: 3, pt: 0.5 }}>
           {error && (
             <Alert severity="error" sx={{ mb: 1.5 }} onClose={() => setError(null)}>
               {error}
@@ -422,11 +375,12 @@ function InboxRow({
           )}
           <Box
             sx={{
-              borderLeft: `2px solid ${LINE}`,
-              pl: 2,
+              borderLeft: `2px solid ${CP.gold}`,
+              pl: 2.25,
+              ml: 2.25,
               maxHeight: 380,
               overflowY: "auto",
-              mb: 1.5,
+              mb: 2,
             }}
           >
             {loadingReplies ? (
@@ -439,20 +393,19 @@ function InboxRow({
                   fontSize: "0.8125rem",
                   color: MUTED,
                   py: 1.5,
-                  textAlign: "center",
                 }}
               >
                 No replies yet. Yours will be the first.
               </Typography>
             ) : (
-              <Stack spacing={1.5}>
+              <Stack spacing={1.75}>
                 {(replies ?? []).map((r) => (
                   <ReplyView key={r.id} reply={r} />
                 ))}
               </Stack>
             )}
           </Box>
-          <Stack spacing={1}>
+          <Stack spacing={1.25} sx={{ bgcolor: CP.white, border: `1px solid ${LINE}`, borderRadius: "12px", p: 1.5 }}>
             <TextField
               value={draft}
               onChange={(e) => setDraft(e.target.value)}
@@ -475,7 +428,7 @@ function InboxRow({
                   )
                 }
               >
-                {submitting ? "Posting…" : "Post reply"}
+                {submitting ? "Posting..." : "Post reply"}
               </Button>
             </Stack>
           </Stack>
@@ -493,10 +446,10 @@ function ReplyView({ reply }: { reply: Reply }) {
         sx={{
           width: 30,
           height: 30,
-          bgcolor: isMine ? NAVY_TINT : FILL,
-          color: isMine ? NAVY : BODY,
+          bgcolor: isMine ? NAVY : CP.neutralBg,
+          color: isMine ? CP.gold : BODY,
           fontSize: "0.6875rem",
-          fontWeight: 600,
+          fontWeight: 700,
           flexShrink: 0,
           mt: 0.25,
         }}
@@ -506,14 +459,14 @@ function ReplyView({ reply }: { reply: Reply }) {
       <Box sx={{ flex: 1, minWidth: 0 }}>
         <Stack direction="row" spacing={1} sx={{ alignItems: "center", flexWrap: "wrap" }}>
           <Typography
-            sx={{ fontSize: "0.8125rem", fontWeight: 600, color: INK, lineHeight: 1.3 }}
+            sx={{ fontSize: "0.8125rem", fontWeight: 700, color: INK, lineHeight: 1.3 }}
           >
             {reply.author_display_name}
           </Typography>
           <Chip
             label={reply.author_kind === "partner" ? "Company" : capitalize(reply.author_kind)}
             size="small"
-            color={isMine ? "primary" : "default"}
+            color={isMine ? "secondary" : "default"}
           />
           <Typography sx={{ fontSize: "0.75rem", color: MUTED }}>
             · {formatRelative(reply.created_at)}
@@ -524,7 +477,7 @@ function ReplyView({ reply }: { reply: Reply }) {
             mt: 0.5,
             fontSize: "0.875rem",
             color: BODY,
-            lineHeight: 1.55,
+            lineHeight: 1.6,
             whiteSpace: "pre-wrap",
             wordBreak: "break-word",
           }}

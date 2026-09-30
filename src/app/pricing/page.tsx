@@ -15,16 +15,18 @@ import {
 
 // /pricing in the ASN design. Member tiers: Founding ($29/mo or $290/yr,
 // first 100, open/closed from /api/stripe/availability) then Standard
-// ($199/mo or $1,990/yr). There is NO $99 "early" tier. Experts and
-// companies share the provider ramp: $0 months 1 to 6, $39 months 7 to 12,
-// $199 from month 13. Every member CTA starts the DMN signup at /join/member.
+// ($99/mo or $990/yr). There is NO "early" tier. Experts: $0
+// months 1 to 6, then $39/month for good (no month-13 step). Companies:
+// $39 months 1 to 12 from the day the card is added, then $149 from
+// month 13 (no free period). Every member CTA starts the DMN signup at
+// /join/member.
 
 const SITE = "https://www.aestheticsuccessnetwork.com";
 
 export const metadata: Metadata = {
   title: "Pricing",
   description:
-    "Aesthetic Success Network pricing: founding membership at $39/mo (first 100) then $199/mo, plus the expert and company programs. No hidden fees, no four-figure coaching upsell.",
+    "Aesthetic Success Network pricing: founding membership at $29/mo (first 100) then $99/mo, plus the expert and company programs. No hidden fees, no four-figure coaching upsell.",
   alternates: { canonical: "/pricing" },
 };
 
@@ -88,8 +90,7 @@ const PRICING_JSONLD = {
       url: `${SITE}/pricing`,
       offers: [
         { "@type": "Offer", name: "Expert Launch: months 1 to 6", price: "0.00", priceCurrency: "USD", url: `${SITE}/experts` },
-        { "@type": "Offer", name: "Expert Growth: months 7 to 12", price: "49.00", priceCurrency: "USD", url: `${SITE}/experts` },
-        { "@type": "Offer", name: "Expert Standard: month 13 onward", price: "199.00", priceCurrency: "USD", url: `${SITE}/experts` },
+        { "@type": "Offer", name: "Expert: month 7 onward", price: "39.00", priceCurrency: "USD", url: `${SITE}/experts` },
       ],
     },
     {
@@ -101,9 +102,8 @@ const PRICING_JSONLD = {
       image: `${SITE}/asn-logo-full-dark.png`,
       url: `${SITE}/pricing`,
       offers: [
-        { "@type": "Offer", name: "Company Launch: months 1 to 6", price: "0.00", priceCurrency: "USD", url: `${SITE}/companies` },
-        { "@type": "Offer", name: "Company Growth: months 7 to 12", price: "49.00", priceCurrency: "USD", url: `${SITE}/companies` },
-        { "@type": "Offer", name: "Company Standard: month 13 onward", price: "199.00", priceCurrency: "USD", url: `${SITE}/companies` },
+        { "@type": "Offer", name: "Company Launch: months 1 to 12", price: "39.00", priceCurrency: "USD", url: `${SITE}/companies` },
+        { "@type": "Offer", name: "Company Standard: month 13 onward", price: "149.00", priceCurrency: "USD", url: `${SITE}/companies` },
       ],
     },
   ],
@@ -167,23 +167,12 @@ export default function PricingPage() {
               <div className="desc">Get set up and build your library first.</div>
             </div>
             <div className="pc">
-              <div className="tier">Months 7 to 12</div>
+              <div className="tier">Month 7 onward</div>
               <div className="price">
                 ${EXPERT_PLAN_DISPLAY.expert_growth_monthly.amount}
                 <span>/mo</span>
               </div>
-              <div className="desc">Locked launch rate as the leads start flowing.</div>
-            </div>
-            <div className="pc">
-              <div className="tier">Month 13+</div>
-              <div className="price">
-                ${EXPERT_PLAN_DISPLAY.expert_standard_monthly.amount}
-                <span>/mo</span>
-              </div>
-              <div className="desc">
-                Standard rate, or ${EXPERT_PLAN_DISPLAY.expert_standard_annual.amount.toLocaleString("en-US")}
-                /yr annual (two months free).
-              </div>
+              <div className="desc">Locked rate as the leads start flowing. It stays $39, with no increase.</div>
             </div>
           </div>
           <p className="guarantee">
@@ -202,36 +191,28 @@ export default function PricingPage() {
         <div className="wrap center">
           <span className="kicker">Companies</span>
           <h2 className="title">
-            Free for six months. It pays for itself as <em>deals close</em>.
+            $39 a month for your first year. It pays for itself as <em>deals close</em>.
           </h2>
           <p className="lead">
-            Prove the channel before you pay, then keep a locked launch rate as the leads come in.
+            A locked launch rate for 12 months from the day you add a card, then the standard rate as the leads keep coming in.
           </p>
           <div className="pgrid">
             <div className="pc hot">
-              <div className="badge">Founding</div>
-              <div className="tier">Months 1 to 6</div>
-              <div className="price">$0</div>
-              <div className="desc">Get listed and start receiving leads, free.</div>
-            </div>
-            <div className="pc">
-              <div className="tier">Months 7 to 12</div>
+              <div className="badge">Launch</div>
+              <div className="tier">Months 1 to 12</div>
               <div className="price">
                 ${PARTNER_PLAN_DISPLAY.partner_growth_monthly.amount}
                 <span>/mo</span>
               </div>
-              <div className="desc">Founding locked rate.</div>
+              <div className="desc">Get listed and start receiving leads. Your first $39 charge is the day you add a card.</div>
             </div>
             <div className="pc">
-              <div className="tier">Month 13+</div>
+              <div className="tier">Month 13 onward</div>
               <div className="price">
-                ${PARTNER_PLAN_DISPLAY.partner_standard_monthly.amount}
+                ${PARTNER_PLAN_DISPLAY.partner_founding_standard_monthly.amount}
                 <span>/mo</span>
               </div>
-              <div className="desc">
-                Standard rate, or ${PARTNER_PLAN_DISPLAY.partner_standard_annual.amount.toLocaleString("en-US")}
-                /yr annual (two months free).
-              </div>
+              <div className="desc">Standard rate.</div>
             </div>
           </div>
           <p className="guarantee">
@@ -279,9 +260,10 @@ export default function PricingPage() {
             <details>
               <summary>Is there a free period for experts and companies?</summary>
               <p>
-                Experts and companies pay nothing for months 1 to 6 from the day they&rsquo;re
-                approved. After that, the launch rate of $29/mo applies through month 12, then the
-                standard rate of $99/mo.
+                Experts pay nothing for months 1 to 6 from the day they&rsquo;re approved, then
+                $39/mo, and it stays $39. Companies have no free period: they pay the $39/mo
+                launch rate for months 1 to 12 from the day they add a card, then the standard
+                rate of $149/mo from month 13.
               </p>
             </details>
           </div>

@@ -34,7 +34,7 @@ export async function GET(req: Request) {
     const { data, error } = await supabase
       .from("vendors")
       .select(
-        "id, company_name, display_name, category, contact_name, contact_email, plan_id, status, verified, billing_parent_id, created_at",
+        "id, company_name, display_name, category, contact_name, contact_email, plan_id, billing_plan, status, verified, billing_parent_id, created_at",
       )
       .order("created_at", { ascending: false })
       .limit(500);

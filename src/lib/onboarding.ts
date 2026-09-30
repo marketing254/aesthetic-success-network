@@ -1,4 +1,5 @@
 import "server-only";
+import { emailBrandHeader } from "@/lib/email/brandHeader";
 import { readFileSync } from "node:fs";
 import path from "node:path";
 import nodemailer from "nodemailer";
@@ -95,7 +96,7 @@ export function memberEmailLayout(bodyHtml: string): string {
   <tr><td style="background:#FFFFFF;border:1px solid #E6DDCF;border-radius:14px;overflow:hidden;">
     <table role="presentation" cellpadding="0" cellspacing="0" width="100%">
       <tr><td style="padding:26px 28px 18px;text-align:center;">
-        <img src="cid:${LOGO_CID}" alt="Aesthetic Success Network" width="200" style="display:inline-block;max-width:200px;height:auto;">
+        ${emailBrandHeader({ center: true })}
       </td></tr>
       <tr><td style="padding:0 28px;"><div style="height:2px;background:#D9A84B;border-radius:2px;"></div></td></tr>
       <tr><td style="padding:24px 32px 8px;color:#1A1A1A;font-size:15px;line-height:1.65;">

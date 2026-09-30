@@ -1,4 +1,5 @@
 import type { WaitlistPayload, WaitlistRole } from "@/lib/waitlist/validate";
+import { emailBrandHeader } from "@/lib/email/brandHeader";
 import type { ExpertApplicationPayload } from "@/lib/expert/validate";
 import { escapeHtml } from "@/lib/email/escapeHtml";
 import { applyEmailSandbox } from "@/lib/email/sandbox";
@@ -131,7 +132,8 @@ function normalizeUrl(path: string): string {
 // DRAFTS. Copy mirrors the ASN launch-phase email set (July 2026) and the
 // ASN canon: $29/month founding (first 100), $290/year, $99/month
 // standard, 30-day money-back, hotline written reply in 2 to 3 business
-// days, provider ramp $0 → $39 → $199, courses 70/30. No em-dashes.
+// days, expert ramp $0 → $39 (stays $39), company ramp $39 x 12 → $149
+// (no free period), courses 70/30. No em-dashes.
 // ─────────────────────────────────────────────────────────────────────────
 
 function memberDraft(input: ConfirmationInput): EmailDraft {
@@ -331,7 +333,7 @@ function renderHtml(draft: EmailDraft): string {
                 <table role="presentation" width="100%" cellspacing="0" cellpadding="0">
                   <tr>
                     <td>
-                      <img src="${SITE_URL}/asn-logo-email.png" alt="${BRAND_NAME}" width="190" style="display:block;max-width:190px;height:auto;" />
+                      ${emailBrandHeader({ dark: false })}
                     </td>
                     <td align="right" style="white-space:nowrap;">
                       <span style="display:inline-block;padding:6px 11px;border-radius:999px;background:${BRAND.creamSoft};border:1px solid ${BRAND.line};color:${draft.accent};font-family:${FONT_UI};font-size:10.5px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;">${escapeHtml(draft.eyebrow)}</span>
@@ -643,7 +645,7 @@ function buildVendorApprovalEmail({
     <li>Add your first catalog items: services, products, or courses.</li>
     <li>Attach member offers (discounts, bonuses) to each item.</li>
     <li>Upload your logo, spec sheets, and any supporting documents.</li>
-    <li>The first 6 months are on us. You'll add a payment method ahead of month 7, then it's $39/month for months 7 to 12 and $199/month from month 13.</li>
+    <li>Add a card in your portal to start your listing: $39/month for months 1 to 12, charged from the day you add it, then $149/month from month 13.</li>
   </ul>
   <p style="font-size:13px;line-height:1.65;color:${BRAND.inkMute};margin:32px 0 0;">
     Questions? Reply to this email and our partnerships team will get back to you.<br/>
@@ -663,7 +665,7 @@ What's next:
 - Add your first catalog items (services, products, courses)
 - Attach member offers to each item
 - Upload your logo and supporting documents
-- The first 6 months are on us. You'll add a payment method ahead of month 7, then it's $39/month for months 7 to 12 and $199/month from month 13.
+- Add a card in your portal to start your listing: $39/month for months 1 to 12, charged from the day you add it, then $149/month from month 13.
 
 Questions? Reply to this email.
 ${BRAND_NAME}. Powered by Business of Aesthetics.`;
@@ -805,8 +807,11 @@ export async function sendVendorMagicLinkEmail(input: VendorMagicInput): Promise
 const EXPERT_ACCENT = "#2C7A52";
 const EXPERT_ACCENT_LIGHT = "#5DA585";
 
-const PROVIDER_RAMP_LINE =
-  "Months 1 to 6 are free, then $39/month (locked launch rate) for months 7 to 12, then $199/month from month 13.";
+// Expert pricing (case C): a free period, then $39/month for good. Experts
+// never see a month-13 step. (Company approval copy above uses the
+// company ramp: $39 months 1 to 12, then $149 from month 13, no free period.)
+const EXPERT_RAMP_LINE =
+  "Months 1 to 6 are free, then $39/month from month 7, and it stays $39 with no increase.";
 const COURSE_SPLIT_LINE =
   "Paid courses: you keep 70% of net course revenue; the network retains 30%. You set your own course prices; the network handles the platform, payment processing, and member promotion.";
 const HOTLINE_FIT_LINE = "Expert Hotline referrals are routed by fit, never pay-to-play.";
@@ -839,7 +844,7 @@ function expertDraft(input: ExpertConfirmationInput): EmailDraft {
         items: [
           "You'll receive an approval email with a link to schedule a 30-minute onboarding conversation with our team.",
           "During onboarding, we'll set up your expert profile and walk you through how it works: you share one recording of you teaching your topic, we produce your full content kit in your branding, and interested members book straight onto your calendar.",
-          `Your founding terms lock in. ${PROVIDER_RAMP_LINE}`,
+          `Your founding terms lock in. ${EXPERT_RAMP_LINE}`,
         ],
       },
       {
@@ -944,7 +949,7 @@ function expertApprovalDraft(input: ExpertApprovalInput): EmailDraft {
       {
         title: "A few things to know",
         items: [
-          `Your founding terms are locked in. ${PROVIDER_RAMP_LINE}`,
+          `Your founding terms are locked in. ${EXPERT_RAMP_LINE}`,
           COURSE_SPLIT_LINE,
           HOTLINE_FIT_LINE,
         ],

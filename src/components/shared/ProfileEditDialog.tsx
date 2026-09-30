@@ -17,14 +17,14 @@ import {
 import PhotoCameraRoundedIcon from "@mui/icons-material/PhotoCameraRounded";
 
 /**
- * ProfileEditDialog — reusable identity-edit modal used by all three
- * portals (member, expert, partner) via their sidebar identity card.
+ * ProfileEditDialog: reusable identity-edit modal used by all three
+ * portals (member, expert, company) via their account menu.
  *
  * Accepts:
  *   endpoint   PATCH URL (multipart/form-data) the role's API exposes
  *   nameField  which field the role's table uses for the display name
  *              ("first_name + last_name" for members, "display_name" for
- *               experts/partners)
+ *               experts/companies)
  *   initial    current avatar + name values for the inputs
  *
  * On submit:
@@ -32,7 +32,8 @@ import PhotoCameraRoundedIcon from "@mui/icons-material/PhotoCameraRounded";
  *   - Calls onSaved with the local preview avatar URL so the parent can
  *     update its UI optimistically without a full reload.
  *
- * `accentColor` is kept for API compatibility; the dialog is neutral.
+ * `accentColor` is kept for API compatibility; the dialog uses the
+ * community palette.
  */
 
 // Field caps mirror the DB check constraints so a long paste fails here,
@@ -40,11 +41,14 @@ import PhotoCameraRoundedIcon from "@mui/icons-material/PhotoCameraRounded";
 const NAME_MAX = 80;
 const DISPLAY_NAME_MAX = 120;
 
-const NAVY = "#0E2A3D";
-const NAVY_HOVER = "#0B2232";
-const INK = "#111827";
+const NAVY = "#0A1320";
+const NAVY_HOVER = "#141F30";
+const INK = "#0A1320";
 const MUTED = "#6B7280";
-const LINE = "#E5E7EB";
+const LINE = "rgba(10,19,32,0.06)";
+const LINE_STRONG = "rgba(10,19,32,0.14)";
+const SAND_SOFT = "#F8F4EC";
+const GOLD = "#D9A84B";
 
 export type ProfileEditInitial = {
   avatarUrl?: string | null;
@@ -168,16 +172,16 @@ export default function ProfileEditDialog({
       slotProps={{
         paper: {
           sx: {
-            borderRadius: "8px",
+            borderRadius: "16px",
             bgcolor: "#FFFFFF",
             border: `1px solid ${LINE}`,
-            boxShadow: "0 10px 30px -10px rgba(17,24,39,0.2)",
+            boxShadow: "0 4px 12px rgba(10,19,32,0.06), 0 24px 48px -24px rgba(10,19,32,0.24)",
             backgroundImage: "none",
           },
         },
       }}
     >
-      <DialogTitle sx={{ fontFamily: "inherit", fontSize: "1rem", fontWeight: 600, color: INK, p: "20px 24px 4px", letterSpacing: 0 }}>
+      <DialogTitle sx={{ fontFamily: "inherit", fontSize: "1.0625rem", fontWeight: 700, color: INK, p: "22px 24px 4px", letterSpacing: "-0.02em" }}>
         Edit profile
       </DialogTitle>
       <DialogContent sx={{ p: "8px 24px 8px" }}>
@@ -191,10 +195,10 @@ export default function ProfileEditDialog({
             sx={{
               width: 64,
               height: 64,
-              bgcolor: "rgba(14,42,61,0.08)",
-              color: NAVY,
+              bgcolor: NAVY,
+              color: GOLD,
               fontSize: "1.125rem",
-              fontWeight: 600,
+              fontWeight: 700,
             }}
           >
             {initials(initial.firstName, initial.lastName, initial.displayName)}
@@ -208,13 +212,13 @@ export default function ProfileEditDialog({
               disabled={submitting}
               sx={{
                 textTransform: "none",
-                fontWeight: 500,
-                borderRadius: "6px",
-                minHeight: 32,
-                borderColor: "#D1D5DB",
+                fontWeight: 600,
+                borderRadius: "8px",
+                minHeight: 34,
+                borderColor: LINE_STRONG,
                 color: INK,
                 bgcolor: "#FFFFFF",
-                "&:hover": { bgcolor: "#F9FAFB", borderColor: "#D1D5DB", transform: "none" },
+                "&:hover": { bgcolor: SAND_SOFT, borderColor: LINE_STRONG, transform: "none" },
               }}
             >
               Choose photo
@@ -261,20 +265,20 @@ export default function ProfileEditDialog({
           <Typography sx={{ fontSize: "0.8125rem", color: "#991B1B", mt: 1.5 }}>{error}</Typography>
         )}
       </DialogContent>
-      <DialogActions sx={{ p: "12px 24px 20px", gap: 1 }}>
+      <DialogActions sx={{ p: "12px 24px 22px", gap: 1 }}>
         <Button
           onClick={onClose}
           disabled={submitting}
           variant="outlined"
           sx={{
             textTransform: "none",
-            fontWeight: 500,
-            borderRadius: "6px",
-            minHeight: 36,
-            borderColor: "#D1D5DB",
+            fontWeight: 600,
+            borderRadius: "10px",
+            minHeight: 40,
+            borderColor: LINE_STRONG,
             color: INK,
             bgcolor: "#FFFFFF",
-            "&:hover": { bgcolor: "#F9FAFB", borderColor: "#D1D5DB", transform: "none" },
+            "&:hover": { bgcolor: SAND_SOFT, borderColor: LINE_STRONG, transform: "none" },
           }}
         >
           Cancel
@@ -287,15 +291,15 @@ export default function ProfileEditDialog({
           endIcon={submitting ? <CircularProgress size={14} sx={{ color: "inherit" }} /> : null}
           sx={{
             textTransform: "none",
-            fontWeight: 500,
-            borderRadius: "6px",
-            minHeight: 36,
-            px: 2,
+            fontWeight: 600,
+            borderRadius: "10px",
+            minHeight: 40,
+            px: 2.25,
             bgcolor: NAVY,
             color: "#FFFFFF",
             backgroundImage: "none",
-            boxShadow: "none",
-            "&:hover": { bgcolor: NAVY_HOVER, boxShadow: "none", transform: "none" },
+            boxShadow: "inset 0 1px 0 rgba(255,255,255,0.10), 0 1px 2px rgba(10,19,32,0.12)",
+            "&:hover": { bgcolor: NAVY_HOVER, boxShadow: "inset 0 1px 0 rgba(255,255,255,0.10), 0 6px 16px -8px rgba(10,19,32,0.45)", transform: "none" },
           }}
         >
           {submitting ? "Saving..." : "Save"}

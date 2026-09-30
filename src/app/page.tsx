@@ -86,7 +86,7 @@ export default function HomePage() {
             </p>
             <div className="cta-row">
               <Link className="btn bronze" href="/join/member">
-                Start your membership
+                Reserve a founding spot
               </Link>
               <a className="btn ghost" href="#hotline">
                 See how the Hotline works
@@ -543,7 +543,7 @@ export default function HomePage() {
               </h3>
               <p>
                 Get in front of aesthetics&rsquo; most engaged buyers through a trusted shortlist
-                instead of a cold ad. Free for the first six months.
+                instead of a cold ad. $39 a month, then $149 after your first year.
               </p>
               <ul>
                 <li>Profile plus placement in your category</li>
@@ -586,7 +586,7 @@ export default function HomePage() {
             Join the waitlist and pay nothing today. We&rsquo;ll reach out as founding spots open,
             and you confirm before any charge. Ready now?{" "}
             <Link href="/join/member" style={{ textDecoration: "underline" }}>
-              Start your membership
+              Reserve a founding spot
             </Link>
             .
           </p>

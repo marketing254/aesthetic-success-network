@@ -4,47 +4,45 @@ import { Box, Stack, Typography, type SxProps, type Theme } from "@mui/material"
 import type { SvgIconComponent } from "@mui/icons-material";
 import PlayArrowRoundedIcon from "@mui/icons-material/PlayArrowRounded";
 import { statusLabel, type ReviewStatus } from "@/lib/catalogData";
+import { CP, cardSxFor, useCommunityVariant, usePortalPageTitle } from "@/components/shared/CommunityPortalShell";
 
 /**
- * Portal UI primitives (standard dashboard look).
- * Shared typography, cards, status chips and media thumbs so every portal
- * page renders with the same plain white-card-on-light-gray look.
+ * Portal UI primitives (community-platform look).
+ * Shared typography, cards, stat tiles, status chips, media thumbs, list
+ * rows and empty states so every portal page renders with the same warm,
+ * confident language: white 16px cards with a soft layered shadow on an
+ * off-white canvas, navy ink, gold highlights, sand tints.
  *
- * Tokens: canvas #F7F7F5, border #E5E7EB, ink #111827, muted #6B7280,
- * navy #0E2A3D (only accent). Cards are white, 1px border, 8px radius,
- * no shadow. Status chips are small 6px tints with dark text.
+ * Tokens come from CommunityPortalShell (CP). Exports and props are stable
+ * so pages that predate this look keep compiling.
  */
 
-const INK = "#111827";
-const BODY = "#374151";
-const MUTED = "#6B7280";
-const FAINT = "#9CA3AF";
-const LINE = "#E5E7EB";
-const SOFT = "#F9FAFB";
-const NAVY = "#0E2A3D";
-const GOLD_BG = "#FBF3E1";
-const GOLD_FG = "#7A5B17";
+const INK = CP.ink;
+const BODY = CP.body;
+const MUTED = CP.muted;
+const LINE = CP.border;
+const NAVY = CP.navy;
 
 export const portalText = {
   pageTitle: {
-    fontSize: "1.25rem",
-    fontWeight: 600,
-    lineHeight: 1.3,
+    fontSize: "1.375rem",
+    fontWeight: 700,
+    lineHeight: 1.25,
     color: INK,
-    letterSpacing: 0,
+    letterSpacing: "-0.02em",
   } as SxProps<Theme>,
   pageSubtitle: {
-    fontSize: "0.875rem",
+    fontSize: "0.9375rem",
     color: MUTED,
     lineHeight: 1.55,
-    maxWidth: 680,
+    maxWidth: 720,
   } as SxProps<Theme>,
   sectionTitle: {
     fontSize: "1rem",
-    fontWeight: 600,
-    color: INK,
+    fontWeight: 700,
+    color: NAVY,
     lineHeight: 1.4,
-    letterSpacing: 0,
+    letterSpacing: "-0.01em",
   } as SxProps<Theme>,
   /** Small field label (13px, gray). No uppercase, no letter-spacing. */
   eyebrow: {
@@ -65,19 +63,47 @@ export const portalText = {
     lineHeight: 1.5,
   } as SxProps<Theme>,
   statValue: {
-    fontSize: "1.5rem",
-    fontWeight: 600,
+    fontSize: "1.75rem",
+    fontWeight: 700,
     color: INK,
-    lineHeight: 1.2,
-    letterSpacing: 0,
+    lineHeight: 1.1,
+    letterSpacing: "-0.02em",
+    fontVariantNumeric: "tabular-nums",
   } as SxProps<Theme>,
 };
 
+/** Table-ish header row above a list inside a `SectionCard padding="none"`. */
+export const listHeadSx: SxProps<Theme> = {
+  px: 3,
+  py: 1.25,
+  borderBottom: `1px solid ${LINE}`,
+  fontSize: "0.75rem",
+  fontWeight: 600,
+  color: "rgba(10,19,32,0.6)",
+  letterSpacing: 0,
+  textTransform: "none",
+};
+
+/** 56px list row with a sand hover tint. Pair with `Stack divider`. */
+export const listRowSx: SxProps<Theme> = {
+  minHeight: 56,
+  px: 3,
+  py: 1.5,
+  alignItems: "center",
+  transition: "background-color 120ms ease",
+  "&:hover": { bgcolor: CP.sandSoft },
+};
+
+/** Divider element for `Stack divider={<ListDivider />}`. */
+export function ListDivider() {
+  return <Box sx={{ borderTop: `1px solid ${LINE}` }} />;
+}
+
 /**
  * Page header used at the top of every portal page.
- * Title + one-line description on the left, optional right-aligned actions.
- * `eyebrow` is kept for API compatibility and rendered as a small gray
- * label above the title (no uppercase).
+ * Inside a CommunityPortalShell the title moves into the transparent top
+ * bar, so this renders only the description and actions. Outside a shell
+ * (older portals) it renders the title inline as before.
  */
 export function PageHeader({
   eyebrow,
@@ -90,26 +116,35 @@ export function PageHeader({
   subtitle?: string;
   actions?: React.ReactNode;
 }) {
+  const inShell = usePortalPageTitle(title);
+  const hasLeft = !inShell || !!subtitle;
+  if (inShell && !subtitle && !actions) return null;
   return (
     <Stack
       direction={{ xs: "column", sm: "row" }}
       spacing={2}
-      sx={{ justifyContent: "space-between", alignItems: { sm: "flex-start" }, mb: 0.5 }}
+      sx={{ justifyContent: "space-between", alignItems: { sm: inShell ? "center" : "flex-start" }, mb: 0.5 }}
     >
-      <Box sx={{ minWidth: 0, flex: 1 }}>
-        {eyebrow && (
-          <Typography sx={{ ...portalText.eyebrow, display: "block", mb: 0.25 }}>{sentenceCase(eyebrow)}</Typography>
-        )}
-        <Typography component="h1" sx={portalText.pageTitle}>
-          {title}
-        </Typography>
-        {subtitle && <Typography sx={{ ...portalText.pageSubtitle, mt: 0.5 }}>{subtitle}</Typography>}
-      </Box>
+      {hasLeft ? (
+        <Box sx={{ minWidth: 0, flex: 1 }}>
+          {!inShell && eyebrow && (
+            <Typography sx={{ ...portalText.eyebrow, display: "block", mb: 0.25 }}>{sentenceCase(eyebrow)}</Typography>
+          )}
+          {!inShell && (
+            <Typography component="h1" sx={portalText.pageTitle}>
+              {title}
+            </Typography>
+          )}
+          {subtitle && <Typography sx={{ ...portalText.pageSubtitle, mt: inShell ? 0 : 0.5 }}>{subtitle}</Typography>}
+        </Box>
+      ) : (
+        <Box sx={{ flex: 1 }} />
+      )}
       {actions && (
         <Stack
           direction="row"
           spacing={1}
-          sx={{ flexShrink: 0, flexWrap: "wrap", rowGap: 1, justifyContent: { sm: "flex-end" }, pt: { sm: 0.25 } }}
+          sx={{ flexShrink: 0, flexWrap: "wrap", rowGap: 1, justifyContent: { sm: "flex-end" } }}
         >
           {actions}
         </Stack>
@@ -126,8 +161,9 @@ function sentenceCase(s: string): string {
 }
 
 /**
- * Reusable white card with an optional title bar and action slot.
- * `accent` is accepted for API compatibility and no longer draws a rule.
+ * Reusable white card (16px radius, soft layered shadow) with an optional
+ * title bar and action slot. `accent` draws a sand-tinted panel instead of
+ * plain white (highlighted panels, e.g. the founding waiver).
  */
 export function SectionCard({
   title,
@@ -135,7 +171,7 @@ export function SectionCard({
   action,
   children,
   padding = "default",
-  accent: _accent = false,
+  accent = false,
   sx,
 }: {
   title?: string;
@@ -146,20 +182,38 @@ export function SectionCard({
   accent?: boolean;
   sx?: SxProps<Theme>;
 }) {
-  void _accent;
   const padMap = {
     default: { p: 3 },
-    compact: { px: 2, py: 1.75 },
+    compact: { px: 2.5, py: 2 },
     none: { p: 0 },
   } as const;
+  // The expert variant marks section titles with a short accent rule on
+  // the left; the company variant (default) renders the plain title.
+  const v = useCommunityVariant();
+  const titleSx = v.sectionRule
+    ? {
+        ...(portalText.sectionTitle as object),
+        position: "relative" as const,
+        pl: 1.5,
+        "&::before": {
+          content: '""',
+          position: "absolute",
+          left: 0,
+          top: 3,
+          bottom: 3,
+          width: 3,
+          borderRadius: 999,
+          bgcolor: v.link,
+        },
+      }
+    : portalText.sectionTitle;
   return (
     <Box
       sx={{
-        bgcolor: "#FFFFFF",
-        border: `1px solid ${LINE}`,
-        borderRadius: "8px",
+        ...(cardSxFor(v) as object),
+        ...(accent ? { bgcolor: CP.sand, borderColor: "rgba(217,168,75,0.35)" } : {}),
         overflow: "hidden",
-        ...(sx ?? {}),
+        ...((sx as object) ?? {}),
       }}
     >
       {(title || action) && (
@@ -170,32 +224,43 @@ export function SectionCard({
             alignItems: "center",
             justifyContent: "space-between",
             px: 3,
-            py: 2,
-            borderBottom: `1px solid ${LINE}`,
+            pt: 2.5,
+            pb: padding === "none" ? 2 : 0,
+            borderBottom: padding === "none" ? `1px solid ${accent ? "rgba(217,168,75,0.3)" : LINE}` : 0,
           }}
         >
           <Box sx={{ minWidth: 0, flex: 1 }}>
-            {title && <Typography sx={portalText.sectionTitle}>{title}</Typography>}
-            {subtitle && <Typography sx={{ ...portalText.meta, mt: 0.25 }}>{subtitle}</Typography>}
+            {title && <Typography sx={titleSx}>{title}</Typography>}
+            {subtitle && <Typography sx={{ ...portalText.meta, mt: 0.25, pl: v.sectionRule ? 1.5 : 0 }}>{subtitle}</Typography>}
           </Box>
           {action && <Box sx={{ flexShrink: 0 }}>{action}</Box>}
         </Stack>
       )}
-      <Box sx={padMap[padding]}>{children}</Box>
+      <Box sx={{ ...padMap[padding], ...(title && padding !== "none" ? { pt: 2 } : {}) }}>{children}</Box>
     </Box>
   );
 }
 
+const STAT_TONES = {
+  gold: { bg: CP.goldTint, fg: CP.goldText },
+  navy: { bg: "rgba(10,19,32,0.08)", fg: CP.navy },
+  green: { bg: CP.successBg, fg: CP.successFg },
+  red: { bg: CP.errorBg, fg: CP.errorFg },
+  wine: { bg: "#FCE7F3", fg: "#9D174D" },
+} as const;
+
 /**
- * KPI tile. Small gray label + value, optional footer line and icon.
- * `accent` is accepted for API compatibility; the icon renders in gray.
+ * KPI tile. Icon in a tinted circle, small gray label, large value and an
+ * optional footer line. `accent` picks the icon tint; when omitted the
+ * portal variant decides (navy in the company portal, green in the
+ * expert portal).
  */
 export function StatCard({
   icon: Icon,
   label,
   value,
   footer,
-  accent: _accent,
+  accent,
 }: {
   icon?: SvgIconComponent;
   label: string;
@@ -203,37 +268,58 @@ export function StatCard({
   footer?: React.ReactNode;
   accent?: "gold" | "navy" | "green" | "red" | "wine";
 }) {
-  void _accent;
+  const v = useCommunityVariant();
+  const tone = accent ? STAT_TONES[accent] ?? STAT_TONES.navy : { bg: v.statIconBg, fg: v.statIconFg };
   return (
     <Box
       sx={{
-        bgcolor: "#FFFFFF",
-        border: `1px solid ${LINE}`,
-        borderRadius: "8px",
+        ...(cardSxFor(v) as object),
         p: 3,
         height: "100%",
+        display: "flex",
+        flexDirection: "column",
+        gap: 1.5,
+        transition: "box-shadow 140ms ease, transform 140ms ease",
+        "&:hover": { boxShadow: CP.shadowHover },
       }}
     >
-      <Stack direction="row" spacing={1.25} sx={{ alignItems: "center", justifyContent: "space-between", mb: 1 }}>
-        <Typography sx={portalText.eyebrow}>{label}</Typography>
-        {Icon && <Icon sx={{ fontSize: 18, color: FAINT, flexShrink: 0 }} />}
+      <Stack direction="row" spacing={1.5} sx={{ alignItems: "center", justifyContent: "space-between" }}>
+        <Typography sx={{ ...portalText.eyebrow, fontWeight: 500 }}>{label}</Typography>
+        {Icon && (
+          <Box
+            sx={{
+              width: 40,
+              height: 40,
+              borderRadius: "50%",
+              bgcolor: tone.bg,
+              color: tone.fg,
+              display: "grid",
+              placeItems: "center",
+              flexShrink: 0,
+            }}
+          >
+            <Icon sx={{ fontSize: 20 }} />
+          </Box>
+        )}
       </Stack>
-      <Typography sx={portalText.statValue}>{value}</Typography>
-      {footer && <Box sx={{ mt: 0.5, fontSize: "0.8125rem", color: MUTED, lineHeight: 1.5 }}>{footer}</Box>}
+      <Box>
+        <Typography sx={{ ...(portalText.statValue as object), color: v.statValue }}>{value || "0"}</Typography>
+        {footer && <Box sx={{ mt: 0.75, fontSize: "0.8125rem", color: MUTED, lineHeight: 1.5 }}>{footer}</Box>}
+      </Box>
     </Box>
   );
 }
 
-const STATUS_TINT: Record<ReviewStatus, { bg: string; fg: string }> = {
-  approved: { bg: "#DCFCE7", fg: "#166534" },
-  pending_review: { bg: "#FEF3C7", fg: "#92400E" },
-  needs_changes: { bg: "#FEF3C7", fg: "#92400E" },
-  rejected: { bg: "#FEE2E2", fg: "#991B1B" },
-  draft: { bg: "#F3F4F6", fg: "#374151" },
+const STATUS_TINT: Record<ReviewStatus, { bg: string; fg: string; dot: string }> = {
+  approved: { bg: CP.successBg, fg: CP.successFg, dot: "#22C55E" },
+  pending_review: { bg: CP.warningBg, fg: CP.warningFg, dot: "#F59E0B" },
+  needs_changes: { bg: CP.warningBg, fg: CP.warningFg, dot: "#F59E0B" },
+  rejected: { bg: CP.errorBg, fg: CP.errorFg, dot: "#EF4444" },
+  draft: { bg: CP.neutralBg, fg: CP.neutralFg, dot: CP.faint },
 };
 
 /**
- * Small status chip: 6px radius tint with dark text.
+ * Status chip: 8px radius tint with a small dot and dark text.
  */
 export function StatusPill({ status, size = "md" }: { status: ReviewStatus; size?: "sm" | "md" }) {
   const palette = STATUS_TINT[status] ?? STATUS_TINT.draft;
@@ -243,25 +329,27 @@ export function StatusPill({ status, size = "md" }: { status: ReviewStatus; size
       sx={{
         display: "inline-flex",
         alignItems: "center",
-        px: size === "sm" ? 0.75 : 1,
-        height: size === "sm" ? 20 : 24,
-        borderRadius: "6px",
+        gap: 0.6,
+        px: size === "sm" ? 0.9 : 1.1,
+        height: size === "sm" ? 22 : 26,
+        borderRadius: `${CP.radiusChip}px`,
         bgcolor: palette.bg,
         color: palette.fg,
         fontSize: size === "sm" ? "0.6875rem" : "0.75rem",
-        fontWeight: 500,
+        fontWeight: 600,
         letterSpacing: 0,
         whiteSpace: "nowrap",
       }}
     >
+      <Box component="span" sx={{ width: 6, height: 6, borderRadius: "50%", bgcolor: palette.dot, flexShrink: 0 }} />
       {statusLabel(status)}
     </Box>
   );
 }
 
 /**
- * Plain tag chip (non-status). Neutral gray by default; `gold` is reserved
- * for founding / verified markers. Other tones render neutral or navy.
+ * Plain tag chip (non-status). Neutral by default; `gold` for founding and
+ * verified markers, `navy` for the current step, `green` for good news.
  */
 export function TagPill({
   label,
@@ -274,25 +362,27 @@ export function TagPill({
 }) {
   const palette =
     tone === "gold"
-      ? { bg: GOLD_BG, fg: GOLD_FG }
+      ? { bg: CP.goldTint, fg: CP.goldText }
       : tone === "navy"
-        ? { bg: "rgba(14,42,61,0.08)", fg: NAVY }
+        ? { bg: CP.navyTint, fg: NAVY }
         : tone === "green"
-          ? { bg: "#DCFCE7", fg: "#166534" }
-          : { bg: "#F3F4F6", fg: BODY };
+          ? { bg: CP.successBg, fg: CP.successFg }
+          : tone === "wine"
+            ? { bg: "#FCE7F3", fg: "#9D174D" }
+            : { bg: CP.neutralBg, fg: CP.neutralFg };
   return (
     <Box
       component="span"
       sx={{
         display: "inline-flex",
         alignItems: "center",
-        px: size === "sm" ? 0.75 : 1,
-        height: size === "sm" ? 20 : 24,
-        borderRadius: "6px",
+        px: size === "sm" ? 0.9 : 1.1,
+        height: size === "sm" ? 22 : 26,
+        borderRadius: `${CP.radiusChip}px`,
         bgcolor: palette.bg,
         color: palette.fg,
         fontSize: size === "sm" ? "0.6875rem" : "0.75rem",
-        fontWeight: 500,
+        fontWeight: 600,
         letterSpacing: 0,
         whiteSpace: "nowrap",
       }}
@@ -307,6 +397,96 @@ function tagCase(s: string): string {
   if (s !== s.toUpperCase()) return s;
   const lower = s.toLowerCase();
   return lower.charAt(0).toUpperCase() + lower.slice(1);
+}
+
+/**
+ * Segmented filter: rounded pills on a light track, each with an optional
+ * count. Replaces underline tabs for list filters.
+ */
+export function SegmentedFilter<K extends string>({
+  value,
+  onChange,
+  options,
+  ariaLabel = "Filter",
+}: {
+  value: K;
+  onChange: (next: K) => void;
+  options: { key: K; label: string; count?: number }[];
+  ariaLabel?: string;
+}) {
+  const v = useCommunityVariant();
+  return (
+    <Box
+      role="tablist"
+      aria-label={ariaLabel}
+      sx={{
+        display: "inline-flex",
+        alignItems: "center",
+        gap: 0.25,
+        p: 0.5,
+        borderRadius: 999,
+        bgcolor: v.sectionRule ? v.accentTint : CP.neutralBg,
+        maxWidth: "100%",
+        overflowX: "auto",
+        "&::-webkit-scrollbar": { display: "none" },
+      }}
+    >
+      {options.map((o) => {
+        const active = o.key === value;
+        return (
+          <Box
+            key={o.key}
+            component="button"
+            type="button"
+            role="tab"
+            aria-selected={active}
+            onClick={() => onChange(o.key)}
+            sx={{
+              display: "inline-flex",
+              alignItems: "center",
+              gap: 0.75,
+              height: 32,
+              px: 1.5,
+              borderRadius: 999,
+              border: 0,
+              cursor: "pointer",
+              fontFamily: "inherit",
+              fontSize: "0.8125rem",
+              fontWeight: 600,
+              whiteSpace: "nowrap",
+              color: active ? (v.sectionRule ? "#FFFFFF" : INK) : (v.sectionRule ? v.accent : MUTED),
+              bgcolor: active ? (v.sectionRule ? v.accent : CP.white) : "transparent",
+              boxShadow: active ? "0 1px 2px rgba(10,19,32,0.08)" : "none",
+              transition: "background-color 140ms ease, color 140ms ease, box-shadow 140ms ease",
+              "&:hover": { color: active && v.sectionRule ? "#FFFFFF" : INK },
+              "&:focus-visible": { outline: `2px solid ${v.link}`, outlineOffset: 2 },
+            }}
+          >
+            {o.label}
+            {typeof o.count === "number" && (
+              <Box
+                component="span"
+                sx={{
+                  minWidth: 20,
+                  height: 20,
+                  px: 0.6,
+                  borderRadius: 999,
+                  display: "inline-grid",
+                  placeItems: "center",
+                  fontSize: "0.6875rem",
+                  fontWeight: 700,
+                  bgcolor: active ? (v.sectionRule ? "rgba(255,255,255,0.18)" : CP.goldTint) : "rgba(10,19,32,0.06)",
+                  color: active ? (v.sectionRule ? "#FFFFFF" : CP.goldText) : MUTED,
+                }}
+              >
+                {o.count}
+              </Box>
+            )}
+          </Box>
+        );
+      })}
+    </Box>
+  );
 }
 
 /**
@@ -328,10 +508,10 @@ export function MediaThumb({
         width: size,
         height: size,
         flexShrink: 0,
-        borderRadius: "6px",
+        borderRadius: `${CP.radiusSm}px`,
         overflow: "hidden",
         border: `1px solid ${LINE}`,
-        bgcolor: SOFT,
+        bgcolor: CP.sandSoft,
         "&:hover .media-caption": { opacity: 1 },
       }}
     >
@@ -351,7 +531,7 @@ export function MediaThumb({
             display: "flex",
             alignItems: "flex-end",
             justifyContent: "stretch",
-            bgcolor: "rgba(17,24,39,0.6)",
+            bgcolor: "rgba(10,19,32,0.6)",
             color: "#FFFFFF",
             fontSize: "0.6875rem",
             lineHeight: 1.3,
@@ -390,7 +570,7 @@ export function VideoThumb({
         width: size,
         height: Math.round(size * 0.66),
         flexShrink: 0,
-        borderRadius: "6px",
+        borderRadius: `${CP.radiusSm}px`,
         overflow: "hidden",
         border: `1px solid ${LINE}`,
         bgcolor: INK,
@@ -404,15 +584,7 @@ export function VideoThumb({
         loading="lazy"
         style={{ width: "100%", height: "100%", objectFit: "cover", opacity: 0.85, display: "block" }}
       />
-      <Box
-        sx={{
-          position: "absolute",
-          inset: 0,
-          display: "grid",
-          placeItems: "center",
-          color: "#FFFFFF",
-        }}
-      >
+      <Box sx={{ position: "absolute", inset: 0, display: "grid", placeItems: "center", color: "#FFFFFF" }}>
         <PlayArrowRoundedIcon sx={{ fontSize: 28 }} />
       </Box>
       {duration && (
@@ -423,8 +595,8 @@ export function VideoThumb({
             bottom: 4,
             px: 0.6,
             py: "1px",
-            borderRadius: "4px",
-            bgcolor: "rgba(17,24,39,0.85)",
+            borderRadius: "6px",
+            bgcolor: "rgba(10,19,32,0.85)",
             color: "#FFFFFF",
             fontSize: "0.625rem",
             fontWeight: 600,
@@ -438,11 +610,11 @@ export function VideoThumb({
 }
 
 /**
- * Generic empty state shown when a list has no rows: a short sentence plus
- * one button, centred. `icon` is accepted for API compatibility and not drawn.
+ * Empty state shown when a list has no rows: a small tinted icon circle,
+ * a short sentence and one navy button, centred.
  */
 export function EmptyState({
-  icon: _icon,
+  icon: Icon,
   title,
   body,
   action,
@@ -452,21 +624,36 @@ export function EmptyState({
   body?: string;
   action?: React.ReactNode;
 }) {
-  void _icon;
+  const v = useCommunityVariant();
   return (
     <Box
       sx={{
+        ...(cardSxFor(v) as object),
         textAlign: "center",
-        py: 6,
+        py: 7,
         px: 3,
-        borderRadius: "8px",
-        border: `1px solid ${LINE}`,
-        bgcolor: "#FFFFFF",
       }}
     >
-      <Typography sx={{ fontSize: "0.9375rem", fontWeight: 600, color: INK, mb: 0.5 }}>{title}</Typography>
+      {Icon && (
+        <Box
+          sx={{
+            width: 48,
+            height: 48,
+            borderRadius: "50%",
+            bgcolor: v.sectionRule ? v.accentTint : CP.sand,
+            color: v.sectionRule ? v.link : CP.goldDeep,
+            display: "grid",
+            placeItems: "center",
+            mx: "auto",
+            mb: 2,
+          }}
+        >
+          <Icon sx={{ fontSize: 22 }} />
+        </Box>
+      )}
+      <Typography sx={{ fontSize: "1rem", fontWeight: 700, letterSpacing: "-0.01em", color: INK, mb: 0.5 }}>{title}</Typography>
       {body && (
-        <Typography sx={{ fontSize: "0.875rem", color: MUTED, maxWidth: 420, mx: "auto", mb: action ? 2.5 : 0 }}>
+        <Typography sx={{ fontSize: "0.875rem", color: MUTED, maxWidth: 420, mx: "auto", lineHeight: 1.6, mb: action ? 2.5 : 0 }}>
           {body}
         </Typography>
       )}
@@ -474,3 +661,4 @@ export function EmptyState({
     </Box>
   );
 }
+

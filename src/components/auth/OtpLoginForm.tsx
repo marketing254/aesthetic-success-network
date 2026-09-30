@@ -14,6 +14,7 @@ import {
   Typography,
 } from "@mui/material";
 import Image from "next/image";
+import { CP, PORTAL_FONT, portalFontClassName } from "@/components/shared/CommunityPortalShell";
 
 /**
  * Shared 2-step OTP login form used by every portal (member, expert,
@@ -24,7 +25,8 @@ import Image from "next/image";
  * Why one component for all roles: the only meaningful difference
  * between the role logins is where they POST (their own send + verify
  * endpoints) and where they land after success. Visual chrome stays
- * consistent: a plain centred white card with a navy primary button.
+ * consistent: warm off-white page, centred white 16px card with the ASN
+ * monogram, Plus Jakarta Sans headings and a navy primary button.
  * `accentColor` / `accentTint` are kept in the config for API
  * compatibility and no longer change the look.
  */
@@ -64,16 +66,33 @@ export type OtpLoginConfig = {
   forwardNextParam?: boolean;
 };
 
-const NAVY = "#0E2A3D";
-const NAVY_HOVER = "#0B2232";
-const INK = "#111827";
-const BODY = "#374151";
-const MUTED = "#6B7280";
-const LINE = "#E5E7EB";
-const CANVAS = "#F7F7F5";
-const INTER = "var(--font-body), 'Inter', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif";
+const NAVY = CP.navy;
+const NAVY_HOVER = CP.navyHover;
+const INK = CP.ink;
+const BODY = CP.body;
+const MUTED = CP.muted;
+const LINE = CP.border;
+const LINE_STRONG = CP.borderStrong;
+const CANVAS = CP.canvas;
 
-export default function OtpLoginForm({ config }: { config: OtpLoginConfig }) {
+/**
+ * Colours of the dark band beside the form. The default is the company
+ * portal's navy; the expert login passes the forest gradient.
+ */
+export type OtpLoginBand = {
+  /** Gradient start (top). */
+  from: string;
+  /** Gradient end (bottom). */
+  to: string;
+  /** Radial glow colour in the band's corner, rgb triplet as "r,g,b". Default gold. */
+  glow?: string;
+};
+
+const DEFAULT_BAND: OtpLoginBand = { from: NAVY, to: CP.sidebarEnd, glow: "217,168,75" };
+
+export default function OtpLoginForm({ config, band }: { config: OtpLoginConfig; band?: OtpLoginBand }) {
+  const bandColors = band ?? DEFAULT_BAND;
+  const glow = bandColors.glow ?? "217,168,75";
   const router = useRouter();
   const params = useSearchParams();
   const initialError = params?.get("error") ?? null;
@@ -198,105 +217,178 @@ export default function OtpLoginForm({ config }: { config: OtpLoginConfig }) {
   };
 
   const primarySx = {
-    minHeight: 40,
-    borderRadius: "6px",
-    fontWeight: 500,
-    fontSize: "0.875rem",
+    minHeight: 44,
+    borderRadius: "10px",
+    fontWeight: 600,
+    fontSize: "0.9375rem",
+    fontFamily: PORTAL_FONT,
     textTransform: "none",
     bgcolor: NAVY,
     color: "#FFFFFF",
     backgroundImage: "none",
-    boxShadow: "none",
-    "&:hover": { bgcolor: NAVY_HOVER, boxShadow: "none", transform: "none" },
-    "&.Mui-disabled": { bgcolor: "#E5E7EB", color: "#9CA3AF", backgroundImage: "none" },
+    boxShadow: "inset 0 1px 0 rgba(255,255,255,0.10), 0 1px 2px rgba(10,19,32,0.12)",
+    transition: "background-color 140ms ease, box-shadow 140ms ease, transform 140ms ease",
+    "&:hover": { bgcolor: NAVY_HOVER, boxShadow: "inset 0 1px 0 rgba(255,255,255,0.10), 0 6px 16px -8px rgba(10,19,32,0.45)", transform: "translateY(-1px)" },
+    "&.Mui-disabled": { bgcolor: "#E6E2D9", color: CP.faint, backgroundImage: "none", boxShadow: "none" },
   } as const;
 
   const textSx = {
-    minHeight: 32,
-    borderRadius: "6px",
+    minHeight: 34,
+    borderRadius: "8px",
     fontSize: "0.8125rem",
-    fontWeight: 500,
+    fontWeight: 600,
+    fontFamily: PORTAL_FONT,
     textTransform: "none",
     color: NAVY,
-    "&:hover": { bgcolor: "#F3F4F6", transform: "none" },
+    "&:hover": { bgcolor: CP.sand, transform: "none" },
   } as const;
 
   const fieldSx = {
     "& .MuiOutlinedInput-root": {
-      borderRadius: "8px",
-      minHeight: 40,
-      fontSize: "0.875rem",
+      borderRadius: "10px",
+      minHeight: 44,
+      fontSize: "0.9375rem",
+      fontFamily: PORTAL_FONT,
       bgcolor: "#FFFFFF",
       boxShadow: "none",
-      "& .MuiOutlinedInput-notchedOutline": { borderColor: "#D1D5DB" },
-      "&:hover .MuiOutlinedInput-notchedOutline": { borderColor: "#9CA3AF" },
+      border: 0,
+      outline: "none",
+      "&.Mui-focused": { boxShadow: "none", outline: "none", border: 0 },
+      "&:hover": { boxShadow: "none" },
+      "& .MuiOutlinedInput-notchedOutline": { borderColor: LINE_STRONG, borderWidth: 1 },
+      "&:hover .MuiOutlinedInput-notchedOutline": { borderColor: "rgba(10,19,32,0.28)" },
       "&.Mui-focused .MuiOutlinedInput-notchedOutline": { borderColor: NAVY, borderWidth: 1 },
-      "&.Mui-focused": { boxShadow: "0 0 0 3px rgba(14,42,61,0.12)" },
+      "& input": { outline: "none", boxShadow: "none", border: 0 },
+      "& input:focus": { outline: "none", boxShadow: "none" },
     },
-    "& .MuiInputLabel-root": { color: BODY, fontWeight: 500, fontSize: "0.875rem" },
+    "& .MuiInputLabel-root": { color: BODY, fontWeight: 600, fontSize: "0.875rem", fontFamily: PORTAL_FONT },
     "& .MuiInputLabel-root.Mui-focused": { color: NAVY },
   } as const;
 
   return (
     <Box
+      className={portalFontClassName}
       sx={{
         minHeight: "100dvh",
         display: "grid",
         placeItems: "center",
         bgcolor: CANVAS,
         color: INK,
-        fontFamily: INTER,
+        fontFamily: PORTAL_FONT,
+        WebkitFontSmoothing: "antialiased",
         px: 2,
         py: 6,
       }}
     >
-      <Container maxWidth="xs" sx={{ px: { xs: 0, sm: 2 } }}>
-        {/* Brand row: logo tile + wordmark */}
-        <Stack direction="row" spacing={1.25} sx={{ alignItems: "center", justifyContent: "center", mb: 3 }}>
-          <Box
-            component={Link}
-            href="/"
-            aria-label={`Aesthetic Success Network · ${config.roleLabel} sign in`}
-            sx={{ position: "relative", width: 32, height: 32, borderRadius: "6px", overflow: "hidden", display: "block", flexShrink: 0 }}
-          >
-            <Image src="/asn-nav-icon.png" alt="Aesthetic Success Network" fill sizes="32px" priority style={{ objectFit: "cover" }} />
-          </Box>
-          <Typography sx={{ fontFamily: INTER, fontSize: "0.9375rem", fontWeight: 600, color: INK, lineHeight: 1 }}>
-            Aesthetic Success Network
-          </Typography>
-        </Stack>
-
+      <Container maxWidth="md" sx={{ px: { xs: 0, sm: 2 } }}>
         <Box
           sx={{
+            display: "grid",
+            gridTemplateColumns: { xs: "1fr", md: "5fr 7fr" },
             bgcolor: "#FFFFFF",
             border: `1px solid ${LINE}`,
-            borderRadius: "8px",
-            p: { xs: 3, sm: 4 },
+            borderRadius: "16px",
+            boxShadow: "0 1px 2px rgba(10,19,32,0.04), 0 24px 48px -28px rgba(10,19,32,0.35)",
+            overflow: "hidden",
+            maxWidth: 880,
+            mx: "auto",
           }}
         >
-          <Typography sx={{ fontFamily: INTER, fontSize: "0.8125rem", color: MUTED, mb: 0.5 }}>
-            {capitalise(config.roleLabel)} sign in
-          </Typography>
+          {/* Dark navy band (top on mobile, left half on md+) */}
+          <Box
+            sx={{
+              position: "relative",
+              overflow: "hidden",
+              bgcolor: bandColors.from,
+              backgroundImage: `linear-gradient(180deg, ${bandColors.from} 0%, ${bandColors.to} 100%)`,
+              color: CP.ivory,
+              p: { xs: 3, md: 4 },
+              display: "flex",
+              flexDirection: "column",
+              justifyContent: "space-between",
+              minHeight: { md: 420 },
+              "&::before": {
+                content: '""',
+                position: "absolute",
+                top: -120,
+                right: -120,
+                width: 360,
+                height: 360,
+                borderRadius: "50%",
+                background: `radial-gradient(circle, rgba(${glow},0.32) 0%, rgba(${glow},0.10) 40%, transparent 70%)`,
+                pointerEvents: "none",
+              },
+            }}
+          >
+            <Stack direction={{ xs: "row", md: "column" }} spacing={{ xs: 1.75, md: 2.5 }} sx={{ position: "relative", alignItems: { xs: "center", md: "flex-start" } }}>
+              <Box
+                component={Link}
+                href="/"
+                aria-label={`Aesthetic Success Network · ${config.roleLabel} sign in`}
+                sx={{
+                  position: "relative",
+                  width: { xs: 44, md: 56 },
+                  height: { xs: 44, md: 56 },
+                  borderRadius: "14px",
+                  overflow: "hidden",
+                  display: "block",
+                  flexShrink: 0,
+                  boxShadow: "0 8px 20px -8px rgba(0,0,0,0.6)",
+                  border: `1px solid ${CP.sidebarLine}`,
+                }}
+              >
+                <Image src="/asn-nav-icon.png" alt="Aesthetic Success Network" fill sizes="56px" priority style={{ objectFit: "cover" }} />
+              </Box>
+              <Box sx={{ minWidth: 0 }}>
+                <Typography sx={{ fontFamily: PORTAL_FONT, fontSize: { xs: "0.9375rem", md: "1.0625rem" }, fontWeight: 700, color: "#FFFFFF", lineHeight: 1.2, letterSpacing: "-0.01em" }}>
+                  Aesthetic Success Network
+                </Typography>
+                <Typography sx={{ fontFamily: PORTAL_FONT, fontSize: "0.8125rem", fontWeight: 600, color: CP.gold, mt: 0.35 }}>
+                  {capitalise(config.roleLabel)} portal
+                </Typography>
+              </Box>
+            </Stack>
+            <Typography
+              sx={{
+                fontFamily: PORTAL_FONT,
+                position: "relative",
+                display: { xs: "none", md: "block" },
+                fontSize: "0.875rem",
+                color: CP.ivory80,
+                lineHeight: 1.6,
+                mt: 3,
+              }}
+            >
+              Sign in with a one-time code sent to your email. No password to remember.
+            </Typography>
+          </Box>
+
+          {/* White form panel */}
+          <Box sx={{ p: { xs: 3, sm: 4 } }}>
           <Typography
             component="h1"
             sx={{
-              fontFamily: INTER,
-              fontSize: "1.25rem",
-              fontWeight: 600,
-              color: INK,
-              letterSpacing: 0,
-              lineHeight: 1.3,
+              fontFamily: PORTAL_FONT,
+              fontSize: "1.375rem",
+              fontWeight: 800,
+              color: NAVY,
+              letterSpacing: "-0.02em",
+              lineHeight: 1.25,
               mb: 0.75,
             }}
           >
             {step === "email" ? config.emailStepTitle : config.codeStepTitle}
           </Typography>
-          <Typography sx={{ fontFamily: INTER, fontSize: "0.875rem", color: MUTED, lineHeight: 1.55, mb: 3 }}>
+          <Typography sx={{ fontFamily: PORTAL_FONT, fontSize: "0.875rem", color: MUTED, lineHeight: 1.6, mb: 3 }}>
             {step === "email" ? config.emailStepSubtitle : config.codeStepSubtitle}
           </Typography>
 
           {info && (
-            <Alert severity="info" sx={{ mb: 2, fontSize: "0.8125rem", borderRadius: "6px", bgcolor: "rgba(14,42,61,0.06)", color: NAVY }}>
+            <Alert
+              severity="info"
+              icon={false}
+              sx={{ mb: 2, fontSize: "0.8125rem", borderRadius: "12px", bgcolor: CP.sand, color: INK, fontFamily: PORTAL_FONT, border: "1px solid rgba(217,168,75,0.35)" }}
+            >
               {info}
             </Alert>
           )}
@@ -304,7 +396,7 @@ export default function OtpLoginForm({ config }: { config: OtpLoginConfig }) {
             <Alert
               severity="error"
               onClose={() => setErr(null)}
-              sx={{ mb: 2, fontSize: "0.8125rem", borderRadius: "6px", bgcolor: "#FEE2E2", color: "#991B1B" }}
+              sx={{ mb: 2, fontSize: "0.8125rem", borderRadius: "12px", bgcolor: CP.errorBg, color: CP.errorFg, fontFamily: PORTAL_FONT }}
             >
               {err}
             </Alert>
@@ -359,9 +451,9 @@ export default function OtpLoginForm({ config }: { config: OtpLoginConfig }) {
                 slotProps={{
                   input: {
                     sx: {
-                      fontFamily: "var(--font-mono, ui-monospace, Menlo, monospace)",
-                      fontSize: "1.25rem",
-                      letterSpacing: "0.5em",
+                      fontFamily: "ui-monospace, SFMono-Regular, Menlo, monospace",
+                      fontSize: "1.375rem",
+                      letterSpacing: "0.45em",
                       fontWeight: 600,
                       "& input": { textAlign: "center" },
                     },
@@ -394,7 +486,7 @@ export default function OtpLoginForm({ config }: { config: OtpLoginConfig }) {
                     setErr(null);
                     setInfo(null);
                   }}
-                  sx={{ ...textSx, color: MUTED, "&:hover": { bgcolor: "#F3F4F6", color: INK, transform: "none" } }}
+                  sx={{ ...textSx, color: MUTED, "&:hover": { bgcolor: CP.sand, color: INK, transform: "none" } }}
                 >
                   Use a different email
                 </Button>
@@ -404,21 +496,22 @@ export default function OtpLoginForm({ config }: { config: OtpLoginConfig }) {
               </Stack>
             </Box>
           )}
+          </Box>
         </Box>
 
         {config.signupHref && (
-          <Typography sx={{ fontFamily: INTER, mt: 2.5, fontSize: "0.875rem", color: MUTED, textAlign: "center" }}>
+          <Typography sx={{ fontFamily: PORTAL_FONT, mt: 2.5, fontSize: "0.875rem", color: MUTED, textAlign: "center" }}>
             {config.signupLabel ?? "Not a member yet?"}{" "}
             <Box
               component={Link}
               href={config.signupHref}
-              sx={{ color: NAVY, fontWeight: 500, textDecoration: "none", "&:hover": { textDecoration: "underline" } }}
+              sx={{ color: NAVY, fontWeight: 600, textDecoration: "none", "&:hover": { textDecoration: "underline" } }}
             >
               Join the network
             </Box>
           </Typography>
         )}
-        <Typography sx={{ fontFamily: INTER, mt: 3, fontSize: "0.75rem", color: MUTED, textAlign: "center" }}>
+        <Typography sx={{ fontFamily: PORTAL_FONT, mt: 3, fontSize: "0.75rem", color: MUTED, textAlign: "center" }}>
           © 2026 Aesthetic Success Network · Powered by Business of Aesthetics
         </Typography>
       </Container>

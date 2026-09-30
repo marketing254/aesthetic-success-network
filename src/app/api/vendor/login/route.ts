@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { isOtpThrottle, sendOtpViaFallback } from "@/lib/auth/otpFallback";
+import { isOtpThrottle, sendOtpViaFallback, requestOtp } from "@/lib/auth/otpFallback";
 import { createServerSupabase } from "@/lib/supabase/server-ssr";
 import { getSupabaseAdmin } from "@/lib/supabase/server";
 import { checkRateLimit } from "@/lib/waitlist/rateLimit";
@@ -185,15 +185,7 @@ export async function POST(req: Request) {
     // /api/vendor/verify-otp.
     const supabase = await createServerSupabase();
     let otpProvider: "supabase" | "fallback" = "supabase";
-    const { error } = await supabase.auth.signInWithOtp({
-      email,
-      options: {
-        // CRITICAL: do NOT auto-create accounts. Only emails that already
-        // exist in auth.users can sign in. New vendors get pre-created
-        // when they submit an application (/api/vendor/signup).
-        shouldCreateUser: false,
-      },
-    });
+    const { error } = await requestOtp(supabase, email, "vendor:login");
 
     if (error) {
       // Supabase's specific code for "no user with this email" is generic

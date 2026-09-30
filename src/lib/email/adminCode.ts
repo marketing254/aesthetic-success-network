@@ -1,4 +1,5 @@
 import "server-only";
+import { emailBrandHeader } from "@/lib/email/brandHeader";
 import { escapeHtml } from "./escapeHtml";
 
 /**
@@ -31,7 +32,7 @@ function html(code: string): string {
   <tr><td align="center">
     <table role="presentation" width="600" cellpadding="0" cellspacing="0" style="max-width:600px;width:100%;">
       <tr><td style="background:#1a1a1a;border-radius:16px 16px 0 0;padding:22px 32px;">
-        <img src="${process.env.NEXT_PUBLIC_APP_URL ?? "https://www.aestheticsuccessnetwork.com"}/asn-logo-email-dark.png" alt="${BRAND}" width="170" style="display:block;max-width:170px;height:auto;" />
+        ${emailBrandHeader({ dark: true })}
       </td></tr>
       <tr><td style="background:#ffffff;border:1px solid #e5dfd2;border-top:none;border-radius:0 0 16px 16px;padding:32px;">
         <h1 style="margin:0 0 16px;font-family:${FONT_DISPLAY};font-weight:500;font-size:24px;line-height:1.2;color:#0a1320;">Your sign-in code</h1>

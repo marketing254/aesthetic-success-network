@@ -4,10 +4,13 @@ import { Suspense } from "react";
 import OtpLoginForm from "@/components/auth/OtpLoginForm";
 
 /**
- * Company (vendor) sign-in. OTP-based: enter email → receive 6-digit
- * code → enter code → land on /vendor. Application happens at
+ * Company (vendor) sign-in. OTP-based: enter email, receive a 6-digit
+ * code, enter the code, land on /vendor. Application happens at
  * /companies#apply (in-page WaitlistSection); the team reviews and an
  * admin activates the auth user from the admin portal.
+ *
+ * Look: warm off-white page, centred white 16px card with the ASN
+ * monogram, Plus Jakarta Sans headings, navy button (OtpLoginForm).
  */
 export default function VendorLoginPage() {
   return (
@@ -23,8 +26,8 @@ export default function VendorLoginPage() {
             "We'll email you a 6-digit code. No password to remember.",
           codeStepSubtitle:
             "Check your inbox for a 6-digit code from support@aestheticsuccessnetwork.com.",
-          accentColor: "#0E2A3D",
-          accentTint: "rgba(14,42,61,0.08)",
+          accentColor: "#0A1320",
+          accentTint: "rgba(10,19,32,0.06)",
           signupHref: "/companies#apply",
           signupLabel: "Want to list your company?",
           unknownEmailMessage:

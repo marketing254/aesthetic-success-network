@@ -462,6 +462,7 @@ export async function requirePaidExpert(): Promise<ExpertContext | Failure> {
     subscriptionStatus: billing?.subscription_status ?? null,
     hasSubscription: !!billing?.stripe_subscription_id,
     billingExempt: !!billing?.billing_exempt || isBillingBypassed(guard.email),
+    audience: "expert",
   });
 
   if (!access.allowed) {

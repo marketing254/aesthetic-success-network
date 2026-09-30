@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { requestOtp } from "@/lib/auth/otpFallback";
 import { createServerSupabase } from "@/lib/supabase/server-ssr";
 import { getSupabaseAdmin } from "@/lib/supabase/server";
 import { checkRateLimit } from "@/lib/waitlist/rateLimit";
@@ -73,10 +74,7 @@ export async function POST(req: Request) {
     }
 
     const supabase = await createServerSupabase();
-    const { error } = await supabase.auth.signInWithOtp({
-      email,
-      options: { shouldCreateUser: false },
-    });
+    const { error } = await requestOtp(supabase, email, "admin:login");
     let sentVia: "supabase" | "fallback" = "supabase";
     if (error) {
       const msg = error.message ?? "";

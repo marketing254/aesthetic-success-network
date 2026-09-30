@@ -291,7 +291,7 @@ export const pricingSection = {
   eyebrow: "MEMBERSHIP",
   title: "One membership. One price. First 100 get the founding rate.",
   subtitle:
-    "No tiers to decode, no upsell ladder. The first 100 founding members pay $39/month, locked at that rate for as long as their membership stays active. After that, it's $199.",
+    "No tiers to decode, no upsell ladder. The first 100 founding members pay $29/month, locked at that rate for as long as their membership stays active. After that, it's $99.",
   bottomNote:
     "Cancel anytime, in two clicks. Founding-member rate stays as long as your membership is active.",
 };
@@ -321,7 +321,7 @@ export const pricing = [
     tier: "Company",
     audience: "Devices, injectables, skincare, software, services",
     price: "Apply",
-    cadence: "Founding cohort: $0 for 6 months, then $39/mo, then $199/mo from month 13",
+    cadence: "$39/mo for 12 months, then $149/mo",
     blurb:
       "Get in front of aesthetics' most engaged buyers through a trusted shortlist instead of a cold ad. Profile and placement in your category, lead flow, and a Verified Company badge.",
     features: [
