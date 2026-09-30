@@ -38,3 +38,7 @@ stripe-test-runner*.mjs
 *test-runner*.mjs
 /scripts/local-*
 *.local.log
+
+# Stripe setup helpers (run locally only)
+scripts/stripe-setup-test.mjs
+scripts/stripe-archive-unused.mjs
