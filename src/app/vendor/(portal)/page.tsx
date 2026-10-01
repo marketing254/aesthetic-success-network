@@ -153,13 +153,13 @@ export default function VendorOverview() {
 
   // Price terms for THIS company (vendors.billing_plan, 0071): free
   // founding months (6 from the member launch), then $39 a month for 12
-  // months, then $149.
+  // x 12 then $149 (ladder) or $39 flat.
   const billingPlan = normalizeVendorPlan(vendor.billing_plan);
   const hasTrial = vendor.subscription_status === "trialing";
   const freeUntil = hasTrial ? vendor.current_period_end : null;
   const ramp = vendorRamp(billingPlan, freeUntil);
   const months = vendor.months_in_program ?? 0;
-  const onStandard = !hasTrial && (vendor.months_in_program ?? 0) > 12;
+  const onStandard = ramp.hasStandardStep && !hasTrial && (vendor.months_in_program ?? 0) > 12;
   const currentRow = currentRampRow(billingPlan, hasTrial, freeUntil, onStandard);
   const isWebsite = !vendor.founding_partner_locked;
   const freeUntilLabel = freeUntil
@@ -475,13 +475,13 @@ export default function VendorOverview() {
               <Box component="strong" sx={{ color: INK, fontWeight: 700 }}>
                 {hasTrial
                   ? freeUntilLabel
-                    ? `Free until ${freeUntilLabel}, then ${ramp.rate} a month for 12 months`
-                    : `Free founding months, then ${ramp.rate} a month for 12 months`
+                    ? `Free until ${freeUntilLabel}, then ${ramp.rate} a month${ramp.hasStandardStep ? " for 12 months" : ""}`
+                    : `Free founding months, then ${ramp.rate} a month${ramp.hasStandardStep ? " for 12 months" : ""}`
                   : onStandard
                     ? `${ramp.standardRate} a month, standard rate`
-                    : `${ramp.rate} a month, launch rate`}
+                    : `${ramp.rate} a month${ramp.hasStandardStep ? ", launch rate" : ", no increase"}`}
               </Box>
-              . After the first 12 paid months the standard rate is {ramp.standardRate} a month.
+              {ramp.hasStandardStep ? `. After the first 12 paid months the standard rate is ${ramp.standardRate} a month.` : ". Your rate never increases for as long as you are in the network."}
               {hasTrial ? " We remind you 7 days before your first charge." : ""}
             </Typography>
           </Box>

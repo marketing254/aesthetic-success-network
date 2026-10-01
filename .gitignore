@@ -45,3 +45,7 @@ scripts/stripe-archive-unused.mjs
 
 # Temporary src-only type-check config (created and deleted by tooling)
 tsconfig.check.json
+
+# Internal working docs (kept locally, not in the repo)
+ASN-SWAP-CANON.md
+ASN-TEST-CASES.md

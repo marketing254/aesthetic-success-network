@@ -20,8 +20,8 @@ export const dynamic = "force-dynamic";
  * paymentMethodId from the /prepare step, attaches the card as default,
  * records the agreement acceptance, and creates the company subscription
  * (createProviderSubscription): free until 6 months after the member
- * launch, then the company's rate ($39 standard / $149 large) with no
- * increase. Nothing is charged today.
+ * launch, then $39 x 12 then $149 (ladder) or $39 flat. Nothing is charged
+ * today.
  */
 
 type Body = { setupIntentId?: string; paymentMethodId?: string; agreementVersion?: string };

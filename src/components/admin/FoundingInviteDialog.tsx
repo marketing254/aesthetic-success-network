@@ -26,15 +26,15 @@ export type AdditionalCompany = {
   contact_email: string;
 };
 
-export type FoundingInvitePricingValue = "standard" | "large";
+export type FoundingInvitePricingValue = "ladder" | "flat";
 
 export type FoundingInviteFormValues = {
   id?: string;
   role: FoundingInviteRoleValue;
   /**
    * Kept for the DB column (standard | large). Every company is on the
-   * same ladder: 6 months free from launch, $39 for 12 months, then $149.
-   * Experts: 6 months free, then $39. For
+   * Company plan: ladder (6 months free, $39 x 12, then $149) or flat (6
+   * months free, then $39). Experts: 12 months free, then $39. For
    *   "both" the plan governs the company side only.
    */
   pricing_plan: FoundingInvitePricingValue;
@@ -61,7 +61,7 @@ const EMPTY: FoundingInviteFormValues = {
   role: "partner",
   // Default: standard rate ($39 after the free months). Expert invites
   // always store "standard".
-  pricing_plan: "standard",
+  pricing_plan: "ladder",
   full_name: "",
   email: "",
   company_name: "",
@@ -111,17 +111,21 @@ export default function FoundingInviteDialog({
     setV((prev) => {
       const next = { ...prev, [k]: e.target.value } as FoundingInviteFormValues;
       // Expert-only invites have exactly one rate ($39 after the free months).
-      if (k === "role" && e.target.value === "expert") next.pricing_plan = "standard";
+      if (k === "role" && e.target.value === "expert") next.pricing_plan = "ladder";
       return next;
     });
 
   const needsCompany = v.role === "partner" || v.role === "both";
   const pricingHelper =
     v.role === "expert"
-      ? "Agreement, acceptance page, email and Stripe all show the first 6 months free (from the member launch), then $39 a month with no increase. A card is saved at acceptance; nothing is charged until the free months end."
-      : `Company listing: first 6 months free from the member launch, then $39 a month for 12 months, then $149 a month. Agreement, acceptance page, email and Stripe all show this.${
-          v.role === "both" ? " Expert access on the same invite is $39 a month after the free months, with no increase." : ""
-        }`;
+      ? "Agreement, acceptance page, email and Stripe all show the first 12 months free (from the member launch), then $39 a month with no increase. A card is saved at acceptance; nothing is charged until the free months end."
+      : v.pricing_plan === "flat"
+        ? `Company listing: first 6 months free from the member launch, then $39 a month with no increase. Nothing they see mentions $149.${
+            v.role === "both" ? " Expert access on the same invite is 12 months free, then $39." : ""
+          }`
+        : `Company listing: first 6 months free from the member launch, then $39 a month for 12 months, then $149 a month. Agreement, acceptance page, email and Stripe all show this.${
+            v.role === "both" ? " Expert access on the same invite is 12 months free, then $39." : ""
+          }`;
 
   const addCompany = () =>
     setV((p) => ({
@@ -259,10 +263,11 @@ export default function FoundingInviteDialog({
               helperText={pricingHelper}
             >
               {v.role === "expert" ? (
-                <MenuItem value="standard" sx={{ whiteSpace: "normal" }}>Founding expert: 6 months free from launch, then $39 a month</MenuItem>
+                <MenuItem value="ladder" sx={{ whiteSpace: "normal" }}>Founding expert: 12 months free from launch, then $39 a month with no increase</MenuItem>
               ) : (
                 [
-                  <MenuItem key="standard" value="standard" sx={{ whiteSpace: "normal" }}>Founding company: 6 months free from launch, then $39 a month for 12 months, then $149</MenuItem>,
+                  <MenuItem key="ladder" value="ladder" sx={{ whiteSpace: "normal" }}>Founding company: 6 months free from launch, then $39 a month for 12 months, then $149</MenuItem>,
+                  <MenuItem key="flat" value="flat" sx={{ whiteSpace: "normal" }}>Founding company, flat: 6 months free from launch, then $39 a month with no increase</MenuItem>,
                 ]
               )}
             </TextField>

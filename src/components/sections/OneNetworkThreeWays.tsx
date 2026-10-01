@@ -13,8 +13,8 @@ import { COLORS } from "@/theme";
  * so WaitlistSection opens on the right tab.
  *
  * Pricing rule (ASN-SWAP-CANON section 3, owner decision 2026-10-01):
- * every provider gets the first 6 months free from the member launch, then
- * $39 a month for 12 months, then $149. Founding invites are internal-only
+ * experts: 6 months free from the member launch, then $39 flat; companies:
+ * 6 months free, then $39 x 12 then $149. Founding invites are internal-only
  * (invite link only) and the company large rate is never shown publicly.
  */
 type CardRole = "member" | "expert" | "partner";

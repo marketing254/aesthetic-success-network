@@ -5,7 +5,7 @@ import type { ExpertApplicationPayload } from "@/lib/expert/validate";
 import { escapeHtml } from "@/lib/email/escapeHtml";
 import { applyEmailSandbox } from "@/lib/email/sandbox";
 import { ACCENT, firstNameOf, sendEmailDraft, type EmailDraft as LayoutDraft } from "@/lib/email/layout";
-import { COMPANY_LAUNCH_LABEL, COMPANY_LAUNCH_MONTHS, COMPANY_STANDARD_LABEL, FIRST_CHARGE_REMINDER_DAYS, providerTermsSentence } from "@/lib/providerBilling";
+import { COMPANY_LAUNCH_LABEL, COMPANY_LAUNCH_MONTHS, COMPANY_STANDARD_LABEL, FIRST_CHARGE_REMINDER_DAYS, normalizeProviderRate, providerTermsSentence } from "@/lib/providerBilling";
 
 type ConfirmationInput = {
   signup: WaitlistPayload;
@@ -137,7 +137,7 @@ function normalizeUrl(path: string): string {
 // standard, 30-day money-back, hotline written reply in 2 to 3 business
 // days. Providers (experts and companies, owner decision 2026-10-01): card
 // saved on acceptance, first 6 months free from the member launch, then $39
-// a month with no increase (company large rate is admin-set, never public);
+// (website experts: 6 months free then $39 flat; companies: 6 months free then $39 x 12 then $149, or flat);
 // courses and products sold on the provider's own site at full price with a
 // member-only offer. No em-dashes.
 // ─────────────────────────────────────────────────────────────────────────
@@ -621,7 +621,7 @@ type VendorApprovalInput = {
   email: string;
   contactName: string;
   companyName: string;
-  /** Kept for callers; every company is on the same ladder. */
+  /** Company plan: "ladder" ($39 x 12 then $149) or "flat" ($39). */
   rate?: string | null;
   /** Portal sign-in page (https://.../vendor/login). */
   portalUrl?: string;
@@ -694,7 +694,7 @@ function vendorApprovalDraft(input: VendorApprovalInput): LayoutDraft {
       {
         title: "What we promise",
         paragraphs: [
-          `We can't promise a number of members, leads or sales, and we don't offer category exclusivity. What we promise is the work above, and that we put you in front of every member we bring in. After your free months it's ${COMPANY_LAUNCH_LABEL} a month for your first ${COMPANY_LAUNCH_MONTHS} months, then ${COMPANY_STANDARD_LABEL} a month.`,
+          `We can't promise a number of members, leads or sales, and we don't offer category exclusivity. What we promise is the work above, and that we put you in front of every member we bring in. After your free months it's ${normalizeProviderRate(input.rate) === "flat" ? `${COMPANY_LAUNCH_LABEL} a month with no increase` : `${COMPANY_LAUNCH_LABEL} a month for your first ${COMPANY_LAUNCH_MONTHS} months, then ${COMPANY_STANDARD_LABEL} a month`}.`,
         ],
       },
     ],

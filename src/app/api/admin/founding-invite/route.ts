@@ -26,8 +26,8 @@ const AGREEMENT_VERSION = "v4";
 type Body = {
   role?: FoundingInviteRole;
   /**
-   * Company rate after the free founding months: "standard" ($39, default)
-   * or "large" ($149). Experts are always $39; ignored on expert invites.
+   * Company plan after the 6 free months: "ladder" ($39 x 12 then $149,
+   * default) or "flat" ($39, no increase). Ignored on expert invites.
    */
   pricing_plan?: string;
   full_name?: string;
@@ -114,9 +114,9 @@ export async function POST(req: Request) {
   if (role !== "expert" && role !== "partner" && role !== "both") {
     return NextResponse.json({ error: "role must be expert, partner or both." }, { status: 400 });
   }
-  // Company rate: "standard" ($39) unless the admin picked "large" ($149).
-  // Experts are always $39, so expert-only invites store "standard".
-  const pricingPlan = role === "expert" ? "standard" : body.pricing_plan === "large" ? "large" : "standard";
+  // Company plan: ladder unless the admin picked flat. Expert invites store
+  // "ladder" (ignored; experts are 12 months free, then $39).
+  const pricingPlan = role === "expert" ? "ladder" : body.pricing_plan === "flat" ? "flat" : "ladder";
   const fullName = (body.full_name ?? "").trim();
   const email = (body.email ?? "").trim().toLowerCase();
   const companyName = (body.company_name ?? "").trim() || null;

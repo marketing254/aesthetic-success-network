@@ -131,10 +131,11 @@ export async function PATCH(req: Request) {
       });
     }
 
-    // Every company is on the same ladder (6 months free, $39 x 12, then
-    // $149); the column stays for compatibility.
-    const rate = normalizeProviderRate(existing.billing_plan);
-    const patch: { status: VendorStatus; verified?: boolean; billing_plan?: "standard" | "large" } = (() => {
+    // Plan chosen at approval: ladder (6 months free, $39 x 12, then $149)
+    // or flat (6 months free, then $39). It is what the agreement, welcome
+    // email and portal all show.
+    const rate = normalizeProviderRate(body.rate ?? existing.billing_plan);
+    const patch: { status: VendorStatus; verified?: boolean; billing_plan?: "ladder" | "flat" } = (() => {
       if (action === "approve") return { status: "approved", verified: true, billing_plan: rate };
       if (action === "reject") return { status: "rejected", verified: false };
       if (action === "suspend") return { status: "suspended" };

@@ -12,7 +12,7 @@ import { sendTrialEndingReminder } from "@/lib/email/trialEndingReminder";
 import { notifyTeamEvent } from "@/lib/email/teamNotify";
 import { sendAdminCodeEmail } from "@/lib/email/adminCode";
 import { renderFoundingAgreementPdf } from "@/lib/pdf/foundingAgreementPdf";
-import { providerFreePeriodEnd, providerTermsShort } from "@/lib/providerBilling";
+import { FOUNDING_EXPERT_FREE_MONTHS, providerFreePeriodEnd, providerTermsShort } from "@/lib/providerBilling";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -49,6 +49,8 @@ export async function POST(req: Request) {
   const now = new Date().toISOString();
   const free = providerFreePeriodEnd();
   const freeEndsAt = free.date.toISOString();
+  const expertFree = providerFreePeriodEnd(FOUNDING_EXPERT_FREE_MONTHS);
+  const expertFreeEndsAt = expertFree.date.toISOString();
   const results: { name: string; ok: boolean; note?: string }[] = [];
   const run = async (name: string, fn: () => Promise<unknown>) => {
     try {
@@ -63,7 +65,7 @@ export async function POST(req: Request) {
     results.push({
       name: free.provisional
         ? "Note: MEMBER_LAUNCH_DATE is not set, so the free-period dates below are placeholders (12 months from today)"
-        : `Free founding months end ${free.date.toDateString()} (MEMBER_LAUNCH_DATE + 6 months)`,
+        : `Free months end ${free.date.toDateString()} (launch + 6; founding experts ${expertFree.date.toDateString()}, launch + 12)`,
       ok: true,
     });
 
@@ -93,7 +95,7 @@ export async function POST(req: Request) {
     await run("Expert 3: founding invite agreement (admin Send invite only; PDF attached)", async () => {
       const pdfBuffer = await renderFoundingAgreementPdf({
         role: "expert",
-        pricing: "standard",
+        pricing: "ladder",
         signer: { name: "Jordan Lee", email: accountEmail, companyName: "Lee Aesthetics Consulting" },
         signedAt: new Date(),
         ipHashLast6: "pending",
@@ -103,7 +105,7 @@ export async function POST(req: Request) {
         to,
         fullName: "Jordan Lee",
         role: "expert",
-        pricing: "standard",
+        pricing: "ladder",
         companyName: "Lee Aesthetics Consulting",
         inviteUrl: `${origin}/founding/preview-code`,
         pdfBuffer,
@@ -114,8 +116,8 @@ export async function POST(req: Request) {
     await run("Expert 4: welcome to the bench (portal live, signed PDF attached)", async () => {
       const pdfBuffer = await renderFoundingAgreementPdf({
         role: "expert",
-        pricing: "standard",
-        freePeriodEndsAt: freeEndsAt,
+        pricing: "ladder",
+        freePeriodEndsAt: expertFreeEndsAt,
         signer: { name: "Jordan Lee", email: accountEmail, companyName: "Lee Aesthetics Consulting" },
         signedAt: new Date(),
         ipHashLast6: "abc123",
@@ -132,7 +134,7 @@ export async function POST(req: Request) {
         portalUrl: `${origin}/expert/login`,
         agreementVersion: "v4",
         founding: true,
-        freePeriodEndsAt: freeEndsAt,
+        freePeriodEndsAt: expertFreeEndsAt,
         cardCaptured: true,
       });
     });
@@ -150,12 +152,12 @@ export async function POST(req: Request) {
     // ---------------- Companies ----------------
     const memberOffer = "12% off the LUX laser handpiece for ASN members";
     await run("Company 1: verified / approved (sign in, accept the agreement in the portal)", () =>
-      sendVendorApprovalEmail({ email: to, contactName: "Sam Rivera", companyName: "Radiance Devices", rate: "standard", portalUrl: `${origin}/vendor/login` }),
+      sendVendorApprovalEmail({ email: to, contactName: "Sam Rivera", companyName: "Radiance Devices", rate: "ladder", portalUrl: `${origin}/vendor/login` }),
     );
     await run("Company 2: founding invite agreement (admin Send invite only; PDF attached)", async () => {
       const pdfBuffer = await renderFoundingAgreementPdf({
         role: "partner",
-        pricing: "standard",
+        pricing: "ladder",
         signer: { name: "Sam Rivera", email: accountEmail, companyName: "Radiance Devices" },
         memberOffer,
         signedAt: new Date(),
@@ -166,7 +168,7 @@ export async function POST(req: Request) {
         to,
         fullName: "Sam Rivera",
         role: "partner",
-        pricing: "standard",
+        pricing: "ladder",
         companyName: "Radiance Devices",
         inviteUrl: `${origin}/founding/preview-code`,
         pdfBuffer,
@@ -177,7 +179,7 @@ export async function POST(req: Request) {
     await run("Company 3: welcome (one email after acceptance, signed PDF attached)", async () => {
       const pdfBuffer = await renderFoundingAgreementPdf({
         role: "partner",
-        pricing: "standard",
+        pricing: "ladder",
         freePeriodEndsAt: freeEndsAt,
         signer: { name: "Sam Rivera", email: accountEmail, companyName: "Radiance Devices" },
         memberOffer,
@@ -187,7 +189,7 @@ export async function POST(req: Request) {
       });
       await sendJoinConfirmationEmail({
         role: "partner",
-        rate: "standard",
+        rate: "ladder",
         to,
         accountEmail,
         contactName: "Sam Rivera",
@@ -210,7 +212,7 @@ export async function POST(req: Request) {
         daysLeft: 7,
         trialEndDate: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
         portalUrl: `${origin}/vendor/account`,
-        rate: "standard",
+        rate: "ladder",
       }),
     );
 
@@ -267,7 +269,7 @@ export async function POST(req: Request) {
           { label: "Agreed to terms", value: "Yes" },
           { label: "Authorized to commit company", value: "Yes" },
           { label: "SMS consent", value: "No" },
-          { label: "Company terms", value: providerTermsShort("standard", null) },
+          { label: "Company terms", value: providerTermsShort("ladder", null) },
         ],
       }),
     );

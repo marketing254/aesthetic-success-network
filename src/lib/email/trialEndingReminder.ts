@@ -13,10 +13,9 @@ import {
   COMPANY_LAUNCH_LABEL,
   COMPANY_LAUNCH_MONTHS,
   COMPANY_STANDARD_LABEL,
-  EXPERT_RATE_LABEL,
   PAYMENT_GRACE_DAYS,
-  PROVIDER_FREE_MONTHS,
   formatLongDate,
+  normalizeProviderRate,
 } from "@/lib/providerBilling";
 
 /**
@@ -27,7 +26,8 @@ import {
  * safety net only and never sends a second copy.
  *
  * Applies to experts AND companies: every provider has the same free
- * founding months, then $39 (experts: flat; companies: 12 months, then $149).
+ * founding months, then $39 (experts and flat companies: no increase;
+ * ladder companies: $39 x 12 then $149).
  * Never says "trial".
  */
 
@@ -39,7 +39,7 @@ export type TrialEndingReminderInput = {
   trialEndDate: Date;
   /** Portal billing page (update card, cancel). */
   portalUrl: string;
-  /** Kept for callers; every company is on the same ladder. */
+  /** Company plan ("ladder" / "flat"). Ignored for experts. */
   rate?: string | null;
 };
 
@@ -51,21 +51,20 @@ function endsWords(daysLeft: number): string {
 
 export async function sendTrialEndingReminder(input: TrialEndingReminderInput): Promise<boolean> {
   const name = firstNameOf(input.contactName);
-  const rate = input.role === "expert" ? EXPERT_RATE_LABEL : COMPANY_LAUNCH_LABEL;
-  const what = input.role === "expert" ? "expert membership" : "company listing";
-  const afterLine =
-    input.role === "expert"
-      ? `Your rate stays ${rate} a month with no increase, for as long as your ${what} is active.`
-      : `It stays ${rate} a month for your first ${COMPANY_LAUNCH_MONTHS} paid months, then moves to the ${COMPANY_STANDARD_LABEL} standard company rate.`;
+  const rate = COMPANY_LAUNCH_LABEL;
+  const ladder = input.role === "partner" && normalizeProviderRate(input.rate) !== "flat";
+  const afterLine = ladder
+    ? `It stays ${rate} a month for your first ${COMPANY_LAUNCH_MONTHS} paid months, then moves to the ${COMPANY_STANDARD_LABEL} standard company rate.`
+    : `Your rate stays ${rate} a month with no increase, for as long as your ${input.role === "expert" ? "expert membership" : "company listing"} is active.`;
   const date = formatLongDate(input.trialEndDate) ?? "the end of your free months";
   const when = endsWords(input.daysLeft);
   const draft: EmailDraft = {
     subject: `Your free founding months end ${when}`,
-    preview: `Your ${PROVIDER_FREE_MONTHS} free founding months end on ${date}. ${rate} a month after that.`,
+    preview: `Your free founding months end on ${date}. ${rate} a month after that.`,
     eyebrow: "Billing reminder",
     headline: `Heads-up, ${name}: your free founding months end ${when}.`,
     intro: [
-      `Your ${PROVIDER_FREE_MONTHS} free founding months end on ${date}. On that day, Stripe will charge the card on file ${rate} for your first paid month. ${afterLine}`,
+      `Your free founding months end on ${date}. On that day, Stripe will charge the card on file ${rate} for your first paid month. ${afterLine}`,
     ],
     sections: [
       {

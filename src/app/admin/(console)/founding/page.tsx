@@ -32,7 +32,7 @@ type InviteRow = {
   id: string;
   code: string;
   role: FoundingInviteRoleValue;
-  pricing_plan: "standard" | "large";
+  pricing_plan: "ladder" | "flat";
   full_name: string;
   email: string;
   company_name: string | null;
@@ -128,7 +128,7 @@ export default function AdminFoundingPage() {
     setDialogInitial({
       id: r.id,
       role: r.role,
-      pricing_plan: r.pricing_plan ?? "standard",
+      pricing_plan: r.pricing_plan ?? "ladder",
       full_name: r.full_name,
       email: r.email,
       company_name: r.company_name ?? "",
@@ -425,16 +425,18 @@ function InviteCard({
           <Chip
               label={
                 row.role === "expert"
-                  ? "6 mo free, then $39"
-                  : `6 mo free, $39 x 12, then $149${row.role === "both" ? " (expert: $39)" : ""}`
+                  ? "12 mo free, then $39 flat"
+                  : row.pricing_plan === "flat"
+                    ? `6 mo free, then $39 flat${row.role === "both" ? " (expert: 12 mo free, $39)" : ""}`
+                    : `6 mo free, $39 x 12, then $149${row.role === "both" ? " (expert: 12 mo free, $39)" : ""}`
               }
               size="small"
               sx={{
                 height: 20,
                 fontSize: "0.66rem",
                 fontWeight: 700,
-                bgcolor: row.pricing_plan === "large" ? "rgba(160,120,35,0.12)" : "rgba(44,122,82,0.12)",
-                color: row.pricing_plan === "large" ? "#7A5B17" : "#1F5238",
+                bgcolor: row.pricing_plan === "flat" ? "rgba(44,122,82,0.12)" : "rgba(160,120,35,0.12)",
+                color: row.pricing_plan === "flat" ? "#1F5238" : "#7A5B17",
               }}
           />
           <StatusChip status={row.status} />

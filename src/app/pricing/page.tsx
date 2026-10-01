@@ -17,7 +17,7 @@ import {
 // first 100, open/closed from /api/stripe/availability) then Standard
 // ($99/mo or $990/yr). There is NO "early" tier. Experts and companies
 // (owner decision 2026-10-01): a card is saved on acceptance, the first
-// 6 months are free from the member launch, then $39 a month with no
+// 6 months are free from the member launch, then $39 a month (experts flat; companies $39 x 12 then $149) with no
 // increase. The company large rate is admin-set and never shown publicly.
 // Every member CTA starts the DMN signup at /join/member.
 

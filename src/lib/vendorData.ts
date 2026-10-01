@@ -423,7 +423,7 @@ export const vendorAgreementSections: AgreementSection[] = [
     number: "02",
     title: "Expert terms (if you also hold the expert capability)",
     body:
-      "Experts share one recording (up to about one hour) of themselves teaching a topic, plus supporting details. We produce the content kit (training video, action guide, checklist, key takeaways, worksheet, slide deck, wall poster, and extras), and you approve it before it goes live under your profile. You keep ownership of your content and grant ASN a license to produce, host, and distribute the kits to members. Expert access pricing is the same as for partners: the first 6 months free from the member launch, then $39 a month with no increase. Paid courses and products: you sell them on your own site and keep the full price; the one condition is a member-only offer on each. Hotline referrals are routed by fit, never by payment.",
+      "Experts share one recording (up to about one hour) of themselves teaching a topic, plus supporting details. We produce the content kit (training video, action guide, checklist, key takeaways, worksheet, slide deck, wall poster, and extras), and you approve it before it goes live under your profile. You keep ownership of your content and grant ASN a license to produce, host, and distribute the kits to members. Expert access pricing: the first 6 months free from the member launch, then $39 a month with no increase. Paid courses and products: you sell them on your own site and keep the full price; the one condition is a member-only offer on each. Hotline referrals are routed by fit, never by payment.",
   },
   {
     id: "fees-and-payment",

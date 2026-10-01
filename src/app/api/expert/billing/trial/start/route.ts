@@ -13,8 +13,8 @@ export const dynamic = "force-dynamic";
 /**
  * POST /api/expert/billing/trial/start — mirror of the vendor version.
  * Saves the card, records the agreement acceptance and creates the expert
- * subscription (free until 6 months after the member launch, then $39
- * with no increase). Nothing is charged today.
+ * billing (free until 6 months after the member launch, then $39 for 6
+ * months, then $149). Nothing is charged today.
  */
 type Body = { setupIntentId?: string; paymentMethodId?: string; agreementVersion?: string };
 
@@ -180,6 +180,7 @@ export async function POST(req: Request) {
       agreementVersion,
       signedAt,
       freePeriodEndsAt: created.freePeriodEndsAt,
+      standardStartsAt: created.standardStartsAt,
       cardCaptured: true,
     });
   } catch (err) {

@@ -57,7 +57,7 @@ export function inviteDetailFields(invite: FoundingInvitesRow, extra: SignupFiel
     { label: "Other companies", value: companies },
     { label: "Signer", value: invite.signer_name ? `${invite.signer_name}${invite.signer_title ? `, ${invite.signer_title}` : ""}` : null },
     { label: "Secondary contact", value: [invite.secondary_email, invite.secondary_phone].filter(Boolean).join(" · ") || null },
-    { label: "Expert terms", value: invite.role === "partner" ? null : providerTermsShort(null, null, { expert: true }) },
+    { label: "Expert terms", value: invite.role === "partner" ? null : providerTermsShort(null, null, { expert: true, founding: true }) },
     { label: "Company terms", value: partnerSide ? providerTermsShort(rate, null) : null },
     { label: "Agreement version", value: invite.agreement_version },
     { label: "Notes", value: (invite.notes ?? "").replace(/^\[source:[^\]]+\]\s*/, "") || null },
