@@ -5,7 +5,7 @@ import type { ExpertApplicationPayload } from "@/lib/expert/validate";
 import { escapeHtml } from "@/lib/email/escapeHtml";
 import { applyEmailSandbox } from "@/lib/email/sandbox";
 import { ACCENT, firstNameOf, sendEmailDraft, type EmailDraft as LayoutDraft } from "@/lib/email/layout";
-import { FIRST_CHARGE_REMINDER_DAYS, providerTermsSentence, rateLabel } from "@/lib/providerBilling";
+import { COMPANY_LAUNCH_LABEL, COMPANY_LAUNCH_MONTHS, COMPANY_STANDARD_LABEL, FIRST_CHARGE_REMINDER_DAYS, normalizeProviderRate, providerTermsSentence } from "@/lib/providerBilling";
 
 type ConfirmationInput = {
   signup: WaitlistPayload;
@@ -137,7 +137,7 @@ function normalizeUrl(path: string): string {
 // standard, 30-day money-back, hotline written reply in 2 to 3 business
 // days. Providers (experts and companies, owner decision 2026-10-01): card
 // saved on acceptance, first 6 months free from the member launch, then $39
-// a month with no increase (company large rate is admin-set, never public);
+// (website experts: 6 months free then $39 flat; companies: 6 months free then $39 x 12 then $149, or flat);
 // courses and products sold on the provider's own site at full price with a
 // member-only offer. No em-dashes.
 // ─────────────────────────────────────────────────────────────────────────
@@ -621,9 +621,9 @@ type VendorApprovalInput = {
   email: string;
   contactName: string;
   companyName: string;
-  /** Company rate set at approval: "standard" ($39) or "large" ($149). */
+  /** Company plan: "ladder" ($39 x 12 then $149) or "flat" ($39). */
   rate?: string | null;
-  /** Kept for older callers; the email no longer links to the portal. */
+  /** Portal sign-in page (https://.../vendor/login). */
   portalUrl?: string;
 };
 
@@ -646,16 +646,22 @@ const PARTNER_WHAT_WE_DO = [
 
 function vendorApprovalDraft(input: VendorApprovalInput): LayoutDraft {
   const name = firstNameOf(input.contactName);
-  const r = rateLabel(input.rate);
   return {
     subject: `You're verified: ${input.companyName} is approved for the Aesthetic Success Network`,
-    preview: `${input.companyName} is approved and verified. Your founding partner agreement arrives in a separate email.`,
+    preview: `${input.companyName} is approved and verified. Sign in, accept the agreement and save a card to activate your listing.`,
     eyebrow: "Partner verified",
     headline: `You're in, ${name}.`,
     intro: [
-      `Our team reviewed ${input.companyName}, and we're delighted to confirm your partner account is approved and verified. Your founding partner agreement will arrive in a separate email. Once you've accepted it, your portal opens.`,
+      `Our team reviewed ${input.companyName}, and we're delighted to confirm your partner account is approved and verified.`,
     ],
     sections: [
+      {
+        title: "Your next step: sign in and accept your agreement",
+        paragraphs: [
+          `Sign in to your company portal with this email: ${input.email}. Enter it there and we'll send you a 6-digit code. Inside, review the Provider Agreement, tick "I agree" and save a card. Nothing is charged today; that step activates your listing and we email you a signed copy.`,
+        ],
+        tone: "green",
+      },
       { title: "What we do for you", items: PARTNER_WHAT_WE_DO },
       {
         title: "What we ask of every partner",
@@ -688,10 +694,11 @@ function vendorApprovalDraft(input: VendorApprovalInput): LayoutDraft {
       {
         title: "What we promise",
         paragraphs: [
-          `We can't promise a number of members, leads or sales, and we don't offer category exclusivity. What we promise is the work above, and that we put you in front of every member we bring in. Your rate after the free months is ${r} a month, with no increase.`,
+          `We can't promise a number of members, leads or sales, and we don't offer category exclusivity. What we promise is the work above, and that we put you in front of every member we bring in. After your free months it's ${normalizeProviderRate(input.rate) === "flat" ? `${COMPANY_LAUNCH_LABEL} a month with no increase` : `${COMPANY_LAUNCH_LABEL} a month for your first ${COMPANY_LAUNCH_MONTHS} months, then ${COMPANY_STANDARD_LABEL} a month`}.`,
         ],
       },
     ],
+    ctas: input.portalUrl ? [{ label: "Sign in to your portal", url: input.portalUrl }] : undefined,
     closing: "Questions? Reply to this email and our partnerships team will get back to you within one business day.",
     signoff: TEAM_SIGNOFF,
     footerNote: "Partner verified",
@@ -909,8 +916,8 @@ type ExpertApprovalInput = {
   email: string;
   firstName: string;
   expertId: string;
-  /** Kept for older callers; the approval email no longer carries a sign-in link. */
   portalLink?: string;
+  /** Portal sign-in page (https://.../expert/login). */
   portalLoginUrl?: string;
   activatedAt?: string;
 };
@@ -920,7 +927,7 @@ function expertApprovalDraft(input: ExpertApprovalInput): LayoutDraft {
   const name = (input.firstName ?? "").trim() || "there";
   return {
     subject: "You're approved: welcome to the Aesthetic Success Network bench",
-    preview: "Your application is approved. Your founding expert agreement arrives in a separate email.",
+    preview: "Your application is approved. Sign in, accept the agreement and save a card to open your portal.",
     eyebrow: "Expert approved",
     headline: "Welcome to the bench.",
     intro: [
@@ -929,9 +936,9 @@ function expertApprovalDraft(input: ExpertApprovalInput): LayoutDraft {
     ],
     sections: [
       {
-        title: "Your next step: your agreement",
+        title: "Your next step: sign in and accept your agreement",
         paragraphs: [
-          "Your founding expert agreement will arrive in a separate email shortly. Review it and accept it online. It takes a few minutes. Once you've accepted, your expert portal opens and we start building your first playbook.",
+          `Sign in to your expert portal with this email: ${input.email}. Enter it there and we'll send you a 6-digit code. Inside, review the Provider Agreement, tick "I agree" and save a card. Nothing is charged today; that step opens your portal, we email you a signed copy, and we start building your first playbook.`,
         ],
         tone: "green",
       },
@@ -942,7 +949,7 @@ function expertApprovalDraft(input: ExpertApprovalInput): LayoutDraft {
       },
       {
         title: "Get a head start",
-        paragraphs: ["While you wait, gather these. You'll send them to us once you've accepted:"],
+        paragraphs: ["Gather these for your first onboarding call:"],
         items: [
           "A headshot, the highest resolution you have",
           "A short bio, or we'll draft one for your approval",
@@ -952,6 +959,7 @@ function expertApprovalDraft(input: ExpertApprovalInput): LayoutDraft {
         ],
       },
     ],
+    ctas: input.portalLoginUrl ? [{ label: "Sign in to your portal", url: input.portalLoginUrl }] : undefined,
     closing: "Questions? Reply to this email and we'll get back to you within one business day.",
     signoff: ["Welcome to the bench.", ...TEAM_SIGNOFF],
     footerNote: "Expert approved",

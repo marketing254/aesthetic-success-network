@@ -31,7 +31,8 @@ const HOVER = EP.bronzeTint;
 
 /**
  * Expert terms: free founding months (6 from the member launch), then
- * $39 a month with no increase. The "Until" date comes from the Stripe
+ * $39 a month with no increase (founding invites: 12 free months, website
+ * experts: 6). The "Until" date comes from the Stripe
  * trial end on the row.
  */
 const RAMP = {
@@ -144,7 +145,7 @@ export default function ExpertBillingPage() {
   const billingExempt = !!expert?.billing_exempt;
   const rampSentence = freePeriodEnds
     ? `Free until ${freePeriodEnds}, then $39 a month. It stays $39, with no increase. Cancel before your first charge and you won't be charged.`
-    : "Your first 6 months are free, starting the day we open to members. After that it's $39 a month, and it stays $39 with no increase.";
+    : "Your free founding months start the day we open to members. After that it's $39 a month, and it stays $39 with no increase.";
 
   const planLabel = useMemo(() => {
     const phaseLabel = phase === "launch" ? "Launch" : "Growth";

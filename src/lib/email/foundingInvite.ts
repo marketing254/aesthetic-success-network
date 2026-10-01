@@ -11,10 +11,14 @@ import {
 } from "@/lib/email/layout";
 import {
   CANCEL_NOTICE_DAYS,
+  COMPANY_LAUNCH_LABEL,
+  COMPANY_LAUNCH_MONTHS,
+  COMPANY_STANDARD_LABEL,
   EXPERT_RATE_LABEL,
   FIRST_CHARGE_REMINDER_DAYS,
+  FOUNDING_EXPERT_FREE_MONTHS,
   PROVIDER_FREE_MONTHS,
-  rateLabel,
+  normalizeProviderRate,
 } from "@/lib/providerBilling";
 
 /**
@@ -25,9 +29,10 @@ import {
  * they can read it before clicking through.
  *
  * Terms shown: free founding months (6, from the member launch), then
- * the flat rate ($39 for experts; $39 or $149 for companies, set by the
- * admin). A card is saved on acceptance; nothing is charged until the
- * free months end.
+ * $39 (experts: 12 free months then $39 flat; companies: 6 free months
+ * then $39 x 12 then $149, or $39 flat on the flat plan). A
+ * card is saved on acceptance; nothing is charged until the free months
+ * end.
  */
 
 const DEFAULT_PDF_FILENAME = "ASN-Founding-Agreement.pdf";
@@ -36,7 +41,7 @@ export type FoundingInviteEmailInput = {
   to: string;
   fullName: string;
   role: "expert" | "partner" | "both";
-  /** Company rate: "standard" ($39) or "large" ($149). Ignored for expert-only invites. */
+  /** Company plan: "ladder" ($39 x 12 then $149) or "flat" ($39). Ignored for expert-only invites. */
   pricing?: string | null;
   companyName?: string | null;
   inviteUrl: string;
@@ -51,17 +56,20 @@ function roleLabelFor(role: FoundingInviteEmailInput["role"]): string {
 }
 
 function termsSection(input: FoundingInviteEmailInput): EmailSection {
-  const items: string[] = [`Your first ${PROVIDER_FREE_MONTHS} months are free, starting the day we open to members.`];
+  const items: string[] = [];
   const hasExpert = input.role === "expert" || input.role === "both";
   const hasPartner = input.role === "partner" || input.role === "both";
   if (hasExpert) {
     const side = input.role === "both" ? " for your expert access" : "";
-    items.push(`After that it's ${EXPERT_RATE_LABEL} a month${side}, and it stays ${EXPERT_RATE_LABEL} with no increase.`);
+    items.push(`Your first ${FOUNDING_EXPERT_FREE_MONTHS} months${side} are free, starting the day we open to members. After that it's ${EXPERT_RATE_LABEL} a month, and it stays ${EXPERT_RATE_LABEL} with no increase.`);
   }
   if (hasPartner) {
-    const r = rateLabel(input.pricing);
     const side = input.role === "both" ? " for your company listing" : "";
-    items.push(`After that it's ${r} a month${side}, and it stays ${r} with no increase.`);
+    items.push(
+      normalizeProviderRate(input.pricing) === "flat"
+        ? `Your first ${PROVIDER_FREE_MONTHS} months${side} are free, starting the day we open to members. After that it's ${COMPANY_LAUNCH_LABEL} a month, and it stays ${COMPANY_LAUNCH_LABEL} with no increase.`
+        : `Your first ${PROVIDER_FREE_MONTHS} months${side} are free, starting the day we open to members. After that it's ${COMPANY_LAUNCH_LABEL} a month for your first ${COMPANY_LAUNCH_MONTHS} months, then ${COMPANY_STANDARD_LABEL} a month.`,
+    );
   }
   items.push(
     `When you accept, we'll securely save a payment method. Nothing is charged until your free months end, and we'll remind you ${FIRST_CHARGE_REMINDER_DAYS} days before your first charge. Cancel any time before then and you won't be charged. After your first charge, cancel with ${CANCEL_NOTICE_DAYS} days' written notice.`,

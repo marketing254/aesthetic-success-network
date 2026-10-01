@@ -45,8 +45,24 @@ export type ValidationResult =
 
 /** Work-email shape check (length capped separately by MAX_EMAIL_LEN). */
 export const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
-/** Absolute http(s) URL only. */
+/** Absolute http(s) URL only (what we STORE). */
 export const URL_RE = /^https?:\/\/[^\s/$.?#].[^\s]*$/i;
+/** What people may TYPE: a domain with or without the scheme. */
+export const LOOSE_URL_RE = /^(https?:\/\/)?(localhost|([a-z0-9-]+\.)+[a-z]{2,})(:\d+)?([/?#]\S*)?$/i;
+
+/**
+ * Turn whatever was typed into a storable URL: trims, adds https:// when
+ * the scheme is missing ("www.clinic.com" -> "https://www.clinic.com"),
+ * and returns null when it is not a web address at all (javascript:,
+ * data:, mailto:, plain words). Empty input returns "".
+ */
+export function normalizeWebUrl(input: string | null | undefined): string | null {
+  const t = (input ?? "").trim();
+  if (!t) return "";
+  if (!LOOSE_URL_RE.test(t)) return null;
+  const withScheme = /^https?:\/\//i.test(t) ? t : `https://${t}`;
+  return URL_RE.test(withScheme) ? withScheme : null;
+}
 /** Loose phone: leading +, ( or digit, then 4-39 digits/spaces/punctuation. */
 export const PHONE_RE = /^[+()\d][\d\s().-]{4,39}$/;
 /**

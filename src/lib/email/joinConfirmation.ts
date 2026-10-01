@@ -13,11 +13,16 @@ import {
 } from "@/lib/email/layout";
 import {
   CANCEL_NOTICE_DAYS,
+  COMPANY_LAUNCH_LABEL,
+  COMPANY_LAUNCH_MONTHS,
+  COMPANY_STANDARD_LABEL,
   EXPERT_RATE_LABEL,
   FIRST_CHARGE_REMINDER_DAYS,
   PROVIDER_FREE_MONTHS,
+  companyStandardStartsAt,
   formatLongDate,
-  rateLabel,
+  freeMonthsFor,
+  normalizeProviderRate,
 } from "@/lib/providerBilling";
 
 /**
@@ -30,8 +35,10 @@ import {
  *   both     the expert welcome with the company block added
  *
  * Billing copy: card saved, nothing charged today, free founding months
- * end on [date] (6 months after the member launch), then the flat rate
- * with no increase. Cancel before the first charge = no charge; after
+ * end on [date] (experts: 12 months after the member launch for founding
+ * invites, 6 for website; companies: 6), then $39 (experts flat;
+ * companies $39 x 12 then $149, or flat). Cancel before the first charge
+ * = no charge; after
  * that 30 days' notice. One reminder 7 days before.
  *
  * `accountEmail` is the address they sign in with and is the ONLY email
@@ -40,8 +47,12 @@ import {
 
 export type JoinConfirmationInput = {
   role: "partner" | "expert" | "both";
-  /** Company rate ("standard" $39 / "large" $149). Ignored for experts. */
+  /** Kept for callers; every company is on the same ladder. */
   rate?: string | null;
+  /** Ladder companies: ISO date the $149 standard rate starts (company free end + 12 months). */
+  standardStartsAt?: string | null;
+  /** Role "both": the company side's free end (experts get 12 months, companies 6). */
+  companyFreePeriodEndsAt?: string | null;
   /** True when this is a founding-invite acceptance. */
   founding?: boolean;
   /** ISO date the free founding months end (Stripe trial end). */
@@ -94,13 +105,15 @@ function roleLabelFor(role: JoinConfirmationInput["role"]): string {
 }
 
 function billingSection(input: JoinConfirmationInput): EmailSection {
-  const freeEnd = input.freePeriodEndsAt ?? input.expertTrialEndsAt ?? input.trialEndsAt ?? null;
-  const until = formatLongDate(freeEnd);
   const items: string[] = [];
-  items.push(`Your ${PROVIDER_FREE_MONTHS} founding months are free, and they start the day we open to members.`);
-  if (until) items.push(`Free through: ${until}`);
+  const expertFreeEnd = input.freePeriodEndsAt ?? input.expertTrialEndsAt ?? input.trialEndsAt ?? null;
+  const companyFreeEnd = input.companyFreePeriodEndsAt ?? input.freePeriodEndsAt ?? null;
+  const plan = normalizeProviderRate(input.rate);
   if (hasExpert(input.role)) {
+    const months = freeMonthsFor({ audience: "expert", founding: input.founding });
+    const until = formatLongDate(expertFreeEnd);
     const side = input.role === "both" ? " for your expert access" : "";
+    items.push(`Your ${months} founding months${side} are free, and they start the day we open to members.${until ? ` Free through: ${until}.` : ""}`);
     items.push(
       until
         ? `First charge: ${EXPERT_RATE_LABEL} on ${until}${side}, then ${EXPERT_RATE_LABEL} a month with no increase.`
@@ -108,13 +121,28 @@ function billingSection(input: JoinConfirmationInput): EmailSection {
     );
   }
   if (hasPartner(input.role)) {
-    const r = rateLabel(input.rate);
+    const until = formatLongDate(companyFreeEnd);
     const side = input.role === "both" ? " for your company listing" : "";
-    items.push(
-      until
-        ? `First charge: ${r} on ${until}${side}, then ${r} a month with no increase.`
-        : `First charge: ${r}${side} when your free months end, then ${r} a month with no increase.`,
-    );
+    items.push(`Your ${PROVIDER_FREE_MONTHS} founding months${side} are free, and they start the day we open to members.${until ? ` Free through: ${until}.` : ""}`);
+    if (plan === "flat") {
+      items.push(
+        until
+          ? `First charge: ${COMPANY_LAUNCH_LABEL} on ${until}${side}, then ${COMPANY_LAUNCH_LABEL} a month with no increase.`
+          : `First charge: ${COMPANY_LAUNCH_LABEL}${side} when your free months end, then ${COMPANY_LAUNCH_LABEL} a month with no increase.`,
+      );
+    } else {
+      const stdDate = formatLongDate(input.standardStartsAt ?? (companyFreeEnd ? companyStandardStartsAt(new Date(companyFreeEnd)) : null));
+      items.push(
+        until
+          ? `First charge: ${COMPANY_LAUNCH_LABEL} on ${until}${side}, then ${COMPANY_LAUNCH_LABEL} a month for your first ${COMPANY_LAUNCH_MONTHS} months.`
+          : `First charge: ${COMPANY_LAUNCH_LABEL}${side} when your free months end, then ${COMPANY_LAUNCH_LABEL} a month for your first ${COMPANY_LAUNCH_MONTHS} months.`,
+      );
+      items.push(
+        stdDate
+          ? `From ${stdDate}: ${COMPANY_STANDARD_LABEL} a month${side}, the standard company rate.`
+          : `After those ${COMPANY_LAUNCH_MONTHS} months: ${COMPANY_STANDARD_LABEL} a month${side}, the standard company rate.`,
+      );
+    }
   }
   items.push(
     `Cancel any time before your first charge and you won't be charged. After that, cancel with ${CANCEL_NOTICE_DAYS} days' written notice. We'll remind you ${FIRST_CHARGE_REMINDER_DAYS} days before your first charge.`,

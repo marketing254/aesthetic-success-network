@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { getStripe, appOrigin, appUrl, createProviderSubscription } from "@/lib/stripe";
-import { normalizeProviderRate, formatLongDate, rateLabel, EXPERT_RATE_LABEL } from "@/lib/providerBilling";
+import { normalizeProviderRate, formatLongDate, COMPANY_LAUNCH_LABEL, COMPANY_STANDARD_LABEL } from "@/lib/providerBilling";
 import { inviteDetailFields } from "@/lib/founding/sendInvite";
 import { getSupabaseAdmin } from "@/lib/supabase/server";
 import { renderFoundingAgreementPdf } from "@/lib/pdf/foundingAgreementPdf";
@@ -14,17 +14,13 @@ export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
 
-// Founding billing (owner decision 2026-10-01, src/lib/providerBilling.ts).
-// Every acceptance saves a card. Nothing is charged today:
-//   • Expert side (role expert / both): one subscription on the expert
-//     price, free until 6 months after the member launch, then $39/month
-//     with no increase.
-//   • Company side (role partner / both): one subscription on the company
-//     rate price (pricing_plan "standard" = $39, "large" = $149), free
-//     until the same date, then that rate with no increase.
-//   • Role "both": both of the above on the SAME Stripe customer. The
-//     expert row mirrors the expert subscription, the vendor row mirrors
-//     the company subscription.
+// Founding billing (owner decision 2026-10-02, src/lib/providerBilling.ts).
+// Every acceptance saves a card. Nothing is charged today. Expert side and
+// company side each get one subscription schedule on the SAME Stripe
+// customer. Expert: 12 months free from the member launch, then $39 flat.
+// Company: 6 months free, then $39 x 12 then $149 (ladder) or $39 flat
+// (flat), per the invite's pricing_plan. The expert row mirrors the expert
+// schedule, the vendor row mirrors the company schedule.
 
 type Body = { setupIntentId?: string; paymentMethodId?: string };
 
@@ -151,6 +147,7 @@ export async function POST(req: Request, ctx: { params: Promise<{ code: string }
         customerId,
         paymentMethodId,
         audience: "expert",
+        founding: true,
         metadata: { ...baseMeta, ramp: "founding-expert" },
       });
       expertBilling = {
@@ -169,9 +166,9 @@ export async function POST(req: Request, ctx: { params: Promise<{ code: string }
     }
   }
 
-  // ---- Company side: free until the same date, then the rate chosen on
-  // the invite ($39 standard or $149 large), no increase.
+  // ---- Company side: same ladder as the expert side.
   let partnerBilling: BillingSnapshot | null = null;
+  let partnerStandardStartsAt: string | null = null;
   if (wantsPartner) {
     try {
       const r = await createProviderSubscription({
@@ -181,6 +178,7 @@ export async function POST(req: Request, ctx: { params: Promise<{ code: string }
         rate,
         metadata: { ...baseMeta, ramp: "founding-company" },
       });
+      partnerStandardStartsAt = r.standardStartsAt;
       partnerBilling = {
         subscriptionId: r.subscription.id,
         priceId: r.priceId,
@@ -196,7 +194,9 @@ export async function POST(req: Request, ctx: { params: Promise<{ code: string }
       });
     }
   }
-  const freePeriodEndsAt = partnerBilling?.trialEnd ?? expertBilling?.trialEnd ?? null;
+  // Experts (12 free months) and companies (6) end on different dates.
+  const freePeriodEndsAt = expertBilling?.trialEnd ?? partnerBilling?.trialEnd ?? null;
+  const companyFreePeriodEndsAt = partnerBilling?.trialEnd ?? null;
 
   // Pre-create the auth user so they can log into the portal later.
   let authUserId: string | null = null;
@@ -244,7 +244,7 @@ export async function POST(req: Request, ctx: { params: Promise<{ code: string }
   // on the same customer.
   const expertSubFields = { ...agreementFields, ...billingFieldsFor(expertBilling) };
   // vendors.billing_plan (0071) is the rate the company portal shows
-  // after the free months: standard = $39, large = $149.
+  // after the free months: ladder ($39 x 12 then $149) or flat ($39).
   const partnerSubFields = {
     ...agreementFields,
     ...billingFieldsFor(partnerBilling),
@@ -431,6 +431,8 @@ export async function POST(req: Request, ctx: { params: Promise<{ code: string }
       signedAt,
       ipHashLast6: ipHash.slice(-6),
       accepted: true,
+      freePeriodEndsAt,
+      companyFreePeriodEndsAt,
     });
     signedPath = `founding/${code}-signed.pdf`;
     await sb.storage
@@ -483,6 +485,8 @@ export async function POST(req: Request, ctx: { params: Promise<{ code: string }
       companies: invite.companies ?? undefined,
       founding: true,
       freePeriodEndsAt,
+      companyFreePeriodEndsAt,
+      standardStartsAt: partnerStandardStartsAt,
       cardCaptured: true,
     });
   }
@@ -498,9 +502,11 @@ export async function POST(req: Request, ctx: { params: Promise<{ code: string }
     highlight: "Card on file, nothing charged. They're ready to sign in.",
     fields: inviteDetailFields(invite, [
       { label: "Payment method", value: cardBrand && cardLast4 ? `${cardBrand} ending ${cardLast4}` : "On file" },
-      { label: "Expert subscription", value: expertBilling ? `${expertBilling.status} (${EXPERT_RATE_LABEL} a month after the free months)` : null },
-      { label: "Company subscription", value: partnerBilling ? `${partnerBilling.status} (${rateLabel(rate)} a month after the free months)` : null },
-      { label: "Free months end / first charge", value: formatLongDate(freePeriodEndsAt) },
+      { label: "Expert subscription", value: expertBilling ? `${expertBilling.status} (${COMPANY_LAUNCH_LABEL} a month flat after 12 free months)` : null },
+      { label: "Expert free months end", value: formatLongDate(expertBilling?.trialEnd ?? null) },
+      { label: "Company subscription", value: partnerBilling ? `${partnerBilling.status} (${rate === "flat" ? `${COMPANY_LAUNCH_LABEL} a month flat` : `${COMPANY_LAUNCH_LABEL} a month for 12 months, then ${COMPANY_STANDARD_LABEL}`} after 6 free months)` : null },
+      { label: "Company free months end", value: formatLongDate(companyFreePeriodEndsAt) },
+      { label: "$149 standard rate starts", value: formatLongDate(partnerStandardStartsAt) },
       { label: "Accepted on", value: formatLongDate(signedAt) },
     ]),
   });

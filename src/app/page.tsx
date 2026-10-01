@@ -543,7 +543,7 @@ export default function HomePage() {
               </h3>
               <p>
                 Get in front of aesthetics&rsquo; most engaged buyers through a trusted shortlist
-                instead of a cold ad. Your first 6 months are free from the member launch, then $39 a month with no increase.
+                instead of a cold ad. Your first 6 months are free from the member launch, then $39 a month for 12 months, then $149.
               </p>
               <ul>
                 <li>Profile plus placement in your category</li>

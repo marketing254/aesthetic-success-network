@@ -46,7 +46,7 @@ type Invoice = {
 
 // Price terms live in src/lib/vendorPricing.ts, keyed by vendors.billing_plan:
 // free founding months (6 from the member launch), then $39 (standard) or
-// $149 (large) a month with no increase.
+// $39 x 12 then $149 (ladder) or $39 flat.
 
 export default function VendorAccountPage() {
   const [loading, setLoading] = useState(true);
@@ -137,8 +137,9 @@ export default function VendorAccountPage() {
   const ramp = vendorRamp(plan, freeUntil);
   const isWebsite = !vendor.founding_partner_locked;
   const months = vendor.months_in_program ?? 0;
-  const currentRow = currentRampRow(plan, hasTrial, freeUntil);
-  const nextBill = ramp.monthlyNow(hasTrial);
+  const onStandard = ramp.hasStandardStep && !hasTrial && (vendor.months_in_program ?? 0) > 12;
+  const currentRow = currentRampRow(plan, hasTrial, freeUntil, onStandard);
+  const nextBill = ramp.monthlyNow(hasTrial, onStandard);
   const freeUntilLabel = freeUntil
     ? new Date(freeUntil).toLocaleDateString("en-US", { year: "numeric", month: "long", day: "numeric" })
     : null;
@@ -174,7 +175,7 @@ export default function VendorAccountPage() {
             accent="green"
             label="Lifetime billed"
             value={`$${lifetimeBilled.toFixed(2)}`}
-            footer={`${ramp.rate} a month after your free months, no increase`}
+            footer={ramp.hasStandardStep ? `${ramp.rate} a month for 12 months after your free months, then ${ramp.standardRate}` : `${ramp.rate} a month after your free months, no increase`}
           />
         </Grid>
       </Grid>
@@ -184,7 +185,7 @@ export default function VendorAccountPage() {
         <Grid size={{ xs: 12, lg: 7 }}>
           <SectionCard
             title="Subscription"
-            subtitle="Free founding months, then your flat rate for as long as you stay."
+            subtitle={ramp.hasStandardStep ? "Free founding months, then the launch rate, then the standard rate." : "Free founding months, then your flat rate for as long as you stay."}
             padding="default"
             action={
               <Stack direction="row" spacing={0.5} sx={{ flexWrap: "wrap", gap: 0.5 }}>
@@ -198,9 +199,13 @@ export default function VendorAccountPage() {
                 <Typography sx={{ fontSize: "0.875rem", fontWeight: 700, color: INK }}>
                   {hasTrial
                     ? freeUntilLabel
-                      ? `Free until ${freeUntilLabel}, then ${ramp.rate} a month with no increase`
-                      : `Free founding months, then ${ramp.rate} a month with no increase`
-                    : `${ramp.rate} a month, no increase`}
+                      ? `Free until ${freeUntilLabel}, then ${ramp.hasStandardStep ? `${ramp.rate} a month for 12 months, then ${ramp.standardRate}` : `${ramp.rate} a month with no increase`}`
+                      : `Free founding months, then ${ramp.hasStandardStep ? `${ramp.rate} a month for 12 months, then ${ramp.standardRate}` : `${ramp.rate} a month with no increase`}`
+                    : onStandard
+                      ? `${ramp.standardRate} a month, standard rate`
+                      : ramp.hasStandardStep
+                        ? `${ramp.rate} a month, launch rate, then ${ramp.standardRate}`
+                        : `${ramp.rate} a month, no increase`}
                 </Typography>
                 <Typography sx={{ ...portalText.meta, mt: 0.5 }}>
                   {hasTrial
@@ -282,7 +287,7 @@ export default function VendorAccountPage() {
                     {!vendor.stripe_subscription_id ? (
                       <>
                         Save a card below to activate your listing. Nothing is charged until your free founding months end; after that it&apos;s{" "}
-                        <Box component="strong" sx={{ color: INK, fontWeight: 700 }}>{ramp.rate} a month</Box> with no increase.
+                        <Box component="strong" sx={{ color: INK, fontWeight: 700 }}>{ramp.rate} a month</Box>{ramp.hasStandardStep ? ` for 12 months, then ${ramp.standardRate}.` : " with no increase."}
                       </>
                     ) : (
                       <>Your card is on file with Stripe. Open the Stripe portal to update it.</>
@@ -330,6 +335,7 @@ export default function VendorAccountPage() {
           prepareEndpoint="/api/vendor/billing/trial/prepare"
           startEndpoint="/api/vendor/billing/trial/start"
           audience="gold"
+          rate={plan}
         />
       )}
 

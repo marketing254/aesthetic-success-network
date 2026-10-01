@@ -42,7 +42,7 @@ type VendorRow = {
   contact_name: string;
   contact_email: string;
   plan_id: string | null;
-  billing_plan: "standard" | "large" | null;
+  billing_plan: "ladder" | "flat" | null;
   status: "pending_review" | "approved" | "rejected" | "suspended" | "churned";
   verified: boolean;
   billing_parent_id: string | null;
@@ -97,20 +97,15 @@ function Inner() {
     void load();
   }, [load]);
 
-  const runAction = async (vendorId: string, action: ActionKey, rate?: "standard" | "large") => {
+  const runAction = async (vendorId: string, action: ActionKey, plan?: "ladder" | "flat") => {
     setActingId(vendorId);
     try {
       const res = await fetch("/api/admin/vendors", {
         method: "PATCH",
         headers: { "content-type": "application/json" },
-        body: JSON.stringify({ id: vendorId, action, rate }),
+        body: JSON.stringify({ id: vendorId, action, rate: plan }),
       });
-      const body = (await res.json()) as {
-        ok?: boolean;
-        error?: string;
-        message?: string;
-        agreement?: { sent?: boolean; error?: string };
-      };
+      const body = (await res.json()) as { ok?: boolean; error?: string; message?: string };
       if (!res.ok || body.error) {
         setToast(body.error ?? `Action failed (${res.status})`);
         return;
@@ -122,9 +117,7 @@ function Inner() {
       }
       const verb =
         action === "approve"
-          ? body.agreement?.sent
-            ? `approved at the ${rate === "large" ? "$149" : "$39"} rate. Approval email and agreement sent.`
-            : `approved at the ${rate === "large" ? "$149" : "$39"} rate. Approval email sent; the agreement did not confirm (${body.agreement?.error ?? "resend from Founding"}).`
+          ? `approved on the ${plan === "flat" ? "$39 flat" : "$39 x 12, then $149"} plan. Approval email sent; they accept the agreement and save a card in the portal`
           : action === "reject"
             ? "rejected"
             : action === "suspend"
@@ -338,8 +331,8 @@ function Inner() {
                         label={vendorPlanChipLabel(v.billing_plan)}
                         size="small"
                         sx={{
-                          bgcolor: v.billing_plan === "large" ? "rgba(217,168,75,0.16)" : "rgba(14,42,61,0.05)",
-                          color: v.billing_plan === "large" ? "#A07823" : "text.secondary",
+                          bgcolor: v.billing_plan === "flat" ? "rgba(44,122,82,0.12)" : "rgba(14,42,61,0.05)",
+                          color: v.billing_plan === "flat" ? "#1F5238" : "text.secondary",
                           fontWeight: 700,
                           fontSize: "0.68rem",
                           height: 22,
@@ -384,7 +377,7 @@ function Inner() {
                   <>
                     {v.status === "pending_review" && (
                       <>
-                        <ApproveMenu onPick={(rate) => void runAction(v.id, "approve", rate)} />
+                        <ApproveMenu onPick={(plan) => void runAction(v.id, "approve", plan)} />
                         <Tooltip title="Reject">
                           <IconButton
                             size="small"
@@ -430,7 +423,7 @@ function Inner() {
                       </Tooltip>
                     )}
                     {v.status === "rejected" && (
-                      <ApproveMenu onPick={(rate) => void runAction(v.id, "approve", rate)} />
+                      <ApproveMenu onPick={(plan) => void runAction(v.id, "approve", plan)} />
                     )}
                   </>
                 )}
@@ -443,7 +436,7 @@ function Inner() {
       {filter === "pending_review" && counts.pending_review > 0 && (
         <Stack direction="row" spacing={1.5} sx={{ p: 2.5, borderRadius: "14px", bgcolor: "rgba(217,168,75,0.08)", border: "1px solid rgba(217,168,75,0.32)" }}>
           <Typography variant="body2" sx={{ flex: 1, color: "text.primary", fontSize: "0.92rem" }}>
-            <strong>{counts.pending_review} pending application{counts.pending_review === 1 ? "" : "s"}.</strong> SLA: review within 1 business day. Approving sends the &ldquo;You&apos;re verified&rdquo; email and the agreement (card saved on acceptance; the portal opens once accepted). Bulk approve uses the $39 rate.
+            <strong>{counts.pending_review} pending application{counts.pending_review === 1 ? "" : "s"}.</strong> SLA: review within 1 business day. Approving sends the &ldquo;You&apos;re verified&rdquo; email; the company signs in, accepts the agreement and saves a card in the portal. Bulk approve uses the $39 x 12 then $149 plan.
           </Typography>
           <Button
             variant="contained"
@@ -454,7 +447,7 @@ function Inner() {
               const pending = rows.filter((r) => r.status === "pending_review");
               for (const v of pending) {
                 // eslint-disable-next-line no-await-in-loop
-                await runAction(v.id, "approve", "standard");
+                await runAction(v.id, "approve", "ladder");
               }
             }}
           >
@@ -706,16 +699,15 @@ function VendorProfileDialog({
 }
 
 /**
- * Approve & verify with the company rate chosen at approval. The rate
- * is what the agreement, the welcome email and the portal all show:
- * standard $39 a month, or large company $149 a month, both after the
- * free founding months and with no increase.
+ * Approve & verify with the company plan chosen at approval. Both start
+ * with 6 free months from the member launch; the plan is what the
+ * agreement, the welcome email and the portal all show afterwards.
  */
-function ApproveMenu({ onPick }: { onPick: (rate: "standard" | "large") => void }) {
+function ApproveMenu({ onPick }: { onPick: (plan: "ladder" | "flat") => void }) {
   const [anchor, setAnchor] = useState<HTMLElement | null>(null);
   return (
     <>
-      <Tooltip title="Approve & verify (choose the rate)">
+      <Tooltip title="Approve & verify (choose the plan)">
         <IconButton size="small" sx={{ color: "success.dark" }} onClick={(e) => setAnchor(e.currentTarget)}>
           <CheckCircleOutlinedIcon fontSize="small" />
         </IconButton>
@@ -724,18 +716,18 @@ function ApproveMenu({ onPick }: { onPick: (rate: "standard" | "large") => void 
         <MenuItem
           onClick={() => {
             setAnchor(null);
-            onPick("standard");
+            onPick("ladder");
           }}
         >
-          Approve at $39 a month (standard)
+          Approve: $39 a month for 12 months, then $149
         </MenuItem>
         <MenuItem
           onClick={() => {
             setAnchor(null);
-            onPick("large");
+            onPick("flat");
           }}
         >
-          Approve at $149 a month (large company)
+          Approve: $39 a month flat, no increase
         </MenuItem>
       </Menu>
     </>

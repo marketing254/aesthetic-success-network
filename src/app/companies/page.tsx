@@ -12,14 +12,14 @@ import { vendorCategories } from "@/lib/vendorData";
 // /api/vendor/signup; the roster reads DMN's /api/directory/partners.
 // Company pricing per the ASN canon (owner decision 2026-10-01): a card is
 // saved on acceptance, the first 6 months are free from the member launch,
-// then $39 a month with no increase (the large rate is admin-set and never
+// then $39 a month for 12 months, then $149 a month (the
 // shown publicly). Referral: $50 per referred member, paid after their
 // first payment.
 
 export const metadata: Metadata = {
   title: "Become a Company",
   description:
-    "Get in front of aesthetics' most engaged buyers through a trusted shortlist instead of a cold ad. Your first 6 months are free, starting the day we open to members. After that it's $39 a month, and it stays $39 with no increase.",
+    "Get in front of aesthetics' most engaged buyers through a trusted shortlist instead of a cold ad. Your first 6 months are free, starting the day we open to members. After that it's $39 a month for your first 12 months, then $149 a month.",
   alternates: { canonical: "/companies" },
 };
 
@@ -208,7 +208,7 @@ export default function PartnersPage() {
             Your first 6 months are free. It pays for itself as <em>deals close</em>.
           </h2>
           <p className="lead">
-            Your first 6 months are free, starting the day we open to members. After that it&rsquo;s $39 a month, and it stays $39 with no increase.
+            Your first 6 months are free, starting the day we open to members. After that it&rsquo;s $39 a month for your first 12 months, then $149 a month.
           </p>
           <div className="pgrid">
             <div className="pc hot">
@@ -218,11 +218,18 @@ export default function PartnersPage() {
               <div className="desc">Free from the day we open to members. Get listed and start receiving leads before you pay a cent.</div>
             </div>
             <div className="pc">
-              <div className="tier">After that</div>
+              <div className="tier">Launch rate</div>
               <div className="price">
                 $39<span>/mo</span>
               </div>
-              <div className="desc">Locked rate as the leads keep coming in. It stays $39, with no increase.</div>
+              <div className="desc">Your first 12 paid months, as the leads keep coming in.</div>
+            </div>
+            <div className="pc">
+              <div className="tier">After that</div>
+              <div className="price">
+                $149<span>/mo</span>
+              </div>
+              <div className="desc">The standard company rate for a featured listing, lead routing and the Verified badge.</div>
             </div>
           </div>
           <p className="guarantee">
@@ -260,7 +267,7 @@ export default function PartnersPage() {
             </div>
             <div className="cc">
               <div className="n">05</div>
-              <p>Pay the fee: your first 6 months are free from the member launch, then $39 a month with no increase.</p>
+              <p>Pay the fee: your first 6 months are free from the member launch, then $39 a month for 12 months, then $149 a month.</p>
             </div>
           </div>
           <p className="guarantee">

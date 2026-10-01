@@ -200,9 +200,9 @@ export type VendorsRow = {
   card_brand: string | null;
   card_last4: string | null;
   founding_partner_locked: boolean;
-  // 0070 / 0071. Company rate after the free founding months:
-  // standard = $39 a month (default), large = $149 a month, no increase.
-  billing_plan: "standard" | "large";
+  // 0070 / 0074. Company plan after the 6 free months:
+  // ladder = $39 a month for 12 months then $149 (default); flat = $39, no increase.
+  billing_plan: "ladder" | "flat";
   // 0071. When the single 7-day reminder before the first charge went out.
   free_period_reminder_sent_at: string | null;
   // Added in 0039_vendor_billing_parent.sql — when set, this company's
@@ -1064,7 +1064,7 @@ export type FoundingInviteRole = "expert" | "partner" | "both";
  * month, large = $149 a month, both after the free founding months and
  * with no increase. Experts are always $39; ignored on expert-only invites.
  */
-export type FoundingInvitePricing = "standard" | "large";
+export type FoundingInvitePricing = "ladder" | "flat";
 
 // Added in 0041_founding_invite_companies.sql. One entry per company on a
 // founding invite; [0] is the principal (paying) company, the rest become

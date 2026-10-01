@@ -172,7 +172,7 @@ function Inner() {
           : action === "decline"
             ? "declined"
             : action === "mark_onboarded"
-              ? "approved: approval email and agreement sent. The portal opens once they accept."
+              ? "approved: portal access created and approval email sent. They accept the agreement and save a card in the portal."
               : "reset";
       setToast(`Application ${verb}.`);
       await load();
@@ -231,7 +231,7 @@ function Inner() {
           </Typography>
           {/* Billing-exemption slots (INTERNAL ONLY, manual override, max
               20). Founding invites do not use these: every expert, founding
-              invite or website signup, gets the first 6 months free from the
+              invite 12 months free, website signup 6 months free from the
               member launch, then $39 a month with no increase. */}
           {slots && (
             <Stack direction="row" spacing={1} sx={{ alignItems: "center", mt: 1.5 }}>
@@ -242,11 +242,11 @@ function Inner() {
                     <Box component="strong" sx={{ color: "text.primary" }}>
                       {slots.remaining} of {slots.cap}
                     </Box>{" "}
-                    billing-exemption overrides left ({slots.used} granted). Every other expert: first 6 months free from the member launch, then $39 a month with no increase.
+                    billing-exemption overrides left ({slots.used} granted). Founding invites: first 12 months free from the member launch, then $39 flat. Website experts: first 6 months free, then $39 a month with no increase.
                   </>
                 ) : (
                   <>
-                    All {slots.cap} billing-exemption overrides used. Every other expert: first 6 months free from the member launch, then $39 a month with no increase.
+                    All {slots.cap} billing-exemption overrides used. Founding invites: first 12 months free from the member launch, then $39 flat. Website experts: first 6 months free, then $39 a month with no increase.
                   </>
                 )}
               </Typography>
@@ -981,7 +981,7 @@ function RowActions({
   if (status === "reviewing" || status === "invited") {
     return (
       <>
-        <Tooltip title="Approve: sends the approval email and the agreement (card saved on acceptance). The portal opens once they accept.">
+        <Tooltip title="Approve: creates portal access and sends the approval email. They sign in, accept the agreement and save a card in the portal.">
           <IconButton size="small" sx={{ color: "success.dark" }} onClick={() => onAction("mark_onboarded")}>
             <SchoolOutlinedIcon fontSize="small" />
           </IconButton>

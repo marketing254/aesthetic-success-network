@@ -67,7 +67,7 @@ export async function PATCH(req: Request, ctx: { params: Promise<{ id: string }>
   }
   {
     const plan = (body as { pricing_plan?: unknown }).pricing_plan;
-    if (plan === "standard" || plan === "large") patch.pricing_plan = plan;
+    if (plan === "ladder" || plan === "flat") patch.pricing_plan = plan;
   }
   if (typeof body.full_name === "string") {
     const v = body.full_name.trim();

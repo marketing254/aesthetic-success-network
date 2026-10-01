@@ -39,7 +39,7 @@ export type FoundingAcceptProps = {
   fullName: string;
   signerName: string | null;
   role: "expert" | "partner" | "both";
-  /** Company rate after the free founding months: "standard" ($39) or "large" ($149). Experts are always $39. */
+  /** Company plan: "ladder" ($39 x 12 then $149) or "flat" ($39). Experts: 12 months free, then $39 flat. */
   pricing?: string | null;
   companyName: string | null;
   memberOffer: string | null;
@@ -55,11 +55,10 @@ export default function FoundingAcceptV4(props: FoundingAcceptProps) {
         ? "Founding Partner"
         : "Founding Expert";
   // Every founding role saves a card. Nothing is charged today: the free
-  // founding months run until 6 months after the member launch, then the
-  // flat rate with no increase.
+  // founding months start the day members can join (experts 12, companies
+  // 6), then $39 (experts flat; companies ladder or flat).
   const hasExpert = props.role === "expert" || props.role === "both";
   const hasCompany = props.role === "partner" || props.role === "both";
-  const companyRate = props.pricing === "large" ? "$149" : "$39";
   const dueToday = "$0.00";
   const displayName = props.signerName?.trim() || props.fullName;
   const showsFeaturedExpert = Boolean(
@@ -104,7 +103,7 @@ export default function FoundingAcceptV4(props: FoundingAcceptProps) {
         <Typography sx={{ color: "#5C6770", maxWidth: 460, mt: 1 }}>
           You&apos;ve been invited to join as a <strong>{roleLabel}</strong>. Review your
           agreement below, agree, and save your card.{" "}
-          Nothing is charged today. Your first 6 months are free, starting the day we open to members, and we remind you 7 days before your first charge.
+          Nothing is charged today. Your free founding months start the day we open to members, and we remind you 7 days before your first charge.
         </Typography>
       </Stack>
 
@@ -152,7 +151,7 @@ export default function FoundingAcceptV4(props: FoundingAcceptProps) {
               <Typography sx={{ fontSize: "0.78rem", color: "#1F5238", fontWeight: 700, letterSpacing: "0.06em", textTransform: "uppercase", mb: 0.5 }}>
                 Founding expert access
               </Typography>
-              <RampLine label="First 6 months, from member launch" price="$0/mo" bold />
+              <RampLine label="First 12 months, from member launch" price="$0/mo" bold />
               <RampLine label="After that, no increase" price="$39/mo" />
             </Box>
           )}
@@ -162,7 +161,14 @@ export default function FoundingAcceptV4(props: FoundingAcceptProps) {
                 Founding company listing
               </Typography>
               <RampLine label="First 6 months, from member launch" price="$0/mo" bold />
-              <RampLine label="After that, no increase" price={`${companyRate}/mo`} />
+              {props.pricing === "flat" || props.pricing === "flat_49" ? (
+                <RampLine label="After that, no increase" price="$39/mo" />
+              ) : (
+                <>
+                  <RampLine label="Next 12 months, launch rate" price="$39/mo" />
+                  <RampLine label="After that, standard rate" price="$149/mo" />
+                </>
+              )}
             </Box>
           )}
 

@@ -14,7 +14,7 @@ export const dynamic = "force-dynamic";
  * `experts.billing_exempt = true` means they are never charged, never
  * asked for a card, and never see the billing UI. Founding invites do NOT
  * set this: every expert (founding invite or website signup) gets the first
- * 6 months free from the member launch, then $39/month with no increase.
+ * 12 months (founding) or 6 months (website) free from the member launch, then $39/month flat.
  *
  * Expert-side ONLY. A founding expert who also lists a company keeps
  * paying through their `vendors` row — this endpoint never touches it.

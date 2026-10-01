@@ -29,6 +29,13 @@ const MUTED = CP.muted;
 const LINE = CP.border;
 const NAVY = CP.navy;
 
+/** "www.site.com" is accepted and saved as https://www.site.com. */
+function withScheme(value: string): string | null {
+  const t = value.trim();
+  if (!t) return null;
+  return /^https?:\/\//i.test(t) ? t : `https://${t}`;
+}
+
 export default function VendorProfilePage() {
   const [loading, setLoading] = useState(true);
   const [vendor, setVendor] = useState<VendorsRow | null>(null);
@@ -133,14 +140,14 @@ export default function VendorProfilePage() {
     const result = await updateCurrentVendor(supabase, {
       company_name: companyName.trim(),
       display_name: displayName.trim() || companyName.trim(),
-      website: website.trim() || null,
+      website: withScheme(website),
       category: category || null,
       description: description.trim() || null,
       contact_name: contactName.trim(),
       contact_email: contactEmail.trim(),
       contact_phone: contactPhone.trim() || null,
       billing_email: billingEmail.trim() || null,
-      calendar_link: calendarLink.trim() || null,
+      calendar_link: withScheme(calendarLink),
     });
     setSaving(false);
     if (!result.ok) {
@@ -341,7 +348,7 @@ export default function VendorProfilePage() {
                     label="Website"
                     value={website}
                     onChange={setWebsite}
-                    placeholder="https://www.yourcompany.com"
+                    placeholder="www.yourcompany.com"
                   />
                 </Grid>
                 <Grid size={{ xs: 12, md: 6 }}>
@@ -398,7 +405,7 @@ export default function VendorProfilePage() {
                     label="Calendar booking link"
                     value={calendarLink}
                     onChange={setCalendarLink}
-                    placeholder="https://cal.com/your-handle/intro"
+                    placeholder="cal.com/your-handle/intro"
                     helperText="Members book intros from your profile."
                   />
                 </Grid>

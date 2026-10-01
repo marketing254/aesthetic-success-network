@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { normalizeWebUrl } from "@/lib/waitlist/validate";
 import { getSupabaseAdmin } from "@/lib/supabase/server";
 import { requirePaidExpert } from "@/lib/auth/guards";
 import { serverError } from "@/lib/api/errorResponse";
@@ -50,7 +51,6 @@ const EDITABLE_FIELDS = [
   "headshot_url",
 ] as const;
 
-const URL_RE = /^https?:\/\/[^\s/$.?#].[^\s]*$/i;
 
 const FIELD_LIMITS: Record<(typeof EDITABLE_FIELDS)[number], number> = {
   display_name: 120,
@@ -101,9 +101,10 @@ export async function PATCH(req: Request) {
       );
     }
     if (field === "website" || field === "booking_link" || field === "headshot_url") {
-      if (trimmed && !URL_RE.test(trimmed)) {
+      const norm = normalizeWebUrl(trimmed);
+      if (trimmed && !norm) {
         return NextResponse.json(
-          { error: `"${field}" must be a full https:// URL.` },
+          { error: `"${field}" must be a web address, e.g. www.site.com.` },
           { status: 400 },
         );
       }

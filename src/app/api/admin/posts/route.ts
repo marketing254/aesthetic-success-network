@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { normalizeWebUrl } from "@/lib/waitlist/validate";
 import { getSupabaseAdmin } from "@/lib/supabase/server";
 import { requireAdmin } from "@/lib/auth/guards";
 import { apiError, serverError } from "@/lib/api/errorResponse";
@@ -8,7 +9,6 @@ export const dynamic = "force-dynamic";
 
 const MAX_CONTENT = 4000;
 const MAX_URL = 500;
-const URL_RE = /^https?:\/\/[^\s/$.?#].[^\s]*$/i;
 
 /**
  * POST /api/admin/posts
@@ -48,8 +48,8 @@ export async function POST(req: Request) {
     return apiError.validation(`Content must be 1–${MAX_CONTENT} chars.`, route);
   }
 
-  const linkUrl = (body.link_url ?? "").trim() || null;
-  if (linkUrl && (linkUrl.length > MAX_URL || !URL_RE.test(linkUrl))) {
+  const linkUrl = normalizeWebUrl((body.link_url ?? "").trim()) || null;
+  if ((body.link_url ?? "").trim() && (!linkUrl || linkUrl.length > MAX_URL)) {
     return apiError.validation("Paste a full https:// URL.", route);
   }
 

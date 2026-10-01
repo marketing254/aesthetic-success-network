@@ -227,9 +227,7 @@ export default function ExpertsPage() {
               <div className="price">
                 $39<span>/mo</span>
               </div>
-              <div className="desc">
-                Locked rate as the leads start flowing. It stays $39, with no increase.
-              </div>
+              <div className="desc">Locked rate as the leads start flowing. It stays $39, with no increase.</div>
             </div>
           </div>
           <p className="guarantee">
