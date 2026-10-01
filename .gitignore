@@ -42,3 +42,6 @@ stripe-test-runner*.mjs
 # Stripe setup helpers (run locally only)
 scripts/stripe-setup-test.mjs
 scripts/stripe-archive-unused.mjs
+
+# Temporary src-only type-check config (created and deleted by tooling)
+tsconfig.check.json
