@@ -1,10 +1,15 @@
 "use client";
 
 import { createBrowserClient } from "@supabase/ssr";
+import type { Database } from "./types";
 
 /**
- * Browser-side Supabase client. Shares the auth cookie with
- * createServerSupabase + middleware so the session stays in sync.
+ * Browser-side Supabase client. Reads/writes the auth cookie that
+ * createServerSupabase + middleware also use, so the session stays in
+ * sync between client and server.
+ *
+ * Singleton via @supabase/ssr — calling this multiple times in the
+ * same tab returns the same instance.
  */
 export function createBrowserSupabase() {
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
@@ -16,5 +21,5 @@ export function createBrowserSupabase() {
     );
   }
 
-  return createBrowserClient(url, anonKey);
+  return createBrowserClient<Database>(url, anonKey);
 }

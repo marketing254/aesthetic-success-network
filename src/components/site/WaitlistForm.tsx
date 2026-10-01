@@ -2,15 +2,30 @@
 
 import { useRef, useState } from "react";
 import Link from "next/link";
+import { locationOptions, memberRoles } from "@/lib/content";
 
 type Status = "idle" | "busy" | "done";
 
-/**
- * Founding waitlist form (home page). Payload keys map 1:1 to
- * POST /api/waitlist — never rename one side without the other.
- */
 const ROLE_OTHER = "Other aesthetic practice";
 
+/**
+ * "Not ready yet" waitlist form (home page). Posts to DMN's POST /api/waitlist.
+ *
+ * Field mapping (ASN field -> DMN payload, see src/lib/waitlist/validate.ts
+ * and src/app/api/waitlist/route.ts):
+ *   first + last            -> fullName (required, 2 to 120 chars)
+ *   email                   -> email (required)
+ *   mobile                  -> phone (optional)
+ *   practice                -> practiceName (optional)
+ *   role (+ roleOther)      -> practiceRole
+ *   locations               -> locations
+ *   challenge (textarea)    -> challenge
+ *   terms checkbox          -> agreementAccepted + agreementAcceptedAt
+ *   role                    -> "member" (the only waitlist role in DMN)
+ *   source                  -> "landing"
+ *   ?ref=CODE on the URL    -> ref (referral attribution, validated server-side)
+ * The route answers { ok, id } or { ok, duplicate, message } or { error, field }.
+ */
 export default function WaitlistForm() {
   const [status, setStatus] = useState<Status>("idle");
   const [error, setError] = useState<string | null>(null);
@@ -29,18 +44,30 @@ export default function WaitlistForm() {
     setError(null);
 
     const fd = new FormData(form);
+    const s = (k: string) => String(fd.get(k) ?? "").trim();
+    const fullName = [s("first"), s("last")].filter(Boolean).join(" ");
+    const ref = new URLSearchParams(window.location.search).get("ref") ?? undefined;
+    const nowIso = new Date().toISOString();
+
+    const practiceRole =
+      s("role") === ROLE_OTHER && s("roleOther") ? `${ROLE_OTHER}: ${s("roleOther")}` : s("role");
+
     const payload = {
-      firstName: String(fd.get("first") ?? ""),
-      lastName: String(fd.get("last") ?? ""),
-      email: String(fd.get("email") ?? ""),
-      phone: String(fd.get("mobile") ?? ""),
-      practiceName: String(fd.get("practice") ?? ""),
-      roleLabel: String(fd.get("role") ?? ""),
-      roleLabelOther: String(fd.get("roleOther") ?? ""),
-      locations: String(fd.get("locations") ?? ""),
-      challenge: String(fd.get("challenge") ?? ""),
+      role: "member",
+      fullName,
+      firstName: s("first"),
+      lastName: s("last"),
+      email: s("email"),
+      phone: s("mobile") || undefined,
+      practiceName: s("practice") || undefined,
+      practiceRole: practiceRole || undefined,
+      locations: s("locations") || undefined,
+      challenge: s("challenge") || undefined,
       agreementAccepted: fd.get("terms") === "on",
+      agreementAcceptedAt: nowIso,
       source: "landing",
+      utm: { form: "asn-home-waitlist" },
+      ...(ref ? { ref } : {}),
     };
 
     try {
@@ -86,7 +113,11 @@ export default function WaitlistForm() {
 
   return (
     <form className="netform waitlist" id="waitlistForm" noValidate onSubmit={onSubmit}>
-      {error && <div className="formerror" role="alert">{error}</div>}
+      {error && (
+        <div className="formerror" role="alert">
+          {error}
+        </div>
+      )}
       <div className="frow">
         <div className="field">
           <label htmlFor="wl-first">First name</label>
@@ -114,29 +145,20 @@ export default function WaitlistForm() {
       <div className="frow">
         <div className="field">
           <label htmlFor="wl-role">You are a&hellip;</label>
-          <select
-            id="wl-role"
-            name="role"
-            value={role}
-            onChange={(e) => setRole(e.target.value)}
-          >
+          <select id="wl-role" name="role" value={role} onChange={(e) => setRole(e.target.value)}>
             <option value="">Select</option>
-            <option>Dermatologist</option>
-            <option>Plastic surgeon</option>
-            <option>Med spa owner</option>
-            <option>Esthetician</option>
-            <option>Injector</option>
-            <option>{ROLE_OTHER}</option>
+            {memberRoles.map((r) => (
+              <option key={r}>{r}</option>
+            ))}
           </select>
         </div>
         <div className="field">
           <label htmlFor="wl-loc">Locations</label>
           <select id="wl-loc" name="locations" defaultValue="">
             <option value="">Select</option>
-            <option>1</option>
-            <option>2–3</option>
-            <option>4–9</option>
-            <option>10+</option>
+            {locationOptions.map((o) => (
+              <option key={o}>{o}</option>
+            ))}
           </select>
         </div>
       </div>
@@ -153,20 +175,20 @@ export default function WaitlistForm() {
       )}
       <div className="field">
         <label htmlFor="wl-chal">Your biggest practice challenge right now</label>
-        <textarea id="wl-chal" name="challenge" />
+        <textarea id="wl-chal" name="challenge" maxLength={2000} />
       </div>
       <label className="check">
         <input type="checkbox" name="terms" required /> I agree to the{" "}
-        <Link href="/member-agreement">Member Agreement</Link>, the{" "}
-        <Link href="/refund-policy">Refund &amp; Cancellation Policy</Link> and the{" "}
-        <Link href="/privacy">Privacy Policy</Link>.
+        <Link href="/agreement/member">Member Agreement</Link>, the{" "}
+        <Link href="/legal/refund">Refund &amp; Cancellation Policy</Link> and the{" "}
+        <Link href="/legal/privacy">Privacy Policy</Link>.
       </label>
       <button className="btn bronze" type="submit" disabled={status === "busy"}>
-        {status === "busy" ? "Saving your spot…" : "Join the founding waitlist"}
+        {status === "busy" ? "Saving your spot…" : "Join the waitlist"}
       </button>
       <div className="formnote">
-        No payment today &middot; No spam &middot; We&rsquo;ll only contact you about your founding
-        spot.
+        No payment today &middot; No spam &middot; We&rsquo;ll only contact you about your
+        founding spot.
       </div>
     </form>
   );

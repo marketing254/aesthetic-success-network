@@ -1,116 +1,107 @@
 import { NextResponse } from "next/server";
 import { getSupabaseAdmin } from "@/lib/supabase/server";
 import { requireAdmin } from "@/lib/auth/guards";
-import { writeAudit } from "@/lib/audit";
-import { errMessage } from "@/lib/errMessage";
-import { asString } from "@/lib/forms/request";
+import { serverError } from "@/lib/api/errorResponse";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
-const INQUIRY_COLUMNS =
-  "id, expert_kit_id, member_id, name, email, question, status, admin_note, resolved_by, resolved_at, created_at, updated_at";
-
 /**
- * GET — list resource inquiries with the asking kit's title merged in.
+ * GET /api/admin/inquiries?status=all|open|answered|closed&limit=100
  *
- * There is no public "ask a question" UI in ASN yet (the member portal
- * that would post here is Phase 3 scope — see migration 0021), so this
- * reads empty until that ships. expert_kits is a separate table, so the
- * kit title is resolved with a second query + in-memory join rather than
- * a DB view — not worth the extra migration for this volume of rows.
+ * Returns every inquiry across every resource, newest first. Used by the
+ * admin inbox at /admin/inquiries. Hydrated with the resource title +
+ * topic slug + originating expert name so the row is readable without
+ * extra round-trips.
  */
-export async function GET() {
+export async function GET(req: Request) {
   const guard = await requireAdmin();
   if (!guard.ok) return guard.response;
 
-  try {
-    const supabase = getSupabaseAdmin();
-    const { data, error } = await supabase
-      .from("resource_inquiries")
-      .select(INQUIRY_COLUMNS)
-      .order("created_at", { ascending: false })
-      .limit(500);
-    if (error) throw error;
+  const route = "GET /api/admin/inquiries";
+  const url = new URL(req.url);
+  const statusFilter = (url.searchParams.get("status") ?? "all").toLowerCase();
+  const limitRaw = Number(url.searchParams.get("limit") ?? 100);
+  const limit = Math.min(
+    200,
+    Math.max(1, Number.isFinite(limitRaw) ? limitRaw : 100),
+  );
 
-    const rows = data ?? [];
-    const kitIds = Array.from(
-      new Set(rows.map((r) => r.expert_kit_id).filter((id): id is string => Boolean(id))),
+  try {
+    const admin = getSupabaseAdmin();
+
+    let query = admin
+      .from("resource_inquiries")
+      .select(
+        "id, resource_id, author_auth_user_id, author_display_name, author_subtitle, body, reply_count, status, created_at, updated_at",
+      )
+      .is("hidden_at", null)
+      .order("created_at", { ascending: false })
+      .limit(limit);
+
+    if (
+      statusFilter === "open" ||
+      statusFilter === "answered" ||
+      statusFilter === "closed"
+    ) {
+      query = query.eq("status", statusFilter);
+    }
+
+    const { data: inquiries, error } = await query;
+    if (error) throw error;
+    if (!inquiries || inquiries.length === 0) {
+      return NextResponse.json({ inquiries: [] });
+    }
+
+    // Hydrate with the resource title + originating expert in one round.
+    const resourceIds = Array.from(new Set(inquiries.map((i) => i.resource_id)));
+    const { data: resources } = await admin
+      .from("resources")
+      .select("id, topic_slug, topic_title, title, originating_expert_id")
+      .in("id", resourceIds);
+    const resourceMap = new Map(
+      (resources ?? []).map((r) => [r.id, r]),
     );
 
-    let kitTitles: Record<string, string> = {};
-    if (kitIds.length > 0) {
-      const { data: kits, error: kitsError } = await supabase
-        .from("expert_kits")
-        .select("id, title")
-        .in("id", kitIds);
-      if (kitsError) throw kitsError;
-      kitTitles = Object.fromEntries((kits ?? []).map((k) => [k.id as string, k.title as string]));
+    const expertIds = Array.from(
+      new Set(
+        (resources ?? [])
+          .map((r) => r.originating_expert_id)
+          .filter((v): v is string => v !== null),
+      ),
+    );
+    const expertMap = new Map<string, { display_name: string; full_name: string }>();
+    if (expertIds.length > 0) {
+      const { data: experts } = await admin
+        .from("experts")
+        .select("id, display_name, full_name")
+        .in("id", expertIds);
+      for (const e of experts ?? []) {
+        expertMap.set(e.id, {
+          display_name: e.display_name ?? "",
+          full_name: e.full_name,
+        });
+      }
     }
 
-    const merged = rows.map((r) => ({
-      ...r,
-      kit_title: r.expert_kit_id ? (kitTitles[r.expert_kit_id as string] ?? null) : null,
-    }));
+    const enriched = inquiries.map((inq) => {
+      const resource = resourceMap.get(inq.resource_id);
+      const expert =
+        resource?.originating_expert_id != null
+          ? expertMap.get(resource.originating_expert_id)
+          : null;
+      return {
+        ...inq,
+        resource_topic_slug: resource?.topic_slug ?? null,
+        resource_topic_title: resource?.topic_title ?? null,
+        resource_title: resource?.title ?? null,
+        originating_expert_name:
+          expert?.display_name || expert?.full_name || null,
+      };
+    });
 
-    return NextResponse.json({ rows: merged });
+    return NextResponse.json({ inquiries: enriched });
   } catch (err) {
-    return NextResponse.json({ error: errMessage(err) }, { status: 500 });
-  }
-}
-
-/** PATCH { id, status: "open"|"answered"|"closed", adminNote? } */
-export async function PATCH(req: Request) {
-  const guard = await requireAdmin();
-  if (!guard.ok) return guard.response;
-
-  let body: { id?: string; status?: string; adminNote?: string };
-  try {
-    body = await req.json();
-  } catch {
-    return NextResponse.json({ error: "Invalid JSON." }, { status: 400 });
-  }
-
-  const allowed = ["open", "answered", "closed"];
-  if (!body.id || !body.status || !allowed.includes(body.status)) {
-    return NextResponse.json({ error: "id and a valid status are required." }, { status: 400 });
-  }
-
-  try {
-    const supabase = getSupabaseAdmin();
-
-    // Read the previous state so resolved_by/resolved_at only get set the
-    // FIRST time an inquiry moves out of "open" — re-saving an already
-    // resolved inquiry (e.g. editing the note) doesn't rewrite them.
-    const { data: before } = await supabase
-      .from("resource_inquiries")
-      .select("status")
-      .eq("id", body.id)
-      .maybeSingle();
-
-    const now = new Date().toISOString();
-    const update: Record<string, unknown> = {
-      status: body.status,
-      updated_at: now,
-    };
-    if (typeof body.adminNote === "string") {
-      update.admin_note = asString(body.adminNote) || null;
-    }
-    if (
-      (body.status === "answered" || body.status === "closed") &&
-      before &&
-      before.status === "open"
-    ) {
-      update.resolved_by = guard.adminId;
-      update.resolved_at = now;
-    }
-
-    const { error } = await supabase.from("resource_inquiries").update(update).eq("id", body.id);
-    if (error) throw error;
-
-    await writeAudit(guard, "resource_inquiry", body.id, `status:${body.status}`);
-    return NextResponse.json({ ok: true });
-  } catch (err) {
-    return NextResponse.json({ error: errMessage(err) }, { status: 500 });
+    return serverError(err, { route });
   }
 }

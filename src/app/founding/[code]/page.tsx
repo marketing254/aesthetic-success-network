@@ -1,148 +1,104 @@
-import type { Metadata } from "next";
+import { Box, Container, Typography } from "@mui/material";
+import SitePage from "@/components/site/SitePage";
 import SiteNav from "@/components/site/SiteNav";
 import SiteFooter from "@/components/site/SiteFooter";
-import PageFx from "@/components/site/PageFx";
 import { getSupabaseAdmin } from "@/lib/supabase/server";
-import FoundingAcceptView from "@/components/founding/FoundingAcceptView";
+import FoundingAccept from "@/components/founding/FoundingAcceptV4";
+import { COLORS } from "@/theme";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
-export const metadata: Metadata = {
-  title: "Your Founding Invite",
-  robots: { index: false, follow: false },
-};
-
-type InviteState = "valid" | "accepted" | "expired" | "not_found";
-
-async function loadInvite(code: string) {
-  const supabase = getSupabaseAdmin();
-  const { data } = await supabase
-    .from("founding_member_invites")
-    .select("id, code, full_name, email, practice_name, status, expires_at")
-    .eq("code", code)
-    .maybeSingle();
-  return data;
-}
-
+/**
+ * /founding/[code] — the private, unguessable invite page. No login.
+ * Renders the invitee's personalized agreement + a pay card. Loading the
+ * invite is server-side via the admin client after the code check.
+ */
 export default async function FoundingInvitePage({
   params,
 }: {
   params: Promise<{ code: string }>;
 }) {
   const { code } = await params;
-  const invite = await loadInvite(code).catch(() => null);
+  const sb = getSupabaseAdmin();
+  const { data: invite } = await sb
+    .from("founding_invites")
+    .select(
+      "code, role, pricing_plan, full_name, email, company_name, member_offer, signer_name, status, expires_at, agreement_version, agreement_pdf_path",
+    )
+    .eq("code", code)
+    .maybeSingle();
 
-  let state: InviteState = "not_found";
-  if (invite) {
-    if (invite.status === "accepted") state = "accepted";
-    else if (invite.status === "revoked" || new Date(invite.expires_at as string) < new Date()) state = "expired";
-    else state = "valid";
+  const expired = invite ? new Date(invite.expires_at).getTime() < Date.now() : false;
+  const invalid =
+    !invite ||
+    invite.status === "revoked" ||
+    invite.status === "draft" || // not sent yet — link isn't active
+    (invite.status !== "accepted" && expired);
+
+  if (invite?.status === "sent" && !invalid) {
+    await sb
+      .from("founding_invites")
+      .update({ status: "viewed", viewed_at: new Date().toISOString() } as never)
+      .eq("code", code);
   }
 
-  // Mark it viewed on first open — best-effort, never blocks the render.
-  if (invite && state === "valid" && invite.status === "sent") {
-    const supabase = getSupabaseAdmin();
-    await supabase
-      .from("founding_member_invites")
-      .update({ status: "viewed", viewed_at: new Date().toISOString() })
-      .eq("id", invite.id)
-      .then(undefined, () => undefined);
+  // Signed URL for the personalized agreement PDF (15 min).
+  let agreementUrl: string | null = null;
+  if (invite?.agreement_pdf_path) {
+    const { data: signed } = await sb.storage
+      .from("agreements")
+      .createSignedUrl(invite.agreement_pdf_path, 60 * 15);
+    agreementUrl = signed?.signedUrl ?? null;
   }
 
   return (
-    <>
-      <SiteNav
-        links={[{ href: "/", label: "Aesthetic Success Network" }]}
-        cta={{ href: "/pricing", label: "See pricing" }}
-      />
-
-      <header className="hero hero--home" id="top" style={{ paddingBottom: 40 }}>
-        <div className="wrap center" style={{ display: "block" }}>
-          {state === "valid" && (
-            <>
-              <span className="eyebrow">Personal Invitation</span>
-              <h1>
-                {invite!.full_name.split(" ")[0]}, you&rsquo;re invited to <em>found</em> the
-                network.
-              </h1>
-              <p className="sub" style={{ margin: "0 auto" }}>
-                A limited number of founding seats are set aside for practice owners we&rsquo;ve
-                hand-picked. Yours is reserved &mdash; $49/mo, locked for as long as
-                you&rsquo;re active.
-              </p>
-            </>
-          )}
-          {state === "accepted" && (
-            <>
-              <span className="eyebrow">Already Confirmed</span>
-              <h1>
-                You&rsquo;re already a <em>founding member</em>.
-              </h1>
-              <p className="sub" style={{ margin: "0 auto" }}>
-                This invite has already been accepted. Head to the login page to get your access
-                code.
-              </p>
-            </>
-          )}
-          {state === "expired" && (
-            <>
-              <span className="eyebrow">Invite Expired</span>
-              <h1>
-                This invite is no longer <em>valid</em>.
-              </h1>
-              <p className="sub" style={{ margin: "0 auto" }}>
-                It may have expired or been revoked. Email{" "}
-                <a href="mailto:hello@aestheticsuccessnetwork.com">
-                  hello@aestheticsuccessnetwork.com
-                </a>{" "}
-                and we&rsquo;ll help you out, or join the public waitlist below.
-              </p>
-            </>
-          )}
-          {state === "not_found" && (
-            <>
-              <span className="eyebrow">Invite Not Found</span>
-              <h1>
-                We couldn&rsquo;t find that <em>invite</em>.
-              </h1>
-              <p className="sub" style={{ margin: "0 auto" }}>
-                Double-check the link, or join the public waitlist below.
-              </p>
-            </>
-          )}
-        </div>
-      </header>
-
-      {state === "valid" && invite ? (
-        <section>
-          <div className="wrap">
-            <FoundingAcceptView
-              code={invite.code}
-              fullName={invite.full_name}
-              email={invite.email}
-              practiceName={invite.practice_name}
-            />
-          </div>
-        </section>
+    <Box sx={{ minHeight: "100vh", bgcolor: COLORS.surface }}>
+      <SitePage><SiteNav /></SitePage>
+      {invalid ? (
+        <Message
+          title="This invite link isn't valid"
+          body="It may have expired or been revoked. If you think this is a mistake, reply to your invitation email or contact founding@aestheticsuccessnetwork.com."
+        />
+      ) : invite!.status === "accepted" ? (
+        <Message
+          title="You've already accepted"
+          body="This invitation has been completed. Sign in to your portal with the email it was sent to."
+        />
       ) : (
-        <section>
-          <div className="wrap center">
-            <a className="btn bronze" href="/#join">
-              Join the public waitlist
-            </a>
-          </div>
-        </section>
+        <FoundingAccept
+          code={invite!.code}
+          fullName={invite!.full_name}
+          signerName={invite!.signer_name}
+          role={invite!.role}
+          pricing={invite!.pricing_plan}
+          companyName={invite!.company_name}
+          memberOffer={invite!.member_offer}
+          agreementUrl={agreementUrl}
+          agreementVersion={invite!.agreement_version}
+        />
       )}
+    </Box>
+  );
+}
 
-      <SiteFooter
-        links={[
-          { href: "/member-agreement", label: "Member Agreement" },
-          { href: "/privacy", label: "Privacy" },
-        ]}
-      />
-
-      <PageFx revealSelector="section .wrap" />
-    </>
+function Message({ title, body }: { title: string; body: string }) {
+  return (
+    <Container maxWidth="sm" sx={{ py: { xs: 8, md: 12 }, textAlign: "center" }}>
+      <Typography
+        sx={{
+          fontFamily: "var(--font-display)",
+          fontSize: { xs: "1.7rem", md: "2rem" },
+          fontWeight: 500,
+          color: COLORS.ink,
+          mb: 1.5,
+        }}
+      >
+        {title}
+      </Typography>
+      <Typography sx={{ color: COLORS.muted, fontSize: "1rem", lineHeight: 1.6, maxWidth: 460, mx: "auto" }}>
+        {body}
+      </Typography>
+    </Container>
   );
 }

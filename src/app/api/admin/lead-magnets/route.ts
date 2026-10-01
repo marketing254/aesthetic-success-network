@@ -1,71 +1,80 @@
 import { NextResponse } from "next/server";
 import { getSupabaseAdmin } from "@/lib/supabase/server";
 import { requireAdmin } from "@/lib/auth/guards";
-import { writeAudit } from "@/lib/audit";
-import { errMessage } from "@/lib/errMessage";
-import { asString } from "@/lib/forms/request";
+import { apiError, serverError } from "@/lib/api/errorResponse";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
-const SELECT =
-  "id, magnet_slug, email, full_name, practice_name, source, utm, ip_hash, user_agent, contacted_at, created_at";
-
-/** GET /api/admin/lead-magnets — every captured lead, newest first. */
-export async function GET() {
+/**
+ * GET /api/admin/lead-magnets[?slug=<magnet-slug>]
+ *
+ * Returns every captured lead, newest first, capped at 500.
+ */
+export async function GET(req: Request) {
   const guard = await requireAdmin();
   if (!guard.ok) return guard.response;
 
+  const url = new URL(req.url);
+  const slug = url.searchParams.get("slug");
+
   try {
-    const supabase = getSupabaseAdmin();
-    const { data, error } = await supabase
+    const admin = getSupabaseAdmin();
+    let query = admin
       .from("lead_magnet_leads")
-      .select(SELECT)
+      .select("id, magnet_slug, email, full_name, source, contacted_at, created_at")
       .order("created_at", { ascending: false })
       .limit(500);
+    if (slug) query = query.eq("magnet_slug", slug);
+    const { data, error } = await query;
     if (error) throw error;
-    return NextResponse.json({ rows: data ?? [] });
+
+    // Per-magnet summary so the tile row above the table can show counts
+    // without the page re-grouping in JS.
+    const summary = new Map<string, { magnet_slug: string; count: number; contacted: number }>();
+    for (const r of data ?? []) {
+      const cur = summary.get(r.magnet_slug) ?? {
+        magnet_slug: r.magnet_slug,
+        count: 0,
+        contacted: 0,
+      };
+      cur.count += 1;
+      if (r.contacted_at) cur.contacted += 1;
+      summary.set(r.magnet_slug, cur);
+    }
+
+    return NextResponse.json({ leads: data ?? [], summary: Array.from(summary.values()) });
   } catch (err) {
-    return NextResponse.json({ error: errMessage(err) }, { status: 500 });
+    return serverError(err, { route: "GET /api/admin/lead-magnets" });
   }
 }
 
 /**
- * PATCH /api/admin/lead-magnets
- * Body: { id, action: "mark_contacted" | "unmark_contacted" }
+ * PATCH /api/admin/lead-magnets   { id, contacted: boolean }
  *
- * No public capture form exists yet (see migration 0019) — this is
- * purely a triage toggle for whenever leads start showing up here.
+ * Marks a lead as contacted (or un-marks). Cheap manual tracking — the
+ * team flips this when they've followed up.
  */
 export async function PATCH(req: Request) {
   const guard = await requireAdmin();
   if (!guard.ok) return guard.response;
 
-  let body: Record<string, unknown>;
+  let body: { id?: string; contacted?: boolean };
   try {
-    body = (await req.json()) as Record<string, unknown>;
+    body = await req.json();
   } catch {
-    return NextResponse.json({ error: "Invalid JSON." }, { status: 400 });
+    return apiError.badRequest();
   }
-
-  const id = asString(body.id);
-  const action = asString(body.action);
-  const allowed = ["mark_contacted", "unmark_contacted"];
-  if (!id || !allowed.includes(action)) {
-    return NextResponse.json({ error: "id and a valid action are required." }, { status: 400 });
-  }
+  if (!body.id) return apiError.validation("Missing id.");
 
   try {
-    const supabase = getSupabaseAdmin();
-    const { error } = await supabase
+    const admin = getSupabaseAdmin();
+    await admin
       .from("lead_magnet_leads")
-      .update({ contacted_at: action === "mark_contacted" ? new Date().toISOString() : null })
-      .eq("id", id);
-    if (error) throw error;
-
-    await writeAudit(guard, "lead_magnet_lead", id, action);
+      .update({ contacted_at: body.contacted ? new Date().toISOString() : null })
+      .eq("id", body.id);
     return NextResponse.json({ ok: true });
   } catch (err) {
-    return NextResponse.json({ error: errMessage(err) }, { status: 500 });
+    return serverError(err, { route: "PATCH /api/admin/lead-magnets" });
   }
 }

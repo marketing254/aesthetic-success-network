@@ -1,11 +1,15 @@
 import "server-only";
-import { createServerClient, type CookieMethodsServer } from "@supabase/ssr";
+import { createServerClient } from "@supabase/ssr";
+import type { CookieMethodsServer } from "@supabase/ssr";
 import { cookies } from "next/headers";
+import type { Database } from "./types";
 
 /**
- * Cookie-bound Supabase client for Server Components and Route Handlers.
- * Respects RLS as the signed-in user (or anon). Use getSupabaseAdmin()
- * from ./server.ts when you need to bypass RLS.
+ * Cookie-bound Supabase client for Server Components, Route Handlers,
+ * and Server Actions. Respects RLS as the signed-in user (or anon).
+ *
+ * Use `getSupabaseAdmin()` from ./server.ts instead when you need to
+ * bypass RLS (admin writes, audit log inserts, etc.).
  */
 export async function createServerSupabase() {
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
@@ -35,5 +39,5 @@ export async function createServerSupabase() {
     },
   };
 
-  return createServerClient(url, anonKey, { cookies: cookieMethods });
+  return createServerClient<Database>(url, anonKey, { cookies: cookieMethods });
 }

@@ -12,7 +12,7 @@ function fmt(n: number): string {
 /**
  * "Do the math" ROI calculator. Defaults render server-side as $4,812 and
  * 9.2x (matching the disclaimer + the static site's no-JS fallback).
- * math = spend x 12 x discount% + questions x $150, minus $588.
+ * math = spend x 12 x discount% + questions x $150, minus $348.
  */
 export default function Calculator() {
   const [spend, setSpend] = useState(5000);
@@ -28,7 +28,7 @@ export default function Calculator() {
       <div className="controls">
         <div className="ctl">
           <label htmlFor="r-spend">
-            Monthly spend with vendors a partner could replace <output id="o-spend">{fmt(spend)}</output>
+            Monthly spend with vendors a company could replace <output id="o-spend">{fmt(spend)}</output>
           </label>
           <input
             type="range"
@@ -76,15 +76,15 @@ export default function Calculator() {
           {fmt(Math.abs(net))}
         </div>
         <div className="vs">
-          vs <b>$588/yr</b> founding membership ($49 &times; 12), that&rsquo;s{" "}
+          vs <b>$348/yr</b> founding membership ($29 &times; 12), that&rsquo;s{" "}
           <span id="o-mult">{mult.toLocaleString("en-US")}&times;</span> your cost
         </div>
       </div>
       <div className="disclaimer">
         How this is calculated: your monthly vendor spend &times; 12 &times; your chosen discount,
         plus $150 of estimated consulting value per Hotline question (our assumption, not a
-        promise), minus the $588 annual founding fee. These are estimates only; actual savings
-        depend on the deals partners commit to and how much you use the network. Results can be
+        promise), minus the $348 annual founding fee. These are estimates only; actual savings
+        depend on the deals companies commit to and how much you use the network. Results can be
         negative, and no results are guaranteed.
       </div>
     </div>

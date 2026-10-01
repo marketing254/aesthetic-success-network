@@ -1,85 +1,117 @@
 import { NextResponse } from "next/server";
 import { createServerSupabase } from "@/lib/supabase/server-ssr";
 import { getSupabaseAdmin } from "@/lib/supabase/server";
-import { asString, isValidEmail } from "@/lib/forms/request";
+import { checkRateLimit } from "@/lib/waitlist/rateLimit";
+import { apiError, serverError } from "@/lib/api/errorResponse";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
 /**
- * POST /api/admin/verify-otp — completes the DMN-pattern OTP sign-in.
- * Verifies the 6-digit code (setting the session cookie), then does the
- * first-sign-in bootstrap: links admin_users.auth_user_id, bumps
- * last_active_at, writes the auth_audit row. Non-admins are signed
- * straight back out.
+ * POST /api/admin/verify-otp
+ *
+ * Body: { email, token }   token = 6-digit code
+ *
+ * Verifies the OTP. Final allow-list check happens here too (defense in
+ * depth — even if Supabase auth was somehow bypassed, the admin_users
+ * row gate stays). Lands the user at /admin.
  */
+
+function clientIp(req: Request): string {
+  const fwd = req.headers.get("x-forwarded-for");
+  if (fwd) return fwd.split(",")[0]!.trim();
+  return req.headers.get("x-real-ip")?.trim() ?? "0.0.0.0";
+}
+
+const TOKEN_RE = /^\d{6}$/;
+const GENERIC_FAIL = "That code didn't work. Request a new one and try again.";
+
 export async function POST(req: Request) {
-  let body: Record<string, unknown>;
+  const route = "POST /api/admin/verify-otp";
+
+  let body: { email?: string; token?: string };
   try {
-    body = (await req.json()) as Record<string, unknown>;
+    body = await req.json();
   } catch {
-    return NextResponse.json({ error: "Invalid JSON." }, { status: 400 });
+    return apiError.badRequest();
   }
 
-  const email = asString(body.email).toLowerCase();
-  const token = asString(body.token).replace(/\s+/g, "");
-  if (!isValidEmail(email) || token.length < 6) {
-    return NextResponse.json({ error: "Email and the 6-digit code are required." }, { status: 400 });
+  const email = (body.email ?? "").trim().toLowerCase();
+  const token = (body.token ?? "").trim();
+  if (!email || !email.includes("@") || !TOKEN_RE.test(token)) {
+    return apiError.validation(GENERIC_FAIL);
   }
 
-  // Cookie-bound client: a successful verify writes the session cookie
-  // onto this response. Primary codes come from signInWithOtp (type
-  // "email"); fallback codes come from generateLink and verify as
-  // "magiclink" — try both so either path signs in.
-  const supabase = await createServerSupabase();
-  let { data, error } = await supabase.auth.verifyOtp({ email, token, type: "email" });
-  if (error || !data?.user) {
-    const retry = await supabase.auth.verifyOtp({ email, token, type: "magiclink" });
-    data = retry.data;
-    error = retry.error;
-  }
-
-  if (error || !data?.user) {
-    const expired = /expired/i.test(error?.message ?? "");
-    return NextResponse.json(
-      {
-        error: expired
-          ? "That code has expired. Send a new one and try again."
-          : "That code isn't right. Check the email and try again.",
-      },
-      { status: 401 },
-    );
-  }
+  const ip = clientIp(req);
+  const rl = await checkRateLimit(`admin-verify:${ip}:${email}`);
+  if (!rl.allowed) return apiError.rateLimited(route);
 
   try {
+    const cookieClient = await createServerSupabase();
+    // Codes sent by Supabase verify as type "email"; codes minted by the
+    // login route's fallback (generateLink) verify as "magiclink". Try both.
+    let { data, error } = await cookieClient.auth.verifyOtp({ email, token, type: "email" });
+    if (error || !data?.user) {
+      const retry = await cookieClient.auth.verifyOtp({ email, token, type: "magiclink" });
+      data = retry.data;
+      error = retry.error;
+    }
+
+    if (error || !data?.user) {
+      try {
+        const admin = getSupabaseAdmin();
+        await admin.from("auth_audit").insert({
+          event: "otp_verify_failed",
+          email,
+          user_type: "admin",
+          metadata: { reason: "invalid_or_expired" },
+        });
+      } catch {
+        /* audit best-effort */
+      }
+      return apiError.validation(GENERIC_FAIL);
+    }
+
+    // Confirm allow-list membership (defense in depth).
     const admin = getSupabaseAdmin();
     const { data: adminRow } = await admin
       .from("admin_users")
-      .select("id, auth_user_id, active")
-      .ilike("email", email)
+      .select("id, active, auth_user_id")
+      .eq("email", email)
       .maybeSingle();
 
     if (!adminRow || !adminRow.active) {
-      await supabase.auth.signOut();
-      return NextResponse.json({ error: "Your account is not an admin." }, { status: 403 });
+      return apiError.forbidden(route);
+    }
+    if (!adminRow.auth_user_id) {
+      await admin
+        .from("admin_users")
+        .update({
+          auth_user_id: data.user.id,
+          last_active_at: new Date().toISOString(),
+        })
+        .eq("id", adminRow.id);
+    } else {
+      await admin
+        .from("admin_users")
+        .update({ last_active_at: new Date().toISOString() })
+        .eq("id", adminRow.id);
     }
 
-    await admin
-      .from("admin_users")
-      .update({ auth_user_id: data.user.id, last_active_at: new Date().toISOString() })
-      .eq("id", adminRow.id);
+    try {
+      await admin.from("auth_audit").insert({
+        event: "otp_verify_success",
+        email,
+        user_id: data.user.id,
+        user_type: "admin",
+        metadata: { admin_id: adminRow.id },
+      });
+    } catch {
+      /* audit best-effort */
+    }
 
-    await admin.from("auth_audit").insert({
-      event: "login_success",
-      email,
-      user_id: data.user.id,
-      user_type: "admin",
-      metadata: { method: "email_otp" },
-    });
+    return NextResponse.json({ ok: true, next: "/admin" });
   } catch (err) {
-    console.error("[admin:verify-otp] bootstrap failed:", err);
-    // Don't block sign-in — middleware still gates by email.
+    return serverError(err, { route });
   }
-
-  return NextResponse.json({ ok: true });
 }

@@ -1,13 +1,11 @@
 import { NextResponse } from "next/server";
 import { getSupabaseAdmin } from "@/lib/supabase/server";
 import { requireAdmin } from "@/lib/auth/guards";
-import { errMessage } from "@/lib/errMessage";
-import { writeAudit } from "@/lib/audit";
+import type { WaitlistStatus } from "@/lib/supabase/types";
+import { serverError } from "@/lib/api/errorResponse";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
-
-type WaitlistStatus = "new" | "contacted" | "converted" | "declined";
 
 export async function GET() {
   const guard = await requireAdmin();
@@ -18,15 +16,14 @@ export async function GET() {
     const { data, error } = await supabase
       .from("waitlist_signups")
       .select(
-        "id, email, first_name, last_name, phone, practice_name, practice_role, locations, challenge, agreement_accepted, agreement_accepted_at, source, status, created_at",
+        "id, role, email, full_name, practice_name, phone, city_state, message, source, status, created_at, launch_email_sent_at",
       )
       .order("created_at", { ascending: false })
       .limit(500);
     if (error) throw error;
     return NextResponse.json({ rows: data ?? [] });
   } catch (err) {
-    const message = errMessage(err);
-    return NextResponse.json({ error: message }, { status: 500 });
+    return serverError(err, { route: "GET /api/admin/waitlist" });
   }
 }
 
@@ -52,12 +49,13 @@ export async function PATCH(req: Request) {
     const update: { status: WaitlistStatus; contacted_at?: string } = { status: newStatus };
     if (newStatus === "contacted") update.contacted_at = new Date().toISOString();
 
-    const { error } = await supabase.from("waitlist_signups").update(update).eq("id", body.id);
+    const { error } = await supabase
+      .from("waitlist_signups")
+      .update(update)
+      .eq("id", body.id);
     if (error) throw error;
-    await writeAudit(guard, "waitlist_signup", body.id, `status:${newStatus}`);
     return NextResponse.json({ ok: true });
   } catch (err) {
-    const message = errMessage(err);
-    return NextResponse.json({ error: message }, { status: 500 });
+    return serverError(err, { route: "PATCH /api/admin/waitlist" });
   }
 }

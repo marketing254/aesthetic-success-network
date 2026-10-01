@@ -1,27 +1,30 @@
 import type { Metadata } from "next";
+import SitePage from "@/components/site/SitePage";
 import SiteNav from "@/components/site/SiteNav";
 import SiteFooter from "@/components/site/SiteFooter";
 import PageFx from "@/components/site/PageFx";
 import ExpertForm from "@/components/site/ExpertForm";
 import ExpertDirectory from "@/components/site/ExpertDirectory";
 
+// Copy source: the previous ASN site / _asn-source-copy/experts.html
+// (approved ASN copy). The application form posts to DMN's
+// /api/expert/signup; the bench reads DMN's /api/directory/experts.
+// Expert pricing per the ASN canon (owner decision 2026-10-01): a card is
+// saved on acceptance, the first 6 months are free from the member launch,
+// then $39 a month with no increase. Experts sell courses on their own
+// site and keep the full price (the one condition is a member-only offer).
+
 export const metadata: Metadata = {
   title: "Become an Expert",
   description:
     "Turn your aesthetics expertise into a done-for-you content library and a pipeline of warm leads. Share one recording; we produce the kit and bring the audience.",
+  alternates: { canonical: "/experts" },
 };
 
 export default function ExpertsPage() {
   return (
-    <>
-      <SiteNav
-        links={[
-          { href: "/", label: "For Members" },
-          { href: "/experts", label: "For Experts", active: true },
-          { href: "/partners", label: "For Partners" },
-        ]}
-        cta={{ href: "#apply", label: "Apply as an expert" }}
-      />
+    <SitePage>
+      <SiteNav active="/experts" />
 
       <header className="hero hero--experts" id="top">
         <div className="wrap">
@@ -113,7 +116,7 @@ export default function ExpertsPage() {
             Meet the <em>experts</em>.
           </h2>
           <p className="lead">
-            The people behind the resource library &mdash; hand-picked, never algorithmic.
+            The people behind the resource library: hand-picked, never algorithmic.
           </p>
           <ExpertDirectory />
         </div>
@@ -188,8 +191,8 @@ export default function ExpertsPage() {
             <div className="feat">
               <h3>Sell your own courses</h3>
               <p>
-                List your own paid, on-demand courses to members and keep 70% (the network takes
-                30%).
+                Sell your own courses and products to members and keep the full price. Members
+                buy on your site; the one condition is a member-only offer on each.
               </p>
             </div>
             <div className="feat">
@@ -210,32 +213,27 @@ export default function ExpertsPage() {
             Build first. Pay only as the value <em>compounds</em>.
           </h2>
           <p className="lead">
-            Get set up, build your library and start getting leads before you pay a cent.
+            Your first 6 months are free, starting the day we open to members. After that it&rsquo;s $39 a month, and it stays $39 with no increase.
           </p>
           <div className="pgrid">
             <div className="pc hot">
               <div className="badge">Start here</div>
-              <div className="tier">Months 1&ndash;6</div>
+              <div className="tier">First 6 months</div>
               <div className="price">$0</div>
-              <div className="desc">Get set up and build your library first.</div>
+              <div className="desc">Free from the day we open to members. Get set up and build your library first.</div>
             </div>
             <div className="pc">
-              <div className="tier">Months 7&ndash;12</div>
+              <div className="tier">After that</div>
               <div className="price">
-                $49<span>/mo</span>
+                $39<span>/mo</span>
               </div>
-              <div className="desc">Locked launch rate as the leads start flowing.</div>
-            </div>
-            <div className="pc">
-              <div className="tier">Month 13+</div>
-              <div className="price">
-                $199<span>/mo</span>
+              <div className="desc">
+                Locked rate as the leads start flowing. It stays $39, with no increase.
               </div>
-              <div className="desc">Standard rate once your library is working for you.</div>
             </div>
           </div>
           <p className="guarantee">
-            <b>Paid courses:</b> you keep 70% &middot; <b>Annual prepay:</b> two months free
+            <b>Paid courses:</b> sell on your own site and keep the full price &middot; <b>Cancel any time before your first charge</b> and you won&rsquo;t be charged; after that, 30 days&rsquo; written notice
           </p>
         </div>
       </section>
@@ -280,20 +278,13 @@ export default function ExpertsPage() {
         </div>
       </section>
 
-      <SiteFooter
-        links={[
-          { href: "/", label: "For Members" },
-          { href: "/partners", label: "For Partners" },
-          { href: "/provider-agreement", label: "Provider Agreement" },
-          { href: "/privacy", label: "Privacy" },
-        ]}
-      />
+      <SiteFooter />
 
       <PageFx
         revealSelector="section .kicker, h2.title, .lead, .feature-grid--cards .feat, .pc, .stepc, .fitcol"
         grids={[".steps3", ".feature-grid--cards", ".pgrid", ".fitgrid"]}
         gridDelay={0.09}
       />
-    </>
+    </SitePage>
   );
 }

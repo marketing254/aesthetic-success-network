@@ -1,116 +1,98 @@
 import { NextResponse } from "next/server";
 import { getSupabaseAdmin } from "@/lib/supabase/server";
 import { requireAdmin } from "@/lib/auth/guards";
-import { writeAudit } from "@/lib/audit";
-import { errMessage } from "@/lib/errMessage";
-import { asString } from "@/lib/forms/request";
+import { apiError, serverError } from "@/lib/api/errorResponse";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
-const POST_COLUMNS =
-  "id, slug, title, excerpt, body, cover_image_url, author_name, category, tags, status, published_at, created_at, updated_at";
+const MAX_CONTENT = 4000;
+const MAX_URL = 500;
+const URL_RE = /^https?:\/\/[^\s/$.?#].[^\s]*$/i;
 
-export async function GET() {
-  const guard = await requireAdmin();
-  if (!guard.ok) return guard.response;
-
-  try {
-    const supabase = getSupabaseAdmin();
-    const { data, error } = await supabase
-      .from("blog_posts")
-      .select(POST_COLUMNS)
-      .order("created_at", { ascending: false })
-      .limit(500);
-    if (error) throw error;
-    return NextResponse.json({ rows: data ?? [] });
-  } catch (err) {
-    return NextResponse.json({ error: errMessage(err) }, { status: 500 });
-  }
-}
-
-const STATUSES = ["draft", "published", "archived"] as const;
-
-function parseTags(raw: unknown): string[] {
-  const s = asString(raw);
-  if (!s) return [];
-  return s
-    .split(",")
-    .map((t) => t.trim())
-    .filter(Boolean);
-}
-
-/** POST — create a blog post. Slug must be unique (case-insensitive). */
+/**
+ * POST /api/admin/posts
+ *
+ * Admin composer for the network feed. Posts on behalf of an expert —
+ * useful when an expert is too busy to publish themselves but the team
+ * wants to announce a new kit, a podcast episode, or an upcoming event.
+ *
+ * Body: { expert_id, content, link_url?, image_url?, draft? }
+ *
+ * The resulting row is identical to one the expert would have posted
+ * themselves; the feed renders it under their name + headshot.
+ */
 export async function POST(req: Request) {
+  const route = "POST /api/admin/posts";
   const guard = await requireAdmin();
   if (!guard.ok) return guard.response;
 
-  let body: Record<string, unknown>;
+  let body: {
+    expert_id?: string;
+    content?: string;
+    link_url?: string;
+    image_url?: string;
+    draft?: boolean;
+  };
   try {
-    body = (await req.json()) as Record<string, unknown>;
+    body = await req.json();
   } catch {
-    return NextResponse.json({ error: "Invalid JSON." }, { status: 400 });
+    return apiError.badRequest("Invalid JSON.", route);
   }
 
-  const title = asString(body.title);
-  const excerpt = asString(body.excerpt);
-  const postBody = asString(body.body);
-  const slug = asString(body.slug).toLowerCase();
-  const coverImageUrl = asString(body.coverImageUrl);
-  const authorName = asString(body.authorName) || "Aesthetic Success Network";
-  const category = asString(body.category);
-  const tags = parseTags(body.tags);
-  const statusRaw = asString(body.status) || "draft";
-  const status = STATUSES.includes(statusRaw as (typeof STATUSES)[number]) ? statusRaw : "draft";
+  const expertId = (body.expert_id ?? "").trim();
+  if (!expertId) return apiError.validation("Choose an expert to post as.", route);
 
-  if (!title || !excerpt || !postBody) {
-    return NextResponse.json(
-      { error: "Title, excerpt and body are required." },
-      { status: 400 },
-    );
+  const content = (body.content ?? "").trim();
+  if (content.length < 1 || content.length > MAX_CONTENT) {
+    return apiError.validation(`Content must be 1–${MAX_CONTENT} chars.`, route);
   }
-  if (!slug) {
-    return NextResponse.json({ error: "Slug is required." }, { status: 400 });
+
+  const linkUrl = (body.link_url ?? "").trim() || null;
+  if (linkUrl && (linkUrl.length > MAX_URL || !URL_RE.test(linkUrl))) {
+    return apiError.validation("Paste a full https:// URL.", route);
   }
+
+  const imageUrl = (body.image_url ?? "").trim() || null;
+  if (imageUrl && imageUrl.length > MAX_URL) {
+    return apiError.validation("Image URL is too long.", route);
+  }
+
+  const draft = !!body.draft;
 
   try {
-    const supabase = getSupabaseAdmin();
+    const admin = getSupabaseAdmin();
 
-    const { data: existing, error: existingError } = await supabase
-      .from("blog_posts")
-      .select("id")
-      .ilike("slug", slug)
+    // Confirm the expert exists + isn't archived/suspended.
+    const { data: expert } = await admin
+      .from("experts")
+      .select("id, status")
+      .eq("id", expertId)
       .maybeSingle();
-    if (existingError) throw existingError;
-    if (existing) {
-      return NextResponse.json({ error: "That slug is already taken." }, { status: 409 });
+    if (!expert) return apiError.notFound(route);
+    if (expert.status === "archived" || expert.status === "suspended") {
+      return apiError.validation("Expert is not active.", route);
     }
 
     const now = new Date().toISOString();
-    const { data: inserted, error } = await supabase
-      .from("blog_posts")
+    const { data: inserted, error } = await admin
+      .from("expert_posts")
       .insert({
-        slug,
-        title,
-        excerpt,
-        body: postBody,
-        cover_image_url: coverImageUrl || null,
-        author_name: authorName,
-        category: category || null,
-        tags,
-        status,
-        published_at: status === "published" ? now : null,
+        expert_id: expertId,
+        content,
+        link_url: linkUrl,
+        image_url: imageUrl,
+        status: draft ? "draft" : "published",
+        published_at: draft ? null : now,
+        // Flag the row so an audit can trace admin-authored posts later.
+        composed_by_admin_id: guard.adminId,
       })
-      .select("id")
+      .select("id, content, status, published_at, created_at")
       .single();
     if (error) throw error;
 
-    await writeAudit(guard, "blog_post", inserted.id as string, "create");
-    return NextResponse.json({ ok: true, id: inserted.id });
+    return NextResponse.json({ ok: true, post: inserted });
   } catch (err) {
-    if ((err as { code?: string })?.code === "23505") {
-      return NextResponse.json({ error: "That slug is already taken." }, { status: 409 });
-    }
-    return NextResponse.json({ error: errMessage(err) }, { status: 500 });
+    return serverError(err, { route });
   }
 }

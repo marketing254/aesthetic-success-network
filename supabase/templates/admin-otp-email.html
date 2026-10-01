@@ -1,9 +1,11 @@
 <!--
-  ASN admin sign-in code email.
+  ASN sign-in code email (role-neutral).
   Paste into: Supabase Dashboard → Authentication → Emails (Templates) → "Magic Link".
-  (signInWithOtp uses the Magic Link template; including {{ .Token }} makes
-  Supabase send a 6-digit code instead of a link.)
+  Supabase uses this ONE template for every signInWithOtp() call, so the same
+  email serves member, expert, partner, job-seeker and admin sign-in codes.
+  Including {{ .Token }} makes Supabase send a 6-digit code instead of a link.
   Suggested subject:  Your Aesthetic Success Network sign-in code: {{ .Token }}
+  See supabase/templates/README.md for the dashboard steps.
 -->
 <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#f7f5f0;padding:28px 0;">
   <tr>
@@ -22,10 +24,10 @@
         <tr>
           <td style="background:#ffffff;border:1px solid #e5dfd2;border-top:none;border-radius:0 0 16px 16px;padding:32px;">
             <h1 style="margin:0 0 16px;font-family:'Fraunces','Iowan Old Style',Baskerville,'Times New Roman',Georgia,serif;font-weight:500;font-size:24px;line-height:1.2;color:#0a1320;">
-              Your admin sign-in code
+              Your sign-in code
             </h1>
             <p style="margin:0 0 20px;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,'Helvetica Neue',Helvetica,Arial,sans-serif;font-size:15px;line-height:1.65;color:#3d4653;">
-              Enter this code on the admin sign-in page to access the console. It expires shortly and can only be used once.
+              Enter this code on the Aesthetic Success Network sign-in page. It expires in 5 minutes and can only be used once.
             </p>
             <table role="presentation" width="100%" cellpadding="0" cellspacing="0">
               <tr>
@@ -37,11 +39,11 @@
               </tr>
             </table>
             <p style="margin:0 0 14px;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,'Helvetica Neue',Helvetica,Arial,sans-serif;font-size:13.5px;line-height:1.6;color:#5c6673;">
-              If you didn&rsquo;t try to sign in to the Aesthetic Success Network admin console, you can safely ignore this email &mdash; the code is useless without access to this inbox.
+              If you didn&rsquo;t try to sign in to the Aesthetic Success Network, you can safely ignore this email. The code is useless without access to this inbox.
             </p>
             <hr style="border:none;border-top:1px solid #e5dfd2;margin:22px 0;">
             <p style="margin:0;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,'Helvetica Neue',Helvetica,Arial,sans-serif;font-size:12.5px;line-height:1.6;color:#8b8577;">
-              Aesthetic Success Network &middot; Ekwa Marketing Inc. &middot; marketing@ekwa.co
+              Aesthetic Success Network &middot; Ekwa Marketing Inc. &middot; support@aestheticsuccessnetwork.com
             </p>
           </td>
         </tr>

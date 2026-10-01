@@ -1,70 +1,127 @@
 import { NextResponse } from "next/server";
-import { requirePortalExpert } from "@/lib/auth/guards";
 import { getSupabaseAdmin } from "@/lib/supabase/server";
-import { errMessage } from "@/lib/errMessage";
-import { getStripe, appOrigin, expertPriceIdFor, ALL_EXPERT_PLAN_KEYS, type ExpertPlanKey } from "@/lib/stripe";
+import { requireExpert } from "@/lib/auth/guards";
+import {
+  ALL_EXPERT_PLAN_KEYS,
+  appOrigin,
+  expertPriceIdFor,
+  getStripe,
+  type ExpertPlanKey,
+} from "@/lib/stripe";
+import { serverError } from "@/lib/api/errorResponse";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
-/** Manual Growth→Standard upgrade or annual pre-pay — not the initial trial (that's trial/start, which uses a SetupIntent). */
+/**
+ * POST /api/expert/billing/checkout
+ *
+ * Body: { plan: "expert_growth_monthly" | "expert_standard_monthly" | "expert_standard_annual" }
+ *
+ * Creates a Stripe Checkout Session for an expert subscription and
+ * returns the redirect URL. Used by the Upgrade card on /expert/billing
+ * once the founding waiver runs out.
+ *
+ * Note: there's deliberately no `expert_launch_monthly` option here —
+ * the launch phase (months 1-6) is admin-activated and doesn't touch
+ * Stripe at all. Experts only see this endpoint when the upgrade UI
+ * appears.
+ */
+function isValidPlan(p: unknown): p is ExpertPlanKey {
+  return typeof p === "string" && (ALL_EXPERT_PLAN_KEYS as string[]).includes(p);
+}
+
 export async function POST(req: Request) {
-  const guard = await requirePortalExpert();
+  const guard = await requireExpert();
   if (!guard.ok) return guard.response;
 
-  let body: { plan?: string };
-  try {
-    body = await req.json();
-  } catch {
-    return NextResponse.json({ error: "Invalid JSON." }, { status: 400 });
+  const body = (await req.json().catch(() => ({}))) as { plan?: unknown };
+  if (!isValidPlan(body.plan)) {
+    return NextResponse.json({ error: "Please pick a valid plan." }, { status: 400 });
+  }
+  const plan = body.plan;
+
+  const sb = getSupabaseAdmin();
+  const { data: expert, error: expertErr } = await sb
+    .from("experts")
+    .select(
+      "id, email, full_name, stripe_customer_id, stripe_subscription_id, subscription_status",
+    )
+    .eq("id", guard.expertId)
+    .single();
+
+  if (expertErr || !expert) {
+    return NextResponse.json({ error: "Expert record not found." }, { status: 404 });
   }
 
-  const plan = body.plan as ExpertPlanKey;
-  if (!ALL_EXPERT_PLAN_KEYS.includes(plan)) {
-    return NextResponse.json({ error: "Pick a valid plan." }, { status: 400 });
+  // Don't double-charge an active sub — send them to the portal to switch.
+  if (
+    expert.stripe_subscription_id &&
+    (expert.subscription_status === "active" || expert.subscription_status === "trialing")
+  ) {
+    return NextResponse.json(
+      {
+        error: "You already have an active subscription. Use 'Manage subscription' to switch plans.",
+        redirectTo: "/api/expert/billing/portal",
+      },
+      { status: 409 },
+    );
   }
 
+  let stripe;
+  let priceId: string;
   try {
-    const supabase = getSupabaseAdmin();
-    const { data: expert } = await supabase
-      .from("expert_applications")
-      .select("id, email, full_name, stripe_customer_id, subscription_status, stripe_subscription_id")
-      .eq("id", guard.rowId)
-      .maybeSingle();
-    if (!expert) {
-      return NextResponse.json({ error: "Expert not found." }, { status: 404 });
-    }
-    if (expert.stripe_subscription_id && (expert.subscription_status === "active" || expert.subscription_status === "trialing")) {
-      return NextResponse.json(
-        { error: "You already have an active subscription.", redirectTo: "/api/expert/billing/portal" },
-        { status: 409 },
-      );
-    }
-
-    const stripe = getStripe();
-    let customerId = expert.stripe_customer_id as string | null;
-    if (!customerId) {
-      const customer = await stripe.customers.create({
-        email: expert.email as string,
-        name: (expert.full_name as string) || undefined,
-        metadata: { audience: "expert", expert_application_id: expert.id as string },
-      });
-      customerId = customer.id;
-      await supabase.from("expert_applications").update({ stripe_customer_id: customerId }).eq("id", expert.id);
-    }
-
-    const session = await stripe.checkout.sessions.create({
-      mode: "subscription",
-      customer: customerId,
-      line_items: [{ price: expertPriceIdFor(plan), quantity: 1 }],
-      subscription_data: { metadata: { audience: "expert", expert_application_id: expert.id as string, plan } },
-      metadata: { audience: "expert", expert_application_id: expert.id as string, plan },
-      success_url: `${appOrigin()}/expert/billing?subscribed=1&session_id={CHECKOUT_SESSION_ID}`,
-      cancel_url: `${appOrigin()}/expert/billing?subscribed=0`,
-    });
-
-    return NextResponse.json({ ok: true, url: session.url });
+    stripe = getStripe();
+    priceId = expertPriceIdFor(plan);
   } catch (err) {
-    return NextResponse.json({ error: errMessage(err) }, { status: 500 });
+    return serverError(err, { route: "POST /api/expert/billing/checkout", status: 503 });
   }
+
+  // Reuse Stripe customer if one exists, otherwise create + persist.
+  let customerId = expert.stripe_customer_id;
+  if (!customerId) {
+    const customer = await stripe.customers.create({
+      email: expert.email,
+      name: expert.full_name || undefined,
+      metadata: { expert_id: expert.id, audience: "expert" },
+    });
+    customerId = customer.id;
+    await sb
+      .from("experts")
+      .update({ stripe_customer_id: customerId } as never)
+      .eq("id", expert.id);
+  }
+
+  const origin = appOrigin();
+  const session = await stripe.checkout.sessions.create({
+    mode: "subscription",
+    customer: customerId,
+    payment_method_types: ["card"],
+    line_items: [{ price: priceId, quantity: 1 }],
+    allow_promotion_codes: true,
+    billing_address_collection: "auto",
+    subscription_data: {
+      metadata: {
+        expert_id: expert.id,
+        audience: "expert",
+        plan,
+      },
+    },
+    metadata: {
+      expert_id: expert.id,
+      audience: "expert",
+      plan,
+    },
+    success_url: `${origin}/expert/billing?subscribed=1&session_id={CHECKOUT_SESSION_ID}`,
+    cancel_url: `${origin}/expert/billing?subscribed=0`,
+  });
+
+  if (!session.url) {
+    return NextResponse.json(
+      { error: "Stripe couldn't open the checkout. Try again." },
+      { status: 500 },
+    );
+  }
+
+  return NextResponse.json({ url: session.url });
 }

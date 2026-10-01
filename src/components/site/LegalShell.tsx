@@ -9,11 +9,17 @@ type FooterLink = { href: string; label: string };
 export default function LegalShell({
   title,
   meta,
+  draft,
+  pdfHref,
   footerLinks,
   children,
 }: {
   title: string;
   meta: string;
+  /** DRAFT banner text (pending legal counsel). */
+  draft?: string;
+  /** Downloadable PDF of the same document. */
+  pdfHref?: string;
   footerLinks: FooterLink[];
   children: React.ReactNode;
 }) {
@@ -43,7 +49,19 @@ export default function LegalShell({
 
       <div className="legal-doc">
         <h1>{title}</h1>
-        <div className="meta">{meta}</div>
+        <div className="meta">
+          {meta}
+          {pdfHref && (
+            <>
+              {" "}
+              &middot;{" "}
+              <a href={pdfHref} target="_blank" rel="noopener noreferrer">
+                Download the PDF
+              </a>
+            </>
+          )}
+        </div>
+        {draft && <div className="draft">{draft}</div>}
         {children}
       </div>
 

@@ -1,0 +1,139 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Membership ROI Calculator · Aesthetic Success Network</title>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,600;9..144,700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root{--navy:#1B3A5C;--gold:#C8993D;--cream:#F5ECD7;--ink:#243140;--muted:#5a6b7d;--hair:#dbe2ea;}
+  *{box-sizing:border-box;margin:0;padding:0;}
+  body{font-family:'Inter',sans-serif;background:#f2f5f8;color:var(--ink);line-height:1.5;}
+  .wrap{max-width:880px;margin:0 auto;padding:28px 20px 60px;}
+  .hero{background:radial-gradient(120% 130% at 85% 0%,#2a5a86,#23496f 35%,#0d2641 78%);color:#fff;border-radius:14px;padding:28px 30px 24px;margin-bottom:22px;}
+  .hero .eyebrow{color:#E7B964;font-weight:700;letter-spacing:.16em;text-transform:uppercase;font-size:11px;}
+  .hero h1{font-family:'Fraunces',serif;font-weight:600;font-size:30px;line-height:1.1;margin:6px 0 8px;}
+  .hero p{color:#cfe0ee;font-size:14px;max-width:640px;}
+  .credit{display:inline-flex;align-items:center;gap:8px;margin-top:14px;background:rgba(255,255,255,.09);border:1px solid rgba(255,255,255,.18);border-radius:999px;padding:6px 14px;font-size:12.5px;color:#e8f0f7;}
+  .credit b{color:#E7B964;font-weight:600;}
+  .grid{display:grid;grid-template-columns:1fr 1.15fr;gap:18px;}
+  @media (max-width:720px){.grid{grid-template-columns:1fr;}}
+  .card{background:#fff;border:1px solid var(--hair);border-radius:14px;padding:22px;}
+  .card h2{font-family:'Fraunces',serif;color:var(--navy);font-size:18px;margin-bottom:4px;}
+  .card .sub{font-size:12.5px;color:var(--muted);margin-bottom:14px;}
+  label{display:block;font-weight:600;font-size:13px;color:var(--navy);margin:14px 0 5px;}
+  label span.opt{color:var(--muted);font-weight:400;}
+  .inp{display:flex;align-items:center;border:1.5px solid var(--hair);border-radius:9px;overflow:hidden;background:#fff;}
+  .inp:focus-within{border-color:var(--gold);}
+  .inp .unit{background:#f6f8fb;color:var(--muted);font-weight:600;padding:10px 12px;font-size:14px;}
+  .inp .unit.l{border-right:1px solid var(--hair);}
+  .inp .unit.r{border-left:1px solid var(--hair);}
+  .inp input{border:none;outline:none;font:inherit;font-size:16px;padding:10px 12px;width:100%;color:var(--ink);}
+  .hint{font-size:11.5px;color:var(--muted);margin-top:4px;}
+  .res-big{background:var(--cream);border-radius:11px;padding:14px 16px;margin-bottom:10px;}
+  .res-big .l{font-size:12px;color:#7a5d1f;font-weight:600;text-transform:uppercase;letter-spacing:.06em;}
+  .res-big .n{font-family:'Fraunces',serif;font-weight:700;color:var(--navy);font-size:32px;line-height:1.15;}
+  .res-big .s{font-size:12.5px;color:#5a4410;}
+  .res-row{display:flex;justify-content:space-between;align-items:baseline;gap:12px;padding:9px 2px;border-bottom:1px dotted var(--hair);font-size:14px;}
+  .res-row:last-child{border-bottom:none;}
+  .res-row b{color:var(--navy);font-size:16px;white-space:nowrap;}
+  .note{margin-top:14px;background:var(--cream);border:1px solid #e6d9b8;border-radius:11px;padding:12px 15px;font-size:13.5px;color:#5a4410;}
+  .note b{color:#7a5d1f;}
+  .btn{display:inline-block;background:var(--gold);color:#10243b;font-weight:700;font-size:14px;border:none;border-radius:999px;padding:11px 22px;cursor:pointer;margin-top:16px;}
+  .btn:hover{filter:brightness(1.05);}
+  .disclaimer{font-size:11.5px;color:var(--muted);margin-top:14px;}
+  .foot{margin-top:26px;display:flex;flex-wrap:wrap;gap:10px;justify-content:space-between;align-items:center;color:var(--muted);font-size:12px;}
+  .foot .brand{color:var(--navy);font-weight:700;letter-spacing:.08em;}
+  .foot .url{color:var(--gold);font-weight:600;}
+  @media print{ body{background:#fff;} .btn,.noprint,.howto{display:none !important;} .grid{grid-template-columns:1fr 1fr;} }
+  .howto h3{font-family:'Fraunces',serif;color:var(--navy);font-size:14.5px;margin:12px 0 4px;}.howto p{font-size:13.5px;margin:2px 0 10px;color:#37485a;}.howto ul{margin:4px 0 12px 18px;}.howto li{font-size:13.5px;margin-bottom:6px;color:#37485a;}.howto li b{color:var(--navy);}
+</style></head>
+<body>
+<div class="wrap">
+  <div class="hero">
+    <div class="eyebrow">ASN Member Tool &middot; Operations &amp; Compliance</div>
+    <h1>The Membership ROI Calculator</h1>
+    <p>Set your own assumptions. If the partner deals alone don't clear the membership cost, don't join. That's the honest test. Every figure here is illustrative.</p>
+    <div class="credit">An <b>Aesthetic Success Network</b> original &middot; works alongside every kit in your library</div>
+  </div>
+
+  <div class="grid">
+    <div class="card">
+      <h2>Your assumptions</h2>
+      <div class="sub">Nothing you type here is saved or sent anywhere. It stays on your screen.</div>
+
+      <label>Monthly spend with vendors a partner could replace</label>
+      <div class="inp"><span class="unit l">$</span><input id="spend" type="number" min="0" step="500" value="5000" inputmode="numeric"></div>
+      <div class="hint">Injectables, devices, skincare lines, software, services. Only the spend a listed partner could realistically take over.</div>
+
+      <label>Member discount you'd realistically use</label>
+      <div class="inp"><input id="disc" type="number" min="0" max="100" step="1" value="8" inputmode="numeric"><span class="unit r">%</span></div>
+      <div class="hint">Partners commit to a member-only deal. 2% to 20% is the range the calculator was designed around.</div>
+
+      <label>Hotline questions you'd actually ask per year</label>
+      <div class="inp"><input id="q" type="number" min="0" step="1" value="4" inputmode="numeric"><span class="unit r">questions</span></div>
+      <div class="hint">Each written answer is valued at $150 of estimated consulting value. Our assumption, not a promise.</div>
+    </div>
+
+    <div class="card">
+      <h2>What it means</h2>
+      <div class="sub">Live results, updated as you type. Illustrative estimates only.</div>
+
+      <div class="res-big">
+        <div class="l">Your estimated first-year net benefit</div>
+        <div class="n" id="net">$4,812</div>
+        <div class="s" id="netsub">vs $588/yr founding membership ($49 &times; 12), <span id="mult">9.2&times;</span> your cost.</div>
+      </div>
+
+      <div class="res-row"><span>Estimated partner savings per year</span><b id="deals">$4,800</b></div>
+      <div class="res-row"><span>Estimated Hotline value per year</span><b id="hotline">$600</b></div>
+      <div class="res-row"><span>Total estimated value</span><b id="savings">$5,400</b></div>
+      <div class="res-row"><span>Founding membership per year</span><b>$588</b></div>
+
+      <div class="note"><b>The honest test.</b> If the number above is negative or close to zero, the membership does not pay for itself on deals alone. Join for the answers and the library, or don't join.</div>
+
+      <button class="btn noprint" onclick="window.print()">Download my results (PDF)</button>
+      <div class="disclaimer">How this is calculated: your monthly vendor spend &times; 12 &times; your chosen discount, plus $150 of estimated consulting value per Hotline question (our assumption, not a promise), minus the $588 annual founding fee ($49 &times; 12). Estimates only. Actual savings depend on the deals partners commit to and how much you use the network. Results can be negative, and no results are guaranteed. This is an illustrative planning estimate, not financial advice.</div>
+    </div>
+  </div>
+
+  <div class="card howto">
+    <h2>How this tool works</h2>
+    <h3>What it does</h3>
+    <p>It estimates the first-year value of membership from two sources, partner discounts and Expert Hotline answers, and subtracts the founding fee so you see a net figure and a multiple of cost.</p>
+    <h3>What to gather before you start</h3>
+    <ul><li><b>Monthly vendor spend:</b> only the categories a listed partner could realistically replace</li><li><b>Realistic discount:</b> the member deal you would actually use, not the best case</li><li><b>Hotline questions per year:</b> real problems you would send in, not a guess at capacity</li></ul>
+    <h3>The math, in plain English</h3>
+    <p>Partner savings = monthly spend &times; 12 &times; discount. Hotline value = questions &times; $150. Net benefit = partner savings + Hotline value &minus; $588. The multiple = (partner savings + Hotline value) &divide; $588. Every input is yours; the $150 per question and the $588 fee are the only fixed assumptions, and both are shown above.</p>
+  </div>
+
+  <div class="foot">
+    <span class="brand">AESTHETIC SUCCESS NETWORK</span>
+    <span>Tool 01 &middot; Operations &amp; Compliance &middot; More tools in your member portal</span>
+    <span class="url">www.aestheticsuccessnetwork.com</span>
+  </div>
+</div>
+
+<script>
+  const $ = id => document.getElementById(id);
+  const HOTLINE_VALUE = 150; /* estimated consulting value per Hotline question; shown as an assumption */
+  const COST = 588;          /* founding membership: $49 x 12 */
+  const fmt = n => '$' + Math.round(n).toLocaleString('en-US');
+  const signed = n => (n < 0 ? '-' : '') + fmt(Math.abs(n));
+  function calc(){
+    const s = Math.max(0, parseFloat($('spend').value) || 0);
+    const d = Math.max(0, parseFloat($('disc').value) || 0);
+    const n = Math.max(0, parseFloat($('q').value) || 0);
+    const deals = s * 12 * (d / 100);
+    const hotline = n * HOTLINE_VALUE;
+    const savings = deals + hotline;
+    const net = savings - COST;
+    const mult = savings / COST;
+    $('deals').textContent = fmt(deals);
+    $('hotline').textContent = fmt(hotline);
+    $('savings').textContent = fmt(savings);
+    $('net').textContent = signed(net);
+    $('mult').textContent = (Math.round(mult * 10) / 10).toLocaleString('en-US') + '×';
+  }
+  document.querySelectorAll('input').forEach(i => i.addEventListener('input', calc));
+  calc();
+</script>
+</body></html>
