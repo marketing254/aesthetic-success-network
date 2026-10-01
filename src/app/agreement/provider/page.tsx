@@ -19,7 +19,6 @@ export default function Page() {
       <LegalShell
         title={title}
         meta={meta}
-        pdfHref="/agreements/asn-provider-agreement.pdf"
         footerLinks={[
           { href: "/agreement/member", label: "Member Agreement" },
           { href: "/legal/refund", label: "Refund & Cancellation" },
