@@ -1,25 +1,12 @@
 import { NextResponse } from "next/server";
 import { getSupabaseAdmin } from "@/lib/supabase/server";
 import { serverError } from "@/lib/api/errorResponse";
+import { isHiddenFromDirectory } from "@/lib/directoryVisibility";
 import { sortPartnersHouseFirst } from "@/lib/houseOrder";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
-/**
- * Internal accounts never reach the public site: preview/bypass logins
- * (BILLING_BYPASS_EMAILS) and test addresses (TEST_MEMBER_EMAILS).
- */
-function isInternalEmail(email: string | null | undefined): boolean {
-  if (!email) return false;
-  const e = email.trim().toLowerCase();
-  const list = [process.env.BILLING_BYPASS_EMAILS ?? "", process.env.TEST_MEMBER_EMAILS ?? ""]
-    .join(",")
-    .split(",")
-    .map((s) => s.trim().toLowerCase())
-    .filter(Boolean);
-  return list.includes(e);
-}
 
 /**
  * GET /api/directory/partners?page=1&pageSize=6
@@ -53,7 +40,7 @@ export async function GET(req: Request) {
 
     const liveIds = new Set((data ?? []).map((v) => v.id));
     const visible = sortPartnersHouseFirst(
-      (data ?? []).filter((v) => !isInternalEmail(v.contact_email) && (!v.billing_parent_id || liveIds.has(v.billing_parent_id))),
+      (data ?? []).filter((v) => !isHiddenFromDirectory(v.contact_email) && (!v.billing_parent_id || liveIds.has(v.billing_parent_id))),
       (v) => v.display_name || v.company_name,
     );
 

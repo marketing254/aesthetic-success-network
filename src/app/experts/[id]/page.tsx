@@ -6,6 +6,7 @@ import SiteNav from "@/components/site/SiteNav";
 import SiteFooter from "@/components/site/SiteFooter";
 import PageFx from "@/components/site/PageFx";
 import { getSupabaseAdmin } from "@/lib/supabase/server";
+import { isHiddenFromDirectory } from "@/lib/directoryVisibility";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -26,11 +27,12 @@ async function getExpert(id: string) {
   const sb = getSupabaseAdmin();
   const { data } = await sb
     .from("experts")
-    .select("id, display_name, full_name, specialty, company_name, bio, topics, website, headshot_url, status")
+    .select("id, display_name, full_name, specialty, company_name, bio, topics, website, headshot_url, status, email")
     .eq("id", id)
     .maybeSingle();
   // Same publish-ready gate as the directory: no headshot/bio -> not public.
   if (!data || data.status !== "active" || !data.headshot_url || !data.bio) return null;
+  if (isHiddenFromDirectory(data.email)) return null;
   return data;
 }
 

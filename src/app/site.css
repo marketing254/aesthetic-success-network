@@ -1673,7 +1673,12 @@
 }
 .asn-site .pgrid {
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
+  /* Two-step terms (free months, then the flat rate): split the card evenly
+     however many steps there are; never leave an empty third column. */
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 240px), 1fr));
+  max-width: 820px;
+  margin-left: auto;
+  margin-right: auto;
   gap: 0;
   margin-top: 50px;
   border: 1px solid var(--clay);

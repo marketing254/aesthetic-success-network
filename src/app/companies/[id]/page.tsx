@@ -6,6 +6,7 @@ import SiteNav from "@/components/site/SiteNav";
 import SiteFooter from "@/components/site/SiteFooter";
 import PageFx from "@/components/site/PageFx";
 import { getSupabaseAdmin } from "@/lib/supabase/server";
+import { isHiddenFromDirectory } from "@/lib/directoryVisibility";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -27,10 +28,11 @@ async function getPartner(id: string) {
   const sb = getSupabaseAdmin();
   const { data: v } = await sb
     .from("vendors")
-    .select("id, company_name, display_name, category, description, logo_url, avatar_url, website, status, verified, billing_parent_id")
+    .select("id, company_name, display_name, category, description, logo_url, avatar_url, website, status, verified, billing_parent_id, contact_email")
     .eq("id", id)
     .maybeSingle();
   if (!v || v.status !== "approved" || !v.verified || !(v.logo_url ?? v.avatar_url) || !v.description) return null;
+  if (isHiddenFromDirectory(v.contact_email)) return null;
   if (v.billing_parent_id) {
     const { data: parent } = await sb
       .from("vendors")
