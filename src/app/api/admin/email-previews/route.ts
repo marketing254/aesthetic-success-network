@@ -87,10 +87,10 @@ export async function POST(req: Request) {
         submittedAt: now,
       }),
     );
-    await run("Expert 2: approved (agreement follows)", () =>
-      sendExpertApprovalEmail({ email: to, firstName: "Jordan", expertId: "preview", activatedAt: now }),
+    await run("Expert 2: approved (sign in, accept the agreement in the portal)", () =>
+      sendExpertApprovalEmail({ email: to, firstName: "Jordan", expertId: "preview", activatedAt: now, portalLoginUrl: `${origin}/expert/login` }),
     );
-    await run("Expert 3: agreement ready to sign (PDF attached)", async () => {
+    await run("Expert 3: founding invite agreement (admin Send invite only; PDF attached)", async () => {
       const pdfBuffer = await renderFoundingAgreementPdf({
         role: "expert",
         pricing: "standard",
@@ -149,10 +149,10 @@ export async function POST(req: Request) {
 
     // ---------------- Companies ----------------
     const memberOffer = "12% off the LUX laser handpiece for ASN members";
-    await run("Company 1: verified / approved (agreement follows)", () =>
-      sendVendorApprovalEmail({ email: to, contactName: "Sam Rivera", companyName: "Radiance Devices", rate: "standard" }),
+    await run("Company 1: verified / approved (sign in, accept the agreement in the portal)", () =>
+      sendVendorApprovalEmail({ email: to, contactName: "Sam Rivera", companyName: "Radiance Devices", rate: "standard", portalUrl: `${origin}/vendor/login` }),
     );
-    await run("Company 2: agreement ready to sign (PDF attached)", async () => {
+    await run("Company 2: founding invite agreement (admin Send invite only; PDF attached)", async () => {
       const pdfBuffer = await renderFoundingAgreementPdf({
         role: "partner",
         pricing: "standard",

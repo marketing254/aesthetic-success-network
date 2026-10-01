@@ -131,8 +131,9 @@ export default function ExpertProfilePage() {
     ];
     for (const [label, value] of links) {
       const v = value.trim();
-      if (v && !/^https:\/\/[^\s/$.?#].[^\s]*$/i.test(v)) {
-        return `${label} must be a full https:// address.`;
+      // Scheme optional: "www.site.com" is fine; the API stores it as https://.
+      if (v && !/^(https?:\/\/)?(localhost|([a-z0-9-]+\.)+[a-z]{2,})(:\d+)?([/?#]\S*)?$/i.test(v)) {
+        return `${label} must be a web address, e.g. www.site.com.`;
       }
     }
     if (form.bio.length > 2000) return "Bio must be 2000 characters or fewer.";

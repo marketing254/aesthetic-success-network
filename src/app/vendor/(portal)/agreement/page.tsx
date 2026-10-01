@@ -55,7 +55,7 @@ export default function VendorAgreementPage() {
   const signedAt = vendor?.agreement_signed_at?.slice(0, 10) ?? "Not signed yet";
   const version = vendor?.agreement_version ?? "v1.0";
   // Schedule A comes from the company's own rate (vendors.billing_plan):
-  // free founding months, then $39 (standard) or $149 (large).
+  // free founding months, then $39 for 12 months, then $149.
   const ramp = vendorRamp(
     normalizeVendorPlan(vendor?.billing_plan),
     vendor?.subscription_status === "trialing" ? vendor?.current_period_end : null,

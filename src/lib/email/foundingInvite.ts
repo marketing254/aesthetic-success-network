@@ -11,10 +11,12 @@ import {
 } from "@/lib/email/layout";
 import {
   CANCEL_NOTICE_DAYS,
+  COMPANY_LAUNCH_LABEL,
+  COMPANY_LAUNCH_MONTHS,
+  COMPANY_STANDARD_LABEL,
   EXPERT_RATE_LABEL,
   FIRST_CHARGE_REMINDER_DAYS,
   PROVIDER_FREE_MONTHS,
-  rateLabel,
 } from "@/lib/providerBilling";
 
 /**
@@ -25,9 +27,9 @@ import {
  * they can read it before clicking through.
  *
  * Terms shown: free founding months (6, from the member launch), then
- * the flat rate ($39 for experts; $39 or $149 for companies, set by the
- * admin). A card is saved on acceptance; nothing is charged until the
- * free months end.
+ * $39 a month (experts: flat; companies: for 12 months, then $149). A
+ * card is saved on acceptance; nothing is charged until the free months
+ * end.
  */
 
 const DEFAULT_PDF_FILENAME = "ASN-Founding-Agreement.pdf";
@@ -36,7 +38,7 @@ export type FoundingInviteEmailInput = {
   to: string;
   fullName: string;
   role: "expert" | "partner" | "both";
-  /** Company rate: "standard" ($39) or "large" ($149). Ignored for expert-only invites. */
+  /** Kept for callers; every company is on the same ladder. */
   pricing?: string | null;
   companyName?: string | null;
   inviteUrl: string;
@@ -59,9 +61,10 @@ function termsSection(input: FoundingInviteEmailInput): EmailSection {
     items.push(`After that it's ${EXPERT_RATE_LABEL} a month${side}, and it stays ${EXPERT_RATE_LABEL} with no increase.`);
   }
   if (hasPartner) {
-    const r = rateLabel(input.pricing);
     const side = input.role === "both" ? " for your company listing" : "";
-    items.push(`After that it's ${r} a month${side}, and it stays ${r} with no increase.`);
+    items.push(
+      `After that it's ${COMPANY_LAUNCH_LABEL} a month${side} for your first ${COMPANY_LAUNCH_MONTHS} months, then ${COMPANY_STANDARD_LABEL} a month.`,
+    );
   }
   items.push(
     `When you accept, we'll securely save a payment method. Nothing is charged until your free months end, and we'll remind you ${FIRST_CHARGE_REMINDER_DAYS} days before your first charge. Cancel any time before then and you won't be charged. After your first charge, cancel with ${CANCEL_NOTICE_DAYS} days' written notice.`,

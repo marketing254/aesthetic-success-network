@@ -53,7 +53,7 @@ export default function VendorAppliedPage() {
     {
       icon: CalendarTodayOutlinedIcon,
       title: "Launch pricing locks in",
-      body: "Your first 6 months are free, starting the day we open to members. After that it's $39 a month, and it stays $39 with no increase. Your portal lets you set up your catalog and offers right away; they go live to members the day your application is approved.",
+      body: "Your first 6 months are free, starting the day we open to members. After that it's $39 a month for your first 12 months, then $149 a month. Your portal lets you set up your catalog and offers right away; they go live to members the day your application is approved.",
     },
   ];
 

@@ -39,7 +39,7 @@ export type FoundingAcceptProps = {
   fullName: string;
   signerName: string | null;
   role: "expert" | "partner" | "both";
-  /** Company rate after the free founding months: "standard" ($39) or "large" ($149). Experts are always $39. */
+  /** Kept for callers; every company is on the same ladder ($39 for 12 months after the free period, then $149). */
   pricing?: string | null;
   companyName: string | null;
   memberOffer: string | null;
@@ -59,7 +59,6 @@ export default function FoundingAcceptV4(props: FoundingAcceptProps) {
   // flat rate with no increase.
   const hasExpert = props.role === "expert" || props.role === "both";
   const hasCompany = props.role === "partner" || props.role === "both";
-  const companyRate = props.pricing === "large" ? "$149" : "$39";
   const dueToday = "$0.00";
   const displayName = props.signerName?.trim() || props.fullName;
   const showsFeaturedExpert = Boolean(
@@ -162,7 +161,8 @@ export default function FoundingAcceptV4(props: FoundingAcceptProps) {
                 Founding company listing
               </Typography>
               <RampLine label="First 6 months, from member launch" price="$0/mo" bold />
-              <RampLine label="After that, no increase" price={`${companyRate}/mo`} />
+              <RampLine label="Next 12 months, launch rate" price="$39/mo" />
+              <RampLine label="After that, standard rate" price="$149/mo" />
             </Box>
           )}
 

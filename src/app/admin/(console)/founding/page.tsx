@@ -426,9 +426,7 @@ function InviteCard({
               label={
                 row.role === "expert"
                   ? "6 mo free, then $39"
-                  : row.pricing_plan === "large"
-                    ? `6 mo free, then $149${row.role === "both" ? " (expert: $39)" : ""}`
-                    : `6 mo free, then $39${row.role === "both" ? " (expert: $39)" : ""}`
+                  : `6 mo free, $39 x 12, then $149${row.role === "both" ? " (expert: $39)" : ""}`
               }
               size="small"
               sx={{

@@ -32,10 +32,9 @@ export type FoundingInviteFormValues = {
   id?: string;
   role: FoundingInviteRoleValue;
   /**
-   * Company rate after the free founding months (migration 0071):
-   *   "standard" = $39 a month (default), "large" = $149 a month, no
-   *   increase. Experts are always $39, so expert invites store
-   *   "standard". For
+   * Kept for the DB column (standard | large). Every company is on the
+   * same ladder: 6 months free from launch, $39 for 12 months, then $149.
+   * Experts: 6 months free, then $39. For
    *   "both" the plan governs the company side only.
    */
   pricing_plan: FoundingInvitePricingValue;
@@ -120,13 +119,9 @@ export default function FoundingInviteDialog({
   const pricingHelper =
     v.role === "expert"
       ? "Agreement, acceptance page, email and Stripe all show the first 6 months free (from the member launch), then $39 a month with no increase. A card is saved at acceptance; nothing is charged until the free months end."
-      : v.pricing_plan === "large"
-        ? `Company listing: first 6 months free from the member launch, then $149 a month with no increase (large company rate). Agreement, acceptance page, email and Stripe all show this.${
-            v.role === "both" ? " Expert access on the same invite is $39 a month after the free months." : ""
-          }`
-        : `Company listing: first 6 months free from the member launch, then $39 a month with no increase. Nothing they see mentions $149.${
-            v.role === "both" ? " Expert access on the same invite is $39 a month after the free months." : ""
-          }`;
+      : `Company listing: first 6 months free from the member launch, then $39 a month for 12 months, then $149 a month. Agreement, acceptance page, email and Stripe all show this.${
+          v.role === "both" ? " Expert access on the same invite is $39 a month after the free months, with no increase." : ""
+        }`;
 
   const addCompany = () =>
     setV((p) => ({
@@ -267,8 +262,7 @@ export default function FoundingInviteDialog({
                 <MenuItem value="standard" sx={{ whiteSpace: "normal" }}>Founding expert: 6 months free from launch, then $39 a month</MenuItem>
               ) : (
                 [
-                  <MenuItem key="standard" value="standard" sx={{ whiteSpace: "normal" }}>Standard: 6 months free from launch, then $39 a month with no increase</MenuItem>,
-                  <MenuItem key="large" value="large" sx={{ whiteSpace: "normal" }}>Large company: 6 months free from launch, then $149 a month with no increase</MenuItem>,
+                  <MenuItem key="standard" value="standard" sx={{ whiteSpace: "normal" }}>Founding company: 6 months free from launch, then $39 a month for 12 months, then $149</MenuItem>,
                 ]
               )}
             </TextField>

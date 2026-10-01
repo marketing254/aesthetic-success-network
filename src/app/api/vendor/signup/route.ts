@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { getSupabaseAdmin } from "@/lib/supabase/server";
 import { createServerSupabase } from "@/lib/supabase/server-ssr";
 import { checkRateLimit } from "@/lib/waitlist/rateLimit";
+import { normalizeWebUrl } from "@/lib/waitlist/validate";
 import { notifySignup } from "@/lib/email/teamNotify";
 import { forwardVendorToKit } from "@/lib/kit";
 import { clientIp, hashIp } from "@/lib/security/hashIp";
@@ -106,7 +107,7 @@ function validate(body: unknown): { ok: true; data: ApplicationPayload } | { ok:
     data: {
       companyName,
       category: asString(b.category, 120),
-      website: asString(b.website, 500),
+      website: normalizeWebUrl(asString(b.website, 500)) || "",
       description: asString(b.description, 2000),
       memberOffer: asString(b.memberOffer, 500),
       alsoExpert: b.alsoExpert === true,
@@ -126,7 +127,7 @@ function validate(body: unknown): { ok: true; data: ApplicationPayload } | { ok:
       planId: asString(b.planId, 60) ?? "founding",
       source: asString(b.source, 60) ?? "vendor-signup-form",
       hotlineEmail: asString(b.hotlineEmail, 254)?.toLowerCase(),
-      calendarLink: asString(b.calendarLink, 500),
+      calendarLink: normalizeWebUrl(asString(b.calendarLink, 500)) || "",
     },
   };
 }

@@ -14,7 +14,7 @@ import { COLORS } from "@/theme";
  *
  * Pricing rule (ASN-SWAP-CANON section 3, owner decision 2026-10-01):
  * every provider gets the first 6 months free from the member launch, then
- * $39 a month with no increase. Founding invites are internal-only
+ * $39 a month for 12 months, then $149. Founding invites are internal-only
  * (invite link only) and the company large rate is never shown publicly.
  */
 type CardRole = "member" | "expert" | "partner";
@@ -57,7 +57,7 @@ const CARDS: Array<{
   {
     eyebrow: "Partners",
     title: "For companies serving aesthetic practices",
-    body: "Get in front of aesthetics' most engaged buyers through a trusted shortlist instead of a cold ad. Your first 6 months are free from the member launch, then $39 a month with no increase.",
+    body: "Get in front of aesthetics' most engaged buyers through a trusted shortlist instead of a cold ad. Your first 6 months are free from the member launch, then $39 a month for 12 months, then $149.",
     perks: [
       "Profile and placement in your category",
       "Lead flow with a dashboard",

@@ -321,7 +321,7 @@ export const pricing = [
     tier: "Company",
     audience: "Devices, injectables, skincare, software, services",
     price: "Apply",
-    cadence: "First 6 months free from member launch, then $39/mo with no increase",
+    cadence: "First 6 months free from member launch, then $39/mo for 12 months, then $149/mo",
     blurb:
       "Get in front of aesthetics' most engaged buyers through a trusted shortlist instead of a cold ad. Profile and placement in your category, lead flow, and a Verified Company badge.",
     features: [

@@ -1,5 +1,4 @@
 import "server-only";
-import crypto from "node:crypto";
 import { getSupabaseAdmin } from "@/lib/supabase/server";
 import { renderFoundingAgreementPdf } from "@/lib/pdf/foundingAgreementPdf";
 import { sendFoundingInviteEmail } from "@/lib/email/foundingInvite";
@@ -7,14 +6,13 @@ import { notifyTeamEvent, type SignupField } from "@/lib/email/teamNotify";
 import { appOrigin, appUrl } from "@/lib/stripe";
 import { insertNotification } from "@/lib/api/notifications";
 import { normalizeProviderRate, providerTermsShort } from "@/lib/providerBilling";
-import type { FoundingInviteRole, FoundingInvitesRow } from "@/lib/supabase/types";
+import type { FoundingInvitesRow } from "@/lib/supabase/types";
 
 /**
- * The agreement step, shared by every provider flow:
- *   - admin founding invites (/admin/founding "Send invite")
- *   - website expert approval (/api/admin/experts mark_onboarded)
- *   - website company approval (/api/admin/vendors approve)
- * renders the personalized agreement PDF, uploads it, emails the private
+ * The founding agreement step, used ONLY by the admin "Send invite" action
+ * on /admin/founding. Website applicants accept the Provider Agreement in
+ * their portal instead and never receive a founding link. This renders the
+ * personalized agreement PDF, uploads it, emails the private
  * /founding/<code> link, advances the invite to "sent", and alerts the
  * team with the full detail of the person and where they came from.
  */
@@ -29,11 +27,6 @@ export function isSendableEmail(email: string): boolean {
   if (!EMAIL_RE.test(e) || e.length > 320) return false;
   const domain = e.split("@")[1] ?? "";
   return !(domain.endsWith(".invalid") || domain.endsWith(".local") || domain.endsWith(".example"));
-}
-
-export function genInviteCode(): string {
-  // 18 bytes → 24-char base64url, ~144 bits of entropy.
-  return crypto.randomBytes(18).toString("base64url");
 }
 
 /** Human label for where an invite came from (shown in team alerts). */
@@ -159,92 +152,4 @@ export async function sendFoundingInvite(invite: FoundingInvitesRow): Promise<Se
   });
 
   return { ok: true, emailed, inviteUrl, status: nextStatus };
-}
-
-export type ApplicantInviteInput = {
-  role: FoundingInviteRole;
-  /** Company rate: "standard" or "large". */
-  rate?: string | null;
-  fullName: string;
-  email: string;
-  companyName?: string | null;
-  memberOffer?: string | null;
-  phone?: string | null;
-  website?: string | null;
-  category?: string | null;
-  calendarLink?: string | null;
-  description?: string | null;
-  signerName?: string | null;
-  signerTitle?: string | null;
-  secondaryEmail?: string | null;
-  secondaryPhone?: string | null;
-  /** Where they came from, e.g. "Website expert application". */
-  source: string;
-  createdBy: string;
-};
-
-/**
- * Create (or reuse) the founding invite for someone who applied on the
- * website and was just approved, then send the agreement. Reuses an
- * open invite for the same email so a second approve click never sends
- * a second code.
- */
-export async function inviteApplicant(input: ApplicantInviteInput): Promise<SendInviteResult & { inviteId?: string }> {
-  const sb = getSupabaseAdmin();
-  const email = input.email.trim().toLowerCase();
-  const { data: open } = await sb
-    .from("founding_invites")
-    .select("*")
-    .eq("email", email)
-    .in("status", ["draft", "sent", "viewed"])
-    .order("created_at", { ascending: false })
-    .limit(1)
-    .maybeSingle();
-
-  let invite = open as FoundingInvitesRow | null;
-  const rate = normalizeProviderRate(input.rate);
-  if (invite) {
-    const { data: updated } = await sb
-      .from("founding_invites")
-      .update({ pricing_plan: rate, updated_at: new Date().toISOString() } as never)
-      .eq("id", invite.id)
-      .select("*")
-      .single();
-    invite = (updated as FoundingInvitesRow | null) ?? { ...invite, pricing_plan: rate };
-  } else {
-    const { data: inserted, error } = await sb
-      .from("founding_invites")
-      .insert({
-        pricing_plan: rate,
-        code: genInviteCode(),
-        role: input.role,
-        full_name: input.fullName.trim(),
-        email,
-        company_name: input.companyName?.trim() || null,
-        member_offer: input.memberOffer?.trim() || null,
-        phone: input.phone?.trim() || null,
-        notes: `[source:${input.source}]`,
-        website: input.website?.trim() || null,
-        category: input.category?.trim() || null,
-        calendar_link: input.calendarLink?.trim() || null,
-        description: input.description?.trim() || null,
-        secondary_email: input.secondaryEmail?.trim().toLowerCase() || null,
-        secondary_phone: input.secondaryPhone?.trim() || null,
-        signer_name: input.signerName?.trim() || null,
-        signer_title: input.signerTitle?.trim() || null,
-        companies: null,
-        agreement_version: AGREEMENT_VERSION,
-        agreement_pdf_path: null,
-        status: "draft",
-        created_by: input.createdBy,
-      } as never)
-      .select("*")
-      .single();
-    if (error || !inserted) {
-      return { ok: false, status: 500, error: error?.message ?? "Couldn't create the agreement invite." };
-    }
-    invite = inserted as FoundingInvitesRow;
-  }
-  const result = await sendFoundingInvite(invite);
-  return { ...result, inviteId: invite.id };
 }

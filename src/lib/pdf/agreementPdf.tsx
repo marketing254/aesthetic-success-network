@@ -13,11 +13,13 @@ import {
   Font,
 } from "@react-pdf/renderer";
 import {
+  COMPANY_LAUNCH_LABEL,
+  COMPANY_LAUNCH_MONTHS,
+  COMPANY_STANDARD_LABEL,
   EXPERT_RATE_LABEL,
   PROVIDER_FREE_MONTHS,
+  companyStandardStartsAt,
   formatLongDate,
-  normalizeProviderRate,
-  rateLabel,
 } from "@/lib/providerBilling";
 
 /**
@@ -265,7 +267,7 @@ const PARTNER_COMMITMENTS = [
     n: "5",
     title: "Pay the fee",
     body:
-      `Nothing for your first ${PROVIDER_FREE_MONTHS} months, which start the day the network opens to members, then your flat monthly rate (see the fee schedule) with no increase.`,
+      `Nothing for your first ${PROVIDER_FREE_MONTHS} months, which start the day the network opens to members, then ${COMPANY_LAUNCH_LABEL} per month for your first ${COMPANY_LAUNCH_MONTHS} paid months, then ${COMPANY_STANDARD_LABEL} per month (see the fee schedule).`,
   },
 ];
 
@@ -322,7 +324,7 @@ const GENERAL_SECTIONS: { title: string; body: string }[] = [
 export type AgreementPdfInput = {
   role: "partner" | "expert" | "both";
   agreementVersion: string;
-  /** Company rate after the free months: "standard" ($39) or "large" ($149). */
+  /** Kept for callers; every company is on the same ladder. */
   rate?: string | null;
   /** ISO date the free founding months end, when known. */
   freePeriodEndsAt?: string | null;
@@ -364,8 +366,8 @@ function AgreementDoc({ input }: { input: AgreementPdfInput }) {
   });
   const showPartnerSections = input.role !== "expert";
   const showExpertSection = input.role !== "partner";
-  const companyRate = rateLabel(normalizeProviderRate(input.rate));
   const freeUntil = formatLongDate(input.freePeriodEndsAt ?? null);
+  const standardFrom = input.freePeriodEndsAt ? formatLongDate(companyStandardStartsAt(new Date(input.freePeriodEndsAt))) : null;
   const freeLabel = freeUntil ? `Through ${freeUntil}` : `First ${PROVIDER_FREE_MONTHS} months (from member launch)`;
 
   return (
@@ -496,9 +498,14 @@ function AgreementDoc({ input }: { input: AgreementPdfInput }) {
               <Text style={[styles.feeCol, { flex: 2 }]}>Free founding months; card on file, nothing charged</Text>
             </View>
             <View style={styles.feeRow}>
+              <Text style={[styles.feeCol, { flex: 1 }]}>Next {COMPANY_LAUNCH_MONTHS} months</Text>
+              <Text style={[styles.feeCol, { flex: 0.7 }]}>{COMPANY_LAUNCH_LABEL}/mo</Text>
+              <Text style={[styles.feeCol, { flex: 2 }]}>Launch rate{standardFrom ? `, until ${standardFrom}` : ""}</Text>
+            </View>
+            <View style={styles.feeRow}>
               <Text style={[styles.feeCol, { flex: 1 }]}>After that</Text>
-              <Text style={[styles.feeCol, { flex: 0.7 }]}>{companyRate}/mo</Text>
-              <Text style={[styles.feeCol, { flex: 2 }]}>Flat rate, no increase</Text>
+              <Text style={[styles.feeCol, { flex: 0.7 }]}>{COMPANY_STANDARD_LABEL}/mo</Text>
+              <Text style={[styles.feeCol, { flex: 2 }]}>Standard company rate</Text>
             </View>
           </View>
         ) : null}

@@ -3,11 +3,13 @@ import { readFile } from "node:fs/promises";
 import puppeteer from "puppeteer-core";
 import type { Browser } from "puppeteer-core";
 import {
+  COMPANY_LAUNCH_LABEL,
+  COMPANY_LAUNCH_MONTHS,
+  COMPANY_STANDARD_LABEL,
   EXPERT_RATE_LABEL,
   PROVIDER_FREE_MONTHS,
+  companyStandardStartsAt,
   formatLongDate,
-  normalizeProviderRate,
-  rateLabel,
 } from "@/lib/providerBilling";
 
 /**
@@ -76,8 +78,8 @@ function loadTemplate(role: FoundingAgreementPdfInput["role"]): Promise<string> 
 export type FoundingAgreementPdfInput = {
   role: "partner" | "expert" | "both";
   /**
-   * Company rate after the free founding months: "standard" ($39) or
-   * "large" ($149). Experts are always $39. Every template carries a
+   * Kept for callers; every company is on the same ladder ($39 for 12
+   * months after the free period, then $149). Every template carries a
    * {{RAMP_BLOCK}}; "both" prints both schedules.
    */
   pricing?: string | null;
@@ -102,8 +104,7 @@ export type FoundingAgreementPdfInput = {
  * Fee schedule for "3. What it costs". Static HTML, no user input, so it
  * is injected raw like {{COMPANIES_LIST}}.
  *   expert:  free founding months, then $39/mo with no increase.
- *   partner: free founding months, then $39/mo (standard) or $149/mo
- *            (large) with no increase.
+ *   partner: free founding months, then $39/mo for 12 months, then $149/mo.
  *   both:    both schedules, labelled.
  */
 function rampBlockHtml(
@@ -121,13 +122,14 @@ function rampBlockHtml(
   const freeSentence = until
     ? `Your first ${PROVIDER_FREE_MONTHS} months are free, through ${until}.`
     : `Your first ${PROVIDER_FREE_MONTHS} months are free, starting the day the network opens to members.`;
-  const rate = rateLabel(normalizeProviderRate(pricing));
+  void pricing;
+  const stdFrom = freePeriodEndsAt ? formatLongDate(companyStandardStartsAt(new Date(freePeriodEndsAt))) : null;
   const expertBlock =
     `<div class="ramp">${step("$0", freeLabel)}${step(`${EXPERT_RATE_LABEL}${mo}`, "After that &middot; no increase")}</div>` +
     `<p style="font-size:9pt;color:#5C6B7A;">${freeSentence} After that your expert access is ${EXPERT_RATE_LABEL} a month, and it stays ${EXPERT_RATE_LABEL} for as long as it stays continuously active. A card is saved at acceptance; nothing is charged until your free months end, and we remind you 7 days before the first charge.</p>`;
   const companyBlock =
-    `<div class="ramp">${step("$0", freeLabel)}${step(`${rate}${mo}`, "After that &middot; no increase")}</div>` +
-    `<p style="font-size:9pt;color:#5C6B7A;">${freeSentence} After that your company listing is ${rate} a month, and it stays ${rate} for as long as it stays continuously active. A card is saved at acceptance; nothing is charged until your free months end, and we remind you 7 days before the first charge.</p>`;
+    `<div class="ramp">${step("$0", freeLabel)}${step(`${COMPANY_LAUNCH_LABEL}${mo}`, `Next ${COMPANY_LAUNCH_MONTHS} months &middot; launch rate`)}${step(`${COMPANY_STANDARD_LABEL}${mo}`, stdFrom ? `From ${stdFrom} &middot; standard` : "After that &middot; standard")}</div>` +
+    `<p style="font-size:9pt;color:#5C6B7A;">${freeSentence} After that your company listing is ${COMPANY_LAUNCH_LABEL} a month for your first ${COMPANY_LAUNCH_MONTHS} paid months, then ${COMPANY_STANDARD_LABEL} a month (the standard company rate) for as long as it stays continuously active. A card is saved at acceptance; nothing is charged until your free months end, and we remind you 7 days before the first charge.</p>`;
   if (role === "expert") return expertBlock;
   if (role === "partner") return companyBlock;
   return heading("Expert access") + expertBlock + heading("Company listing") + companyBlock;

@@ -36,8 +36,8 @@ import {
  *
  * `audience` picks the benefits list AND the ramp ("green" = expert,
  * "gold" = company). Every provider: free founding months (6 from the
- * member launch), then a flat rate with no increase ($39 for experts;
- * $39 standard or $149 large for companies, passed as `rate`). Nothing
+ * member launch), then $39 a month (experts: flat; companies: 12 months,
+ * then $149). Nothing
  * is charged today. The card itself uses the community palette for both.
  */
 const STRIPE_PK = process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY;
@@ -167,7 +167,14 @@ export default function TrialStartCard({
         {/* Terms: free founding months, then the flat rate */}
         <Box sx={{ border: `1px solid ${LINE}`, borderRadius: "12px", px: 2, py: 1.25, mb: 2.5 }}>
           <RampLine label="First 6 months, from member launch" price="$0/mo" bold />
-          <RampLine label="After that, no increase" price={`${rateLabel}/mo`} />
+          {_audience === "green" ? (
+            <RampLine label="After that, no increase" price="$39/mo" />
+          ) : (
+            <>
+              <RampLine label="Next 12 months, launch rate" price="$39/mo" />
+              <RampLine label="After that, standard rate" price="$149/mo" />
+            </>
+          )}
         </Box>
 
         {/* Payment element: skeleton while it boots, no status text */}
@@ -424,7 +431,9 @@ function BenefitsPanel({ audience, rate }: { audience: "gold" | "green"; rate: s
     >
       <Typography sx={{ fontSize: "1rem", fontWeight: 700, letterSpacing: "-0.01em", color: INK, mb: 0.5 }}>What your membership includes</Typography>
       <Typography sx={{ fontSize: "0.8125rem", color: BODY, mb: 2, lineHeight: 1.55 }}>
-        {`Your first 6 months are free, starting the day we open to members. After that it's ${rate} a month, and it stays ${rate} with no increase. Cancel before your first charge and you won't be charged; after that, 30 days' notice.`}
+        {expert
+          ? `Your first 6 months are free, starting the day we open to members. After that it's ${rate} a month, and it stays ${rate} with no increase. Cancel before your first charge and you won't be charged; after that, 30 days' notice.`
+          : "Your first 6 months are free, starting the day we open to members. After that it's $39 a month for your first 12 months, then $149 a month. Cancel before your first charge and you won't be charged; after that, 30 days' notice."}
       </Typography>
       <Stack component="ul" spacing={1.25} sx={{ listStyle: "none", p: 0, m: 0 }}>
         {items.map((t) => (

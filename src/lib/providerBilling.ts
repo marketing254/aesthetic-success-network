@@ -7,10 +7,11 @@
  *   date, not to the day they accept, so providers who join early are
  *   never charged before members can join.
  *
- *   Rate after the free period: a flat monthly rate with no increase.
- *     expert            $39
- *     company standard  $39   (default)
- *     company large     $149  (set by the admin at approval / invite)
+ *   After the free period:
+ *     expert   $39 a month, flat, no increase.
+ *     company  $39 a month for the first COMPANY_LAUNCH_MONTHS (12) paid
+ *              months, then $149 a month (the standard company rate).
+ *              Same for founding invites and website signups.
  *
  *   A card is saved when the agreement is accepted. Stripe holds the
  *   subscription in `trialing` until the free period ends, then charges
@@ -38,20 +39,31 @@ export const CANCEL_NOTICE_DAYS = 30;
 /** Days before the first charge that the single reminder email goes out. */
 export const FIRST_CHARGE_REMINDER_DAYS = 7;
 
+/** Kept for the DB column values (standard | large); every company is on the same ladder now. */
 export type ProviderRate = "standard" | "large";
 
-export const PROVIDER_RATE_AMOUNT: Record<ProviderRate, number> = {
-  standard: 39,
-  large: 149,
-};
+/** Company launch rate ($39) for the first paid months. */
+export const COMPANY_LAUNCH_AMOUNT = 39;
+/** Number of paid months at the launch rate before the standard rate. */
+export const COMPANY_LAUNCH_MONTHS = 12;
+/** Company standard rate after the launch months. */
+export const COMPANY_STANDARD_AMOUNT = 149;
+export const COMPANY_LAUNCH_LABEL = `$${COMPANY_LAUNCH_AMOUNT}`;
+export const COMPANY_STANDARD_LABEL = `$${COMPANY_STANDARD_AMOUNT}`;
 
 export function normalizeProviderRate(value: string | null | undefined): ProviderRate {
   return value === "large" ? "large" : "standard";
 }
 
-/** "$39" / "$149". */
+/** The company LAUNCH rate label ("$39"). The standard step is COMPANY_STANDARD_LABEL. */
 export function rateLabel(rate: ProviderRate | string | null | undefined): string {
-  return `$${PROVIDER_RATE_AMOUNT[normalizeProviderRate(rate)]}`;
+  void rate;
+  return COMPANY_LAUNCH_LABEL;
+}
+
+/** When the $149 standard rate starts: the free period end plus the launch months. */
+export function companyStandardStartsAt(freePeriodEnd: Date): Date {
+  return addMonthsUtc(freePeriodEnd, COMPANY_LAUNCH_MONTHS);
 }
 
 /** Experts are always $39. */
@@ -100,15 +112,19 @@ export function formatLongDate(date: Date | string | null | undefined): string |
  *    After that it's $39 a month, and it stays $39 with no increase."
  */
 export function providerTermsSentence(rate: ProviderRate | string | null | undefined, opts: { expert?: boolean } = {}): string {
-  const r = opts.expert ? EXPERT_RATE_LABEL : rateLabel(rate);
-  return `Your first ${PROVIDER_FREE_MONTHS} months are free, starting the day we open to members. After that it's ${r} a month, and it stays ${r} with no increase.`;
+  void rate;
+  if (opts.expert) {
+    return `Your first ${PROVIDER_FREE_MONTHS} months are free, starting the day we open to members. After that it's ${EXPERT_RATE_LABEL} a month, and it stays ${EXPERT_RATE_LABEL} with no increase.`;
+  }
+  return `Your first ${PROVIDER_FREE_MONTHS} months are free, starting the day we open to members. After that it's ${COMPANY_LAUNCH_LABEL} a month for your first ${COMPANY_LAUNCH_MONTHS} months, then ${COMPANY_STANDARD_LABEL} a month.`;
 }
 
 /** Short form for tables and chips: "Free until March 1, 2027, then $39 a month". */
 export function providerTermsShort(rate: ProviderRate | string | null | undefined, freeUntil: Date | string | null | undefined, opts: { expert?: boolean } = {}): string {
-  const r = opts.expert ? EXPERT_RATE_LABEL : rateLabel(rate);
+  void rate;
   const until = formatLongDate(freeUntil);
-  return until
-    ? `Free until ${until}, then ${r} a month with no increase`
-    : `${PROVIDER_FREE_MONTHS} months free from the member launch, then ${r} a month with no increase`;
+  const after = opts.expert
+    ? `${EXPERT_RATE_LABEL} a month with no increase`
+    : `${COMPANY_LAUNCH_LABEL} a month for ${COMPANY_LAUNCH_MONTHS} months, then ${COMPANY_STANDARD_LABEL}`;
+  return until ? `Free until ${until}, then ${after}` : `${PROVIDER_FREE_MONTHS} months free from the member launch, then ${after}`;
 }

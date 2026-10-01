@@ -148,7 +148,7 @@ export default function PartnerForm({
         </div>
         <div className="field">
           <label htmlFor="p-website">Website</label>
-          <input id="p-website" type="url" name="website" placeholder="https://" />
+          <input id="p-website" type="text" inputMode="url" autoCapitalize="none" spellCheck={false} name="website" placeholder="www.yoursite.com" />
         </div>
       </div>
       <div className="frow">
@@ -222,7 +222,7 @@ export default function PartnerForm({
       <div className="frow">
         <div className="field">
           <label htmlFor="p-booking">Booking link</label>
-          <input id="p-booking" type="url" name="booking" placeholder="https://" />
+          <input id="p-booking" type="text" inputMode="url" autoCapitalize="none" spellCheck={false} name="booking" placeholder="www.yoursite.com" />
         </div>
         <div className="field">
           <label htmlFor="p-billing">Billing contact email</label>

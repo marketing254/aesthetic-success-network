@@ -1,4 +1,4 @@
-import { EMAIL_RE, URL_RE, MAX_EMAIL_LEN, asString } from "@/lib/waitlist/validate";
+import { EMAIL_RE, MAX_EMAIL_LEN, asString, normalizeWebUrl } from "@/lib/waitlist/validate";
 
 // Expert applications are reviewed by the ASN team, not auto-approved.
 // Validation here mirrors the field set in WaitlistSection's expert
@@ -94,34 +94,28 @@ export function validateExpertApplication(body: unknown): ValidationResult {
   if (bio && bio.length > 2000) {
     return { ok: false, error: "Keep your bio under 2000 characters.", field: "bio" };
   }
-  const sampleLink = asString(b.sampleLink) || undefined;
-  if (sampleLink && (sampleLink.length > 500 || !URL_RE.test(sampleLink))) {
-    return { ok: false, error: "Use a full https:// URL for your sample link.", field: "sampleLink" };
+  const sampleLinkRaw = asString(b.sampleLink);
+  const sampleLinkNorm = normalizeWebUrl(sampleLinkRaw);
+  if (sampleLinkRaw && (sampleLinkRaw.length > 500 || !sampleLinkNorm)) {
+    return { ok: false, error: "Enter a web address for your sample link, e.g. www.yoursite.com/talk.", field: "sampleLink" };
   }
+  const sampleLink = sampleLinkNorm || undefined;
   const paidCourses = asString(b.paidCourses).slice(0, 40) || undefined;
   const contentOwnershipConfirmed = b.contentOwnershipConfirmed === true;
 
-  const website = asString(b.website) || undefined;
-  if (website) {
-    if (website.length > 240 || !URL_RE.test(website)) {
-      return {
-        ok: false,
-        error: "Use a full https:// URL for your website.",
-        field: "website",
-      };
-    }
+  const websiteRaw = asString(b.website);
+  const websiteNorm = normalizeWebUrl(websiteRaw);
+  if (websiteRaw && (websiteRaw.length > 240 || !websiteNorm)) {
+    return { ok: false, error: "Enter a web address for your website, e.g. www.yoursite.com.", field: "website" };
   }
+  const website = websiteNorm || undefined;
 
-  const bookingLink = asString(b.bookingLink) || undefined;
-  if (bookingLink) {
-    if (bookingLink.length > 240 || !URL_RE.test(bookingLink)) {
-      return {
-        ok: false,
-        error: "Use a full https:// URL for your booking link.",
-        field: "bookingLink",
-      };
-    }
+  const bookingRaw = asString(b.bookingLink);
+  const bookingNorm = normalizeWebUrl(bookingRaw);
+  if (bookingRaw && (bookingRaw.length > 240 || !bookingNorm)) {
+    return { ok: false, error: "Enter a web address for your booking link, e.g. calendly.com/you.", field: "bookingLink" };
   }
+  const bookingLink = bookingNorm || undefined;
 
   const source = asString(b.source) || "landing";
   const utmRaw = b.utm;

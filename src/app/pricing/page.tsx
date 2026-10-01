@@ -103,7 +103,8 @@ const PRICING_JSONLD = {
       url: `${SITE}/pricing`,
       offers: [
         { "@type": "Offer", name: "Company: first 6 months free (from member launch)", price: "0.00", priceCurrency: "USD", url: `${SITE}/companies` },
-        { "@type": "Offer", name: "Company, after the free months", price: "39.00", priceCurrency: "USD", url: `${SITE}/companies` },
+        { "@type": "Offer", name: "Company, launch rate (first 12 paid months)", price: "39.00", priceCurrency: "USD", url: `${SITE}/companies` },
+        { "@type": "Offer", name: "Company, standard rate", price: "149.00", priceCurrency: "USD", url: `${SITE}/companies` },
       ],
     },
   ],
@@ -194,7 +195,7 @@ export default function PricingPage() {
             Your first 6 months are free. It pays for itself as <em>deals close</em>.
           </h2>
           <p className="lead">
-            Your first 6 months are free, starting the day we open to members. After that it&rsquo;s $39 a month, and it stays $39 with no increase.
+            Your first 6 months are free, starting the day we open to members. After that it&rsquo;s $39 a month for your first 12 months, then $149 a month.
           </p>
           <div className="pgrid">
             <div className="pc hot">
@@ -204,12 +205,20 @@ export default function PricingPage() {
               <div className="desc">Free from the day we open to members. Get listed and start receiving leads before you pay a cent.</div>
             </div>
             <div className="pc">
-              <div className="tier">After that</div>
+              <div className="tier">Launch rate</div>
               <div className="price">
                 ${PARTNER_PLAN_DISPLAY.partner_growth_monthly.amount}
                 <span>/mo</span>
               </div>
-              <div className="desc">Locked rate as the leads keep coming in. It stays $39, with no increase.</div>
+              <div className="desc">Your first 12 paid months, as the leads keep coming in.</div>
+            </div>
+            <div className="pc">
+              <div className="tier">After that</div>
+              <div className="price">
+                ${PARTNER_PLAN_DISPLAY.partner_founding_standard_monthly.amount}
+                <span>/mo</span>
+              </div>
+              <div className="desc">The standard company rate for a featured listing, lead routing and the Verified badge.</div>
             </div>
           </div>
           <p className="guarantee">
@@ -258,9 +267,10 @@ export default function PricingPage() {
               <summary>Do experts and companies get free months?</summary>
               <p>
                 Yes. For both experts and companies, your first 6 months are free, starting the
-                day we open to members. After that it&rsquo;s $39 a month, and it stays $39 with
-                no increase. Cancel any time before your first charge and you won&rsquo;t be
-                charged; after that, cancel with 30 days&rsquo; written notice.
+                day we open to members. After that, experts pay $39 a month with no increase;
+                companies pay $39 a month for their first 12 months, then $149 a month. Cancel any
+                time before your first charge and you won&rsquo;t be charged; after that, cancel
+                with 30 days&rsquo; written notice.
               </p>
             </details>
           </div>

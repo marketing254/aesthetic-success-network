@@ -1,7 +1,9 @@
 import Stripe from "stripe";
 import {
+  COMPANY_LAUNCH_LABEL,
+  COMPANY_STANDARD_LABEL,
   EXPERT_RATE_LABEL,
-  normalizeProviderRate,
+  companyStandardStartsAt,
   providerFreePeriodEnd,
   rateLabel,
   type ProviderRate,
@@ -37,11 +39,10 @@ import {
  *   Every provider, expert or company, founding invite or website signup,
  *   saves a card when they accept the agreement and pays nothing until
  *   PROVIDER_FREE_MONTHS (6) after the member launch (MEMBER_LAUNCH_DATE).
- *   Stripe holds the subscription in `trialing` until that date
- *   (createProviderSubscription), then charges a flat monthly rate with
- *   no increase: experts $39; companies $39 ("standard") or $149
- *   ("large", set by the admin at approval or on the invite). There are
- *   no subscription schedules, no month-13 step and no $199 rate.
+ *   Stripe holds the billing in `trialing` until that date
+ *   (createProviderSubscription). Then: experts $39 a month, flat;
+ *   companies $39 a month for 12 paid months, then $149 a month, as one
+ *   subscription schedule. No $199 rate anywhere.
  *   Role "both" = an expert subscription and a company subscription on
  *   the same Stripe customer, mirrored onto the experts and vendors rows.
  *
@@ -329,7 +330,7 @@ export function priceLabelForPhase(
 ): string {
   if (phase === "launch") return "$0 / mo";
   if (audience === "expert") return `${EXPERT_RATE_LABEL} / mo`;
-  return `${rateLabel(rate)} / mo`;
+  return phase === "standard" ? `${COMPANY_STANDARD_LABEL} / mo` : `${rateLabel(rate)} / mo`;
 }
 
 // =====================================================================
@@ -339,72 +340,110 @@ export function priceLabelForPhase(
 
 export type ProviderSubscriptionResult = {
   subscription: Stripe.Subscription;
-  /** Price the subscription bills after the free months (mirrored to stripe_price_id). */
+  /** Price billed right after the free months (mirrored to stripe_price_id). */
   priceId: string;
   /** ISO date the free founding months end and the first charge lands. */
   freePeriodEndsAt: string;
+  /** Companies only: ISO date the $149 standard rate starts (free end + 12 months). */
+  standardStartsAt: string | null;
   /** True while MEMBER_LAUNCH_DATE is unset and the end date is a placeholder. */
   provisional: boolean;
-  /** "$39" or "$149". */
+  /** "$39". */
   rateLabel: string;
 };
 
 /**
- * Create ONE provider subscription with the card saved as default:
- *   - items: the rate price (expert $39; company $39 standard or $149 large)
- *   - trial_end: PROVIDER_FREE_MONTHS after the member launch
- *     (providerFreePeriodEnd); nothing is charged before that date
- *   - trial_settings: if the card is removed before then, Stripe pauses
- *     instead of charging a missing card
- * Every provider (founding invite, website expert, website company) runs
- * through here so the flows can never drift. `metadata` is written to
- * the subscription; `audience`, `plan`, `rate` and `free_period` are
- * added here.
+ * Create the provider's billing with the card saved as default. Nothing is
+ * charged before the free founding months end (providerFreePeriodEnd).
+ *
+ *   expert   ONE subscription on the $39 price with trial_end = free end.
+ *   company  ONE subscription schedule:
+ *              phase 1  $39 price, trial until the free end, then 12 paid
+ *                       months (end_date = free end + COMPANY_LAUNCH_MONTHS)
+ *              phase 2  $149 price, open-ended (end_behavior "release")
+ *            Same objects for founding invites and website signups.
+ * `metadata` is written to the subscription (and both phases); `audience`,
+ * `plan` and `free_period` are added here. The webhook mirrors status and
+ * period dates onto the row as usual.
  */
 export async function createProviderSubscription(opts: {
   customerId: string;
   paymentMethodId: string;
   audience: "expert" | "vendor";
-  /** Companies only. Experts are always the $39 price. */
+  /** Ignored for billing (every company is on the same ladder); kept for callers. */
   rate?: ProviderRate | string | null;
   metadata?: Record<string, string>;
 }): Promise<ProviderSubscriptionResult> {
   const stripe = getStripe();
-  const rate = normalizeProviderRate(opts.rate);
-  const priceId =
-    opts.audience === "expert"
-      ? expertPriceIdFor("expert_growth_monthly")
-      : rate === "large"
-        ? partnerPriceIdFor("partner_founding_standard_monthly")
-        : partnerPriceIdFor("partner_growth_monthly");
-  const plan =
-    opts.audience === "expert"
-      ? "expert_growth_monthly"
-      : rate === "large"
-        ? "partner_founding_standard_monthly"
-        : "partner_growth_monthly";
   const free = providerFreePeriodEnd();
-  const subscription = await stripe.subscriptions.create({
+  const freeSec = Math.floor(free.date.getTime() / 1000);
+  const base: Record<string, string> = {
+    ...(opts.metadata ?? {}),
+    audience: opts.audience,
+    free_period: free.provisional ? "provisional" : "launch_based",
+    free_period_ends_at: free.date.toISOString(),
+  };
+
+  if (opts.audience === "expert") {
+    const priceId = expertPriceIdFor("expert_growth_monthly");
+    const subscription = await stripe.subscriptions.create({
+      customer: opts.customerId,
+      items: [{ price: priceId }],
+      trial_end: freeSec,
+      default_payment_method: opts.paymentMethodId,
+      trial_settings: { end_behavior: { missing_payment_method: "pause" } },
+      metadata: { ...base, plan: "expert_growth_monthly", rate: "standard" },
+    });
+    return {
+      subscription,
+      priceId,
+      freePeriodEndsAt: free.date.toISOString(),
+      standardStartsAt: null,
+      provisional: free.provisional,
+      rateLabel: EXPERT_RATE_LABEL,
+    };
+  }
+
+  const launchPriceId = partnerPriceIdFor("partner_growth_monthly");
+  const standardPriceId = partnerPriceIdFor("partner_founding_standard_monthly");
+  const standardStart = companyStandardStartsAt(free.date);
+  const schedule = await stripe.subscriptionSchedules.create({
     customer: opts.customerId,
-    items: [{ price: priceId }],
-    trial_end: Math.floor(free.date.getTime() / 1000),
-    default_payment_method: opts.paymentMethodId,
-    trial_settings: { end_behavior: { missing_payment_method: "pause" } },
-    metadata: {
-      ...(opts.metadata ?? {}),
-      audience: opts.audience,
-      plan,
-      rate: opts.audience === "expert" ? "standard" : rate,
-      free_period: free.provisional ? "provisional" : "launch_based",
-      free_period_ends_at: free.date.toISOString(),
+    start_date: "now",
+    end_behavior: "release",
+    default_settings: {
+      default_payment_method: opts.paymentMethodId,
+      collection_method: "charge_automatically",
     },
+    phases: [
+      {
+        items: [{ price: launchPriceId }],
+        trial_end: freeSec,
+        end_date: Math.floor(standardStart.getTime() / 1000),
+        metadata: { ...base, plan: "partner_growth_monthly" },
+      },
+      {
+        items: [{ price: standardPriceId }],
+        metadata: { ...base, plan: "partner_founding_standard_monthly" },
+      },
+    ],
+    metadata: base,
+  });
+  const subId = typeof schedule.subscription === "string" ? schedule.subscription : schedule.subscription?.id;
+  if (!subId) throw new Error("Schedule did not create a subscription.");
+  // The schedule's subscription carries the phase metadata; copy the base
+  // metadata onto it too so the webhook can route it by `audience`.
+  const subscription = await stripe.subscriptions.update(subId, {
+    metadata: { ...base, plan: "partner_growth_monthly" },
+    trial_settings: { end_behavior: { missing_payment_method: "pause" } },
   });
   return {
     subscription,
-    priceId,
+    priceId: launchPriceId,
     freePeriodEndsAt: free.date.toISOString(),
+    standardStartsAt: standardStart.toISOString(),
     provisional: free.provisional,
-    rateLabel: opts.audience === "expert" ? EXPERT_RATE_LABEL : rateLabel(rate),
+    rateLabel: COMPANY_LAUNCH_LABEL,
   };
 }
 
@@ -488,7 +527,7 @@ export function checkBillingAccess(opts: {
   // /expert/billing, where TrialStartCard captures the card and starts
   // the subscription (free until the launch-based date, then the flat rate).
   if (!hasSubscription) {
-    const rate = audience === "expert" ? EXPERT_RATE_LABEL : rateLabel(opts.rate);
+    const rate = audience === "expert" ? EXPERT_RATE_LABEL : COMPANY_LAUNCH_LABEL;
     return {
       allowed: false,
       reason: "subscription_required",

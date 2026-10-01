@@ -2,20 +2,22 @@
  * Company price terms, keyed by vendors.billing_plan (0071).
  *
  * Every company pays nothing until PROVIDER_FREE_MONTHS after the member
- * launch, then a flat monthly rate with no increase:
- *   standard  $39 a month  (default; website signups and most invites)
- *   large     $149 a month (set by the admin at approval / on the invite)
+ * launch, then $39 a month for the first 12 paid months, then $149 a
+ * month. Founding invites and website signups share the same ladder.
  *
  * Every company-portal surface that prints a price reads from here so the
  * terms a company sees always match the plan on its row.
  */
 
 import {
+  COMPANY_LAUNCH_LABEL,
+  COMPANY_LAUNCH_MONTHS,
+  COMPANY_STANDARD_LABEL,
   PROVIDER_FREE_MONTHS,
+  companyStandardStartsAt,
   formatLongDate,
   normalizeProviderRate,
   providerTermsSentence,
-  rateLabel,
   type ProviderRate,
 } from "@/lib/providerBilling";
 
@@ -34,11 +36,13 @@ export type VendorRamp = {
   plan: VendorBillingPlan;
   /** Short plan label, e.g. "Company, standard rate". */
   label: string;
-  /** "$39" or "$149". */
+  /** Launch rate after the free months: "$39". */
   rate: string;
+  /** Standard rate after the launch months: "$149". */
+  standardRate: string;
   rows: VendorRampRow[];
-  /** Price this month: "$0.00" during the free period, else the rate. */
-  monthlyNow: (hasTrial: boolean) => string;
+  /** Price this month: "$0.00" during the free period, else the launch or standard rate. */
+  monthlyNow: (hasTrial: boolean, onStandard?: boolean) => string;
   /** One sentence describing the whole term. */
   summary: string;
 };
@@ -54,12 +58,15 @@ export function normalizeVendorPlan(plan: string | null | undefined): VendorBill
  */
 export function vendorRamp(plan: VendorBillingPlan | string | null | undefined, freeUntil?: string | Date | null): VendorRamp {
   const p = normalizeVendorPlan(typeof plan === "string" ? plan : plan ?? null);
-  const rate = rateLabel(p);
-  const until = formatLongDate(freeUntil ?? null);
+  const rate = COMPANY_LAUNCH_LABEL;
+  const freeDate = freeUntil ? new Date(freeUntil) : null;
+  const until = formatLongDate(freeDate);
+  const standardFrom = freeDate && !Number.isNaN(freeDate.getTime()) ? formatLongDate(companyStandardStartsAt(freeDate)) : null;
   return {
     plan: p,
-    label: p === "large" ? "Company, large rate" : "Company, standard rate",
+    label: "Company",
     rate,
+    standardRate: COMPANY_STANDARD_LABEL,
     rows: [
       {
         label: "Free founding months",
@@ -67,22 +74,30 @@ export function vendorRamp(plan: VendorBillingPlan | string | null | undefined, 
         note: until ? `Until ${until}` : `${PROVIDER_FREE_MONTHS} months from the member launch`,
         free: true,
       },
-      { label: "After that", price: rate, note: "Every month, no increase", free: false },
+      {
+        label: `Next ${COMPANY_LAUNCH_MONTHS} months`,
+        price: rate,
+        note: standardFrom ? `Launch rate until ${standardFrom}` : "Launch rate",
+        free: false,
+      },
+      { label: "After that", price: COMPANY_STANDARD_LABEL, note: "Standard rate", free: false },
     ],
     summary: providerTermsSentence(p),
-    monthlyNow(hasTrial: boolean): string {
-      return hasTrial ? "$0.00" : `${rate}.00`;
+    monthlyNow(hasTrial: boolean, onStandard = false): string {
+      return hasTrial ? "$0.00" : `${onStandard ? COMPANY_STANDARD_LABEL : rate}.00`;
     },
   };
 }
 
 /** The row that applies now. */
-export function currentRampRow(plan: VendorBillingPlan | string | null | undefined, hasTrial: boolean, freeUntil?: string | Date | null): VendorRampRow {
+export function currentRampRow(plan: VendorBillingPlan | string | null | undefined, hasTrial: boolean, freeUntil?: string | Date | null, onStandard = false): VendorRampRow {
   const ramp = vendorRamp(plan, freeUntil);
-  return hasTrial ? ramp.rows[0] : ramp.rows[1];
+  if (hasTrial) return ramp.rows[0];
+  return onStandard ? ramp.rows[2] : ramp.rows[1];
 }
 
 /** Short chip label for the admin console. */
 export function vendorPlanChipLabel(plan: string | null | undefined): string {
-  return normalizeVendorPlan(plan) === "large" ? "$149 rate" : "$39 rate";
+  void plan;
+  return "$39 then $149";
 }

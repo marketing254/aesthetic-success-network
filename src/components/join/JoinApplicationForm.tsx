@@ -80,7 +80,7 @@ const CONFIG_BY_ROLE: Record<JoinRole, Config> = {
     endpoint: "/api/join/expert/apply",
     bullets: [
       "Cancel anytime, 30-day written notice",
-      "First 6 months free from the member launch, then $39 a month with no increase",
+      "First 6 months free from the member launch, then $39 a month for 12 months, then $149",
       "Sell your own courses and products to members and keep the full price",
     ],
   },

@@ -32,10 +32,11 @@ export const vendorPlans: VendorPlan[] = [
     priceLabel: "$0",
     cadenceLabel: "for your first 6 months, from the member launch",
     blurb:
-      "Your first 6 months are free, starting the day we open to members. After that it's $39 a month, and it stays $39 with no increase. Founding badge in the directory.",
+      "Your first 6 months are free, starting the day we open to members. After that it's $39 a month for your first 12 months, then $149 a month. Founding badge in the directory.",
     features: [
       "First 6 months: free, from the member launch",
-      "After that: $39/mo, no increase",
+      "Next 12 months: $39/mo launch rate",
+      "After that: $149/mo standard rate",
       "Founding Partner badge in the directory",
       "Featured Partner benefits",
       "Verified Partner badge",
@@ -381,7 +382,7 @@ export const vendorCommitments: VendorCommitment[] = [
     number: "05",
     title: "Pay the fee.",
     body:
-      "Your first 6 months are free, starting the day we open to members. After that it's $39 a month, and it stays $39 with no increase. Cancel any time before your first charge and you won't be charged; after that, cancel with 30 days' written notice. Annual prepay earns two months free.",
+      "Your first 6 months are free, starting the day we open to members. After that it's $39 a month for your first 12 months, then $149 a month. Cancel any time before your first charge and you won't be charged; after that, cancel with 30 days' written notice. Annual prepay earns two months free.",
   },
 ];
 
@@ -394,14 +395,16 @@ export type FeeScheduleRow = {
 
 export const vendorFeeSchedule: FeeScheduleRow[] = [
   { period: "Free founding months", fee: "$0", note: "First 6 months, from the member launch" },
-  { period: "After that", fee: "$39", note: "Every month, no increase" },
+  { period: "Next 12 months", fee: "$39", note: "Launch rate" },
+  { period: "After that", fee: "$149", note: "Standard company rate" },
 ];
 
 // Headline numbers shown above the agreement (the "key terms band").
 // 12-month initial term and 30 days' notice come from provider agreement section 08.
 export const vendorAgreementKeyTerms = [
   { label: "Free months", value: "$0", sub: "from launch" },
-  { label: "After that", value: "$39", sub: "per month" },
+  { label: "Next 12 months", value: "$39", sub: "launch rate" },
+  { label: "After that", value: "$149", sub: "per month" },
   { label: "Commitment", value: "12 mo", sub: "Initial term" },
   { label: "Cancel", value: "30 d", sub: "Written notice" },
 ];

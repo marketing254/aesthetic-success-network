@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { getStripe, appOrigin, appUrl, createProviderSubscription } from "@/lib/stripe";
-import { normalizeProviderRate, formatLongDate, rateLabel, EXPERT_RATE_LABEL } from "@/lib/providerBilling";
+import { normalizeProviderRate, formatLongDate, EXPERT_RATE_LABEL, COMPANY_LAUNCH_LABEL, COMPANY_STANDARD_LABEL, companyStandardStartsAt } from "@/lib/providerBilling";
 import { inviteDetailFields } from "@/lib/founding/sendInvite";
 import { getSupabaseAdmin } from "@/lib/supabase/server";
 import { renderFoundingAgreementPdf } from "@/lib/pdf/foundingAgreementPdf";
@@ -197,6 +197,7 @@ export async function POST(req: Request, ctx: { params: Promise<{ code: string }
     }
   }
   const freePeriodEndsAt = partnerBilling?.trialEnd ?? expertBilling?.trialEnd ?? null;
+  const partnerStandardStartsAt = freePeriodEndsAt && wantsPartner ? companyStandardStartsAt(new Date(freePeriodEndsAt)).toISOString() : null;
 
   // Pre-create the auth user so they can log into the portal later.
   let authUserId: string | null = null;
@@ -483,6 +484,7 @@ export async function POST(req: Request, ctx: { params: Promise<{ code: string }
       companies: invite.companies ?? undefined,
       founding: true,
       freePeriodEndsAt,
+      standardStartsAt: partnerStandardStartsAt,
       cardCaptured: true,
     });
   }
@@ -499,8 +501,9 @@ export async function POST(req: Request, ctx: { params: Promise<{ code: string }
     fields: inviteDetailFields(invite, [
       { label: "Payment method", value: cardBrand && cardLast4 ? `${cardBrand} ending ${cardLast4}` : "On file" },
       { label: "Expert subscription", value: expertBilling ? `${expertBilling.status} (${EXPERT_RATE_LABEL} a month after the free months)` : null },
-      { label: "Company subscription", value: partnerBilling ? `${partnerBilling.status} (${rateLabel(rate)} a month after the free months)` : null },
+      { label: "Company subscription", value: partnerBilling ? `${partnerBilling.status} (${COMPANY_LAUNCH_LABEL} a month for 12 months after the free months, then ${COMPANY_STANDARD_LABEL})` : null },
       { label: "Free months end / first charge", value: formatLongDate(freePeriodEndsAt) },
+      { label: "Company $149 rate starts", value: formatLongDate(partnerStandardStartsAt) },
       { label: "Accepted on", value: formatLongDate(signedAt) },
     ]),
   });

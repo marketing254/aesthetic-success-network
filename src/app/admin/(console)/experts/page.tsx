@@ -172,7 +172,7 @@ function Inner() {
           : action === "decline"
             ? "declined"
             : action === "mark_onboarded"
-              ? "approved: approval email and agreement sent. The portal opens once they accept."
+              ? "approved: portal access created and approval email sent. They accept the agreement and save a card in the portal."
               : "reset";
       setToast(`Application ${verb}.`);
       await load();
@@ -981,7 +981,7 @@ function RowActions({
   if (status === "reviewing" || status === "invited") {
     return (
       <>
-        <Tooltip title="Approve: sends the approval email and the agreement (card saved on acceptance). The portal opens once they accept.">
+        <Tooltip title="Approve: creates portal access and sends the approval email. They sign in, accept the agreement and save a card in the portal.">
           <IconButton size="small" sx={{ color: "success.dark" }} onClick={() => onAction("mark_onboarded")}>
             <SchoolOutlinedIcon fontSize="small" />
           </IconButton>

@@ -197,6 +197,7 @@ export async function POST(req: Request) {
       agreementVersion,
       signedAt,
       freePeriodEndsAt: created.freePeriodEndsAt,
+      standardStartsAt: created.standardStartsAt,
       cardCaptured: true,
     });
   } catch (err) {

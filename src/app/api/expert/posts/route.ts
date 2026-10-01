@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { normalizeWebUrl } from "@/lib/waitlist/validate";
 import { getSupabaseAdmin } from "@/lib/supabase/server";
 import { requirePaidExpert } from "@/lib/auth/guards";
 import { apiError, serverError } from "@/lib/api/errorResponse";
@@ -8,7 +9,6 @@ export const dynamic = "force-dynamic";
 
 const MAX_CONTENT = 4000;
 const MAX_URL = 500;
-const URL_RE = /^https?:\/\/[^\s/$.?#].[^\s]*$/i;
 
 /**
  * GET /api/expert/posts
@@ -73,13 +73,13 @@ export async function POST(req: Request) {
     );
   }
 
-  const linkUrl = (body.link_url ?? "").trim() || null;
-  if (linkUrl && (linkUrl.length > MAX_URL || !URL_RE.test(linkUrl))) {
+  const linkUrl = normalizeWebUrl((body.link_url ?? "").trim()) || null;
+  if ((body.link_url ?? "").trim() && (!linkUrl || linkUrl.length > MAX_URL)) {
     return apiError.validation("Please paste a full https:// link.", route);
   }
 
-  const imageUrl = (body.image_url ?? "").trim() || null;
-  if (imageUrl && (imageUrl.length > MAX_URL || !URL_RE.test(imageUrl))) {
+  const imageUrl = normalizeWebUrl((body.image_url ?? "").trim()) || null;
+  if ((body.image_url ?? "").trim() && (!imageUrl || imageUrl.length > MAX_URL)) {
     return apiError.validation("Please paste a full https:// image URL.", route);
   }
 

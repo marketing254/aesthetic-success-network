@@ -193,7 +193,7 @@ export default function ExpertForm({
       <div className="frow">
         <div className="field">
           <label htmlFor="x-booking">Booking link (Calendly / Cal.com)</label>
-          <input id="x-booking" type="url" name="booking" placeholder="https://" />
+          <input id="x-booking" type="text" inputMode="url" autoCapitalize="none" spellCheck={false} name="booking" placeholder="www.yoursite.com" />
         </div>
         <div className="field">
           <label htmlFor="x-courses">Have paid courses to offer?</label>
@@ -207,7 +207,7 @@ export default function ExpertForm({
       </div>
       <div className="field">
         <label htmlFor="x-sample">Sample recording or content (link, optional)</label>
-        <input id="x-sample" type="url" name="sample" placeholder="https://" />
+        <input id="x-sample" type="text" inputMode="url" autoCapitalize="none" spellCheck={false} name="sample" placeholder="www.yoursite.com" />
       </div>
       <label className="check">
         <input type="checkbox" name="own" required /> I confirm the content I share is mine to

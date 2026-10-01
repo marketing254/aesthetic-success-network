@@ -1,10 +1,10 @@
 import { NextResponse } from "next/server";
+import { normalizeWebUrl } from "@/lib/waitlist/validate";
 import { getSupabaseAdmin } from "@/lib/supabase/server";
 import { requireAdmin } from "@/lib/auth/guards";
 import { sendExpertApprovalEmail } from "@/lib/waitlist/confirmationEmail";
 import { notifyTeamEvent } from "@/lib/email/teamNotify";
 import { createOrReuseInviteLink } from "@/lib/inviteLinks";
-import { inviteApplicant } from "@/lib/founding/sendInvite";
 import type { ExpertApplicationStatus } from "@/lib/supabase/types";
 import { serverError } from "@/lib/api/errorResponse";
 import { insertNotification } from "@/lib/api/notifications";
@@ -155,15 +155,16 @@ export async function POST(req: Request) {
   }
   // URL fields, if present, must be http(s) — prevents javascript: / data:
   // URLs from being saved and later rendered as profile links.
-  const URL_RE = /^https?:\/\/[^\s/$.?#].[^\s]*$/i;
   for (const f of ["website", "booking_link"] as const) {
     const val = body[f]?.trim();
-    if (val && !URL_RE.test(val)) {
+    const norm = normalizeWebUrl(val);
+    if (val && !norm) {
       return NextResponse.json(
-        { error: `"${f}" must be a full https:// URL.` },
+        { error: `"${f}" must be a web address, e.g. www.site.com.` },
         { status: 400 },
       );
     }
+    if (val) body[f] = norm ?? val;
   }
 
   try {
@@ -225,8 +226,8 @@ export async function POST(req: Request) {
       admin_id: guard.adminId,
     });
 
-    // Same path as approving an application: approval email + agreement.
-    // The expert row and portal access are created when they accept.
+    // Same path as approving an application: expert row, sign-in user and
+    // the approval email. They accept the agreement in the portal.
     const bio = body.bio?.trim() || null;
     const provisioning = await approveExpert({
       application: {
@@ -262,9 +263,9 @@ export async function POST(req: Request) {
       name: fullName,
       email,
       adminLink: appUrl("/admin/experts?filter=onboarded"),
-      highlight: provisioning?.agreement?.sent
-        ? "Approval email and agreement sent. Portal opens when they accept."
-        : "Added. The agreement email did not confirm; resend it from /admin/founding.",
+      highlight: provisioning?.email?.sent
+        ? "Approval email sent. They sign in, accept the agreement and save a card in the portal."
+        : "Added. The approval email did not confirm.",
       fields: [
         { label: "Source", value: "Added by admin" },
         { label: "Teaches / coaches on", value: specialty },
@@ -304,11 +305,11 @@ const ACTION_STATUS: Record<Action, ExpertApplicationStatus> = {
  *                  ↘ declined
  * `reset` moves anything back to `new` (for misclicks).
  *
- * `mark_onboarded` = approve. It sends the "You're approved" email and,
- * right after, the founding expert agreement (private /founding/<code>
- * link with the personalized PDF). The expert row, auth user and Stripe
- * subscription are created when they accept the agreement
- * (/api/founding/[code]/accept), which is also what opens the portal.
+ * `mark_onboarded` = approve. Creates the experts row and sign-in user and
+ * sends the "You're approved" email. The expert then signs in, accepts the
+ * Provider Agreement and saves a card in the portal (nothing charged until
+ * the free founding months end). Founding links are NOT used here; they
+ * come only from the admin "Send invite" action on /admin/founding.
  */
 export async function PATCH(req: Request) {
   const guard = await requireAdmin();
@@ -378,7 +379,7 @@ export async function PATCH(req: Request) {
         action === "mark_onboarded" ? "expert_onboarded" : "expert_declined";
       const title =
         action === "mark_onboarded"
-          ? `Expert approved, agreement sent: ${existing.full_name}`
+          ? `Expert approved, portal access created: ${existing.full_name}`
           : `Expert declined: ${existing.full_name}`;
       const filter = action === "mark_onboarded" ? "onboarded" : "declined";
       await insertNotification(supabase, {
@@ -392,9 +393,8 @@ export async function PATCH(req: Request) {
       });
     }
 
-    // APPROVAL (mark_onboarded only): "You're approved" email, then the
-    // agreement email with the private acceptance link. Provisioning
-    // (expert row, auth user, subscription) happens at acceptance.
+    // APPROVAL (mark_onboarded only): expert row + sign-in user + the
+    // "You're approved" email. Agreement and card happen in the portal.
     let provisioning: ProvisioningReport | undefined;
     if (action === "mark_onboarded") {
       provisioning = await approveExpert({ application: existing, adminId: guard.adminId });
@@ -407,18 +407,24 @@ export async function PATCH(req: Request) {
 }
 
 type ProvisioningReport = {
+  experts_row: { id?: string; created?: boolean; error?: string };
+  auth_user: { id?: string; created?: boolean; error?: string };
   email: { sent?: boolean; error?: string };
-  agreement: { sent?: boolean; invite_url?: string; error?: string };
 };
 
 /**
  * approveExpert
  *
- * Idempotent: re-clicking resends the same agreement link rather than
- * creating a second one. Steps:
- *   1. Send the "You're approved" email (what to gather, terms).
- *   2. Create (or reuse) the founding invite for this applicant and send
- *      the agreement email with their personalized PDF.
+ * Website applicants never get a founding link; that is reserved for the
+ * admin "Send invite" action on /admin/founding. Approval here:
+ *   1. Upserts the experts row (status "invited") so /expert/login accepts
+ *      the email.
+ *   2. Pre-creates the Supabase auth user (6-digit code sign-in).
+ *   3. Sends the "You're approved" email: sign in, accept the Provider
+ *      Agreement and save a card in the portal (nothing charged until the
+ *      free founding months end). The portal's sign-and-pay step sends the
+ *      welcome email with the signed PDF.
+ * Idempotent: re-clicking resends the approval email.
  */
 async function approveExpert(args: {
   application: {
@@ -436,54 +442,114 @@ async function approveExpert(args: {
   adminId: string;
 }): Promise<ProvisioningReport> {
   const { application, adminId } = args;
-  const out: ProvisioningReport = { email: {}, agreement: {} };
+  const out: ProvisioningReport = { experts_row: {}, auth_user: {}, email: {} };
+  const supabase = getSupabaseAdmin();
   const email = application.email.toLowerCase();
+  const portalLoginUrl = appUrl("/expert/login");
 
+  // 1. experts row
+  let expertId: string | null = null;
+  try {
+    const { data: existingExpert } = await supabase.from("experts").select("id").eq("email", email).maybeSingle();
+    if (existingExpert) {
+      expertId = existingExpert.id;
+      out.experts_row = { id: expertId, created: false };
+    } else {
+      const { data: inserted, error: insErr } = await supabase
+        .from("experts")
+        .insert({
+          application_id: application.id,
+          email,
+          full_name: application.full_name,
+          phone: application.phone,
+          company_name: application.company_name,
+          specialty: application.specialty,
+          topics: application.topics,
+          bio: application.bio ?? null,
+          website: application.website,
+          booking_link: application.booking_link,
+          status: "invited",
+          invited_by: adminId,
+        } as never)
+        .select("id")
+        .single();
+      if (insErr) throw insErr;
+      expertId = inserted.id;
+      out.experts_row = { id: expertId, created: true };
+    }
+  } catch (err) {
+    console.error("[admin:experts] approve step failed: experts_row", err);
+    out.experts_row = { error: "Failed to create the expert row." };
+    return out;
+  }
+
+  // 2. auth user (shouldCreateUser:false on login means it must exist)
+  try {
+    const { data: created, error: createErr } = await supabase.auth.admin.createUser({
+      email,
+      email_confirm: true,
+      user_metadata: { user_type: "expert", expert_id: expertId },
+    });
+    if (createErr) {
+      if (/already.*registered|exists/i.test(createErr.message)) {
+        for (let page = 1; page <= 5; page += 1) {
+          const { data: list } = await supabase.auth.admin.listUsers({ page, perPage: 200 });
+          const found = (list?.users ?? []).find((u) => (u.email ?? "").toLowerCase() === email);
+          if (found) {
+            out.auth_user = { id: found.id, created: false };
+            break;
+          }
+          if ((list?.users ?? []).length < 200) break;
+        }
+        if (!out.auth_user.id) out.auth_user = { error: "User exists but could not be located." };
+      } else {
+        out.auth_user = { error: createErr.message };
+      }
+    } else {
+      out.auth_user = { id: created.user.id, created: true };
+    }
+    if (out.auth_user.id && expertId) {
+      await supabase.from("experts").update({ auth_user_id: out.auth_user.id } as never).eq("id", expertId);
+    }
+  } catch (err) {
+    console.error("[admin:experts] approve step failed: auth_user", err);
+    out.auth_user = { error: "Failed to create the sign-in user." };
+  }
+
+  // 3. approval email
   try {
     const firstName = application.full_name.trim().split(/\s+/)[0] ?? application.full_name;
-    const result = await sendExpertApprovalEmail({ email, firstName, expertId: application.id });
+    const result = await sendExpertApprovalEmail({ email, firstName, expertId: expertId ?? application.id, portalLoginUrl });
     out.email = { sent: result.sent };
+    if (expertId) {
+      await supabase.from("email_events").insert({
+        template: "expert_approved",
+        recipient: email,
+        subject: "You're approved: welcome to the Aesthetic Success Network bench",
+        provider: process.env.SMTP_HOST ? "smtp" : process.env.RESEND_API_KEY ? "resend" : "log",
+        status: result.sent ? "queued" : "failed",
+        metadata: { expert_id: expertId, application_id: application.id },
+      });
+    }
   } catch (err) {
-    console.error("[admin:experts] approval email failed", err);
+    console.error("[admin:experts] approve step failed: email", err);
     out.email = { sent: false, error: "Failed to send the approval email." };
   }
 
-  try {
-    const r = await inviteApplicant({
-      role: "expert",
-      fullName: application.full_name,
-      email,
-      companyName: application.company_name,
-      phone: application.phone,
-      website: application.website,
-      category: application.specialty,
-      calendarLink: application.booking_link,
-      description: application.bio ?? application.topics ?? null,
-      source: "Website expert application",
-      createdBy: adminId,
-    });
-    out.agreement = r.ok ? { sent: r.emailed, invite_url: r.inviteUrl } : { sent: false, error: r.error };
-  } catch (err) {
-    console.error("[admin:experts] agreement invite failed", err);
-    out.agreement = { sent: false, error: "Failed to send the agreement." };
-  }
-
   // Keep /admin/invites complete; nothing is emailed from here.
-  try {
-    const supabase = getSupabaseAdmin();
-    const { data: expertRow } = await supabase.from("experts").select("id").eq("email", email).maybeSingle();
-    if (expertRow) {
+  if (expertId) {
+    try {
       await createOrReuseInviteLink(supabase, {
         kind: "expert",
-        expertId: expertRow.id,
+        expertId,
         fullName: application.full_name,
         email,
         companyName: application.company_name ?? null,
         createdBy: adminId,
       });
+    } catch {
+      /* best effort */
     }
-  } catch {
-    /* best effort */
   }
   return out;
 }

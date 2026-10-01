@@ -13,11 +13,14 @@ import {
 } from "@/lib/email/layout";
 import {
   CANCEL_NOTICE_DAYS,
+  COMPANY_LAUNCH_LABEL,
+  COMPANY_LAUNCH_MONTHS,
+  COMPANY_STANDARD_LABEL,
   EXPERT_RATE_LABEL,
   FIRST_CHARGE_REMINDER_DAYS,
   PROVIDER_FREE_MONTHS,
+  companyStandardStartsAt,
   formatLongDate,
-  rateLabel,
 } from "@/lib/providerBilling";
 
 /**
@@ -40,8 +43,10 @@ import {
 
 export type JoinConfirmationInput = {
   role: "partner" | "expert" | "both";
-  /** Company rate ("standard" $39 / "large" $149). Ignored for experts. */
+  /** Kept for callers; every company is on the same ladder. */
   rate?: string | null;
+  /** Companies: ISO date the $149 standard rate starts (free end + 12 months). */
+  standardStartsAt?: string | null;
   /** True when this is a founding-invite acceptance. */
   founding?: boolean;
   /** ISO date the free founding months end (Stripe trial end). */
@@ -108,12 +113,17 @@ function billingSection(input: JoinConfirmationInput): EmailSection {
     );
   }
   if (hasPartner(input.role)) {
-    const r = rateLabel(input.rate);
     const side = input.role === "both" ? " for your company listing" : "";
+    const stdDate = formatLongDate(input.standardStartsAt ?? (freeEnd ? companyStandardStartsAt(new Date(freeEnd)) : null));
     items.push(
       until
-        ? `First charge: ${r} on ${until}${side}, then ${r} a month with no increase.`
-        : `First charge: ${r}${side} when your free months end, then ${r} a month with no increase.`,
+        ? `First charge: ${COMPANY_LAUNCH_LABEL} on ${until}${side}, then ${COMPANY_LAUNCH_LABEL} a month for your first ${COMPANY_LAUNCH_MONTHS} months.`
+        : `First charge: ${COMPANY_LAUNCH_LABEL}${side} when your free months end, then ${COMPANY_LAUNCH_LABEL} a month for your first ${COMPANY_LAUNCH_MONTHS} months.`,
+    );
+    items.push(
+      stdDate
+        ? `From ${stdDate}: ${COMPANY_STANDARD_LABEL} a month${side}, the standard company rate.`
+        : `After those ${COMPANY_LAUNCH_MONTHS} months: ${COMPANY_STANDARD_LABEL} a month${side}, the standard company rate.`,
     );
   }
   items.push(

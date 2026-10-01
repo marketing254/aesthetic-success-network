@@ -5,7 +5,6 @@ import { requireAdmin } from "@/lib/auth/guards";
 import { sendVendorApprovalEmail } from "@/lib/waitlist/confirmationEmail";
 import { notifyTeamEvent } from "@/lib/email/teamNotify";
 import { createOrReuseInviteLink } from "@/lib/inviteLinks";
-import { inviteApplicant } from "@/lib/founding/sendInvite";
 import { normalizeProviderRate } from "@/lib/providerBilling";
 import type { VendorStatus } from "@/lib/supabase/types";
 import { serverError } from "@/lib/api/errorResponse";
@@ -132,9 +131,9 @@ export async function PATCH(req: Request) {
       });
     }
 
-    // The rate chosen at approval ("standard" $39 / "large" $149) is what
-    // the agreement, the welcome email and the portal all show.
-    const rate = normalizeProviderRate(body.rate ?? existing.billing_plan);
+    // Every company is on the same ladder (6 months free, $39 x 12, then
+    // $149); the column stays for compatibility.
+    const rate = normalizeProviderRate(existing.billing_plan);
     const patch: { status: VendorStatus; verified?: boolean; billing_plan?: "standard" | "large" } = (() => {
       if (action === "approve") return { status: "approved", verified: true, billing_plan: rate };
       if (action === "reject") return { status: "rejected", verified: false };
@@ -157,15 +156,16 @@ export async function PATCH(req: Request) {
       admin_id: guard.adminId,
     });
 
-    let agreement: { sent?: boolean; invite_url?: string; error?: string } | undefined;
     if (action === "approve" && existing.status !== "approved") {
-      // 1. "You're verified" email (what we do, what we ask, terms).
+      // "You're verified" email: sign in, accept the agreement and save a
+      // card in the portal. Founding links are never sent from here.
       try {
         await sendVendorApprovalEmail({
           email: existing.contact_email,
           contactName: existing.contact_name,
           companyName: existing.company_name,
           rate,
+          portalUrl: appUrl("/vendor/login"),
         });
       } catch (mailErr) {
         console.warn("[admin/vendors] approval email failed:", mailErr);
@@ -179,45 +179,6 @@ export async function PATCH(req: Request) {
         metadata: { vendor_id: body.id, rate },
       });
 
-      // 2. The agreement email with the private acceptance link (card is
-      //    saved there; the portal opens once accepted). Covered companies
-      //    under a paying partner never get their own agreement.
-      if (!existing.billing_parent_id) {
-        try {
-          // Signer and secondary contact were captured on the application.
-          const { data: appRow } = await supabase
-            .from("vendor_applications")
-            .select("member_offer, signature_name, signature_title, secondary_email, secondary_phone")
-            .eq("contact_email", existing.contact_email)
-            .order("created_at", { ascending: false })
-            .limit(1)
-            .maybeSingle();
-          const r = await inviteApplicant({
-            role: "partner",
-            rate,
-            fullName: existing.contact_name,
-            email: existing.contact_email,
-            companyName: existing.company_name,
-            memberOffer: appRow?.member_offer ?? null,
-            phone: existing.contact_phone,
-            website: existing.website,
-            category: existing.category,
-            calendarLink: existing.calendar_link,
-            description: existing.description,
-            signerName: appRow?.signature_name ?? null,
-            signerTitle: appRow?.signature_title ?? null,
-            secondaryEmail: appRow?.secondary_email ?? null,
-            secondaryPhone: appRow?.secondary_phone ?? null,
-            source: "Website company application",
-            createdBy: guard.adminId,
-          });
-          agreement = r.ok ? { sent: r.emailed, invite_url: r.inviteUrl } : { sent: false, error: r.error };
-        } catch (err) {
-          console.error("[admin/vendors] agreement invite failed:", err);
-          agreement = { sent: false, error: "Failed to send the agreement." };
-        }
-      }
-
       // In-app notifications: vendor + admin team
       await insertNotification(supabase, [
         {
@@ -225,7 +186,7 @@ export async function PATCH(req: Request) {
           vendor_id: body.id,
           kind: "vendor_approved",
           title: "You're verified, welcome aboard",
-          body: `${existing.company_name} is approved. Accept your agreement from the email we sent to open your portal.`,
+          body: `${existing.company_name} is approved. Sign in, accept the agreement and save a card to activate your listing.`,
           link: "/vendor",
           metadata: { vendor_id: body.id },
         },
@@ -234,7 +195,7 @@ export async function PATCH(req: Request) {
           admin_id: null,
           kind: "vendor_approved",
           title: `Company approved: ${existing.company_name}`,
-          body: `${existing.contact_name} is verified. Agreement ${agreement?.sent ? "sent" : "not confirmed"} at the ${rate === "large" ? "$149" : "$39"} rate.`,
+          body: `${existing.contact_name} is verified. Approval email sent; they accept the agreement in the portal.`,
           link: "/admin/vendors?filter=approved",
           metadata: { vendor_id: body.id },
         },
@@ -251,7 +212,7 @@ export async function PATCH(req: Request) {
       });
     }
 
-    return NextResponse.json({ ok: true, agreement });
+    return NextResponse.json({ ok: true });
   } catch (err) {
     return serverError(err, { route: "PATCH /api/admin/vendors" });
   }

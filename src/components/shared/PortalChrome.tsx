@@ -1,7 +1,8 @@
 "use client";
 
-import { useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import Link from "next/link";
+import { usePathname } from "next/navigation";
 import Image from "next/image";
 import {
   Avatar,
@@ -19,6 +20,8 @@ import { useTheme } from "@mui/material/styles";
 import MenuOutlinedIcon from "@mui/icons-material/MenuOutlined";
 import CloseRoundedIcon from "@mui/icons-material/CloseRounded";
 import KeyboardArrowDownOutlinedIcon from "@mui/icons-material/KeyboardArrowDownOutlined";
+import ChevronLeftRoundedIcon from "@mui/icons-material/ChevronLeftRounded";
+import ChevronRightRoundedIcon from "@mui/icons-material/ChevronRightRounded";
 
 /**
  * PortalChrome
@@ -349,6 +352,96 @@ function TabLink({
   );
 }
 
+/**
+ * Horizontal scroller for the desktop tab row. The admin console has more
+ * sections than fit on one line, so the row must be visibly scrollable:
+ * a thin scrollbar, mouse-wheel scrolling, arrow buttons with edge fades,
+ * and the active tab scrolled into view on navigation.
+ */
+function TabScroller({ children }: { children: React.ReactNode }) {
+  const ref = useRef<HTMLDivElement | null>(null);
+  const [canLeft, setCanLeft] = useState(false);
+  const [canRight, setCanRight] = useState(false);
+  const pathname = usePathname();
+
+  const measure = useCallback(() => {
+    const el = ref.current;
+    if (!el) return;
+    setCanLeft(el.scrollLeft > 2);
+    setCanRight(el.scrollLeft + el.clientWidth < el.scrollWidth - 2);
+  }, []);
+
+  useEffect(() => {
+    measure();
+    const el = ref.current;
+    if (!el) return;
+    const ro = new ResizeObserver(measure);
+    ro.observe(el);
+    el.addEventListener("scroll", measure, { passive: true });
+    return () => {
+      ro.disconnect();
+      el.removeEventListener("scroll", measure);
+    };
+  }, [measure]);
+
+  // Keep the current section visible after navigation.
+  useEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+    const active = el.querySelector<HTMLElement>('[aria-current="page"]');
+    if (active) active.scrollIntoView({ block: "nearest", inline: "center", behavior: "smooth" });
+  }, [pathname]);
+
+  const scrollBy = (dir: 1 | -1) => {
+    const el = ref.current;
+    if (!el) return;
+    el.scrollBy({ left: dir * Math.max(240, el.clientWidth * 0.6), behavior: "smooth" });
+  };
+
+  return (
+    <Box sx={{ position: "relative", mx: -1.25 }}>
+      <Box
+        ref={ref}
+        onWheel={(e) => {
+          const el = ref.current;
+          if (!el || Math.abs(e.deltaY) <= Math.abs(e.deltaX)) return;
+          if (el.scrollWidth <= el.clientWidth) return;
+          el.scrollLeft += e.deltaY;
+        }}
+        sx={{
+          display: "flex",
+          alignItems: "center",
+          gap: 0.25,
+          overflowX: "auto",
+          scrollBehavior: "smooth",
+          px: canLeft || canRight ? 4 : 0,
+          scrollbarWidth: "thin",
+          scrollbarColor: `${PORTAL.clay} transparent`,
+          "&::-webkit-scrollbar": { height: 4 },
+          "&::-webkit-scrollbar-thumb": { bgcolor: PORTAL.clay, borderRadius: 2 },
+          "&::-webkit-scrollbar-track": { bgcolor: "transparent" },
+        }}
+      >
+        {children}
+      </Box>
+      {canLeft && (
+        <Box sx={{ position: "absolute", left: 0, top: 0, bottom: 0, display: "flex", alignItems: "center", pl: 0.25, background: "linear-gradient(90deg, rgba(246,241,231,1) 55%, rgba(246,241,231,0))", pr: 2 }}>
+          <IconButton size="small" aria-label="Scroll sections left" onClick={() => scrollBy(-1)} sx={{ bgcolor: "#FFFFFF", border: `1px solid ${PORTAL.clay}`, "&:hover": { bgcolor: "#FFFFFF" } }}>
+            <ChevronLeftRoundedIcon fontSize="small" />
+          </IconButton>
+        </Box>
+      )}
+      {canRight && (
+        <Box sx={{ position: "absolute", right: 0, top: 0, bottom: 0, display: "flex", alignItems: "center", pr: 0.25, background: "linear-gradient(270deg, rgba(246,241,231,1) 55%, rgba(246,241,231,0))", pl: 2 }}>
+          <IconButton size="small" aria-label="Scroll sections right" onClick={() => scrollBy(1)} sx={{ bgcolor: "#FFFFFF", border: `1px solid ${PORTAL.clay}`, "&:hover": { bgcolor: "#FFFFFF" } }}>
+            <ChevronRightRoundedIcon fontSize="small" />
+          </IconButton>
+        </Box>
+      )}
+    </Box>
+  );
+}
+
 function DrawerLink({
   item,
   active,
@@ -503,17 +596,7 @@ export default function PortalChrome({
           }}
         >
           <Container maxWidth={false} sx={{ maxWidth, px: { xs: 2, md: 3 } }}>
-            <Stack
-              direction="row"
-              spacing={0.25}
-              sx={{
-                alignItems: "center",
-                overflowX: "auto",
-                scrollbarWidth: "none",
-                "&::-webkit-scrollbar": { display: "none" },
-                mx: -1.25,
-              }}
-            >
+            <TabScroller>
               {groups.map((g, gi) => (
                 <Stack key={g.label ?? gi} direction="row" spacing={0.25} sx={{ alignItems: "center", flexShrink: 0 }}>
                   {gi > 0 && (
@@ -532,7 +615,7 @@ export default function PortalChrome({
                   ))}
                 </Stack>
               ))}
-            </Stack>
+            </TabScroller>
           </Container>
         </Box>
       )}

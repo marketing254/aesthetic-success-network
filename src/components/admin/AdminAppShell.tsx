@@ -38,6 +38,8 @@ import LogoutOutlinedIcon from "@mui/icons-material/LogoutOutlined";
 import WorkOutlineRoundedIcon from "@mui/icons-material/WorkOutlineRounded";
 import PersonSearchOutlinedIcon from "@mui/icons-material/PersonSearchOutlined";
 import Inventory2OutlinedIcon from "@mui/icons-material/Inventory2Outlined";
+import CreditCardOutlinedIcon from "@mui/icons-material/CreditCardOutlined";
+import MarkEmailUnreadOutlinedIcon from "@mui/icons-material/MarkEmailUnreadOutlined";
 import { jobBoardEnabled } from "@/lib/jobs/flag";
 import NotificationsBell from "@/components/shared/NotificationsBell";
 import { createBrowserSupabase } from "@/lib/supabase/browser";
@@ -167,7 +169,11 @@ const navSections: { label: string; items: NavItem[] }[] = [
   },
   {
     label: "System",
-    items: [{ href: "/admin/audit-log", label: "Audit log", icon: HistoryOutlinedIcon }],
+    items: [
+      { href: "/admin/stripe-status", label: "Stripe status", icon: CreditCardOutlinedIcon },
+      { href: "/admin/email-previews", label: "Email drafts", icon: MarkEmailUnreadOutlinedIcon },
+      { href: "/admin/audit-log", label: "Audit log", icon: HistoryOutlinedIcon },
+    ],
   },
 ];
 
