@@ -77,9 +77,7 @@ export async function POST() {
     .select("id")
     .eq("contact_email", expert.email.toLowerCase())
     .maybeSingle();
-  const agreementHref = alsoPartner
-    ? "/agreements/asn-provider-agreement.pdf"
-    : "/agreements/asn-provider-agreement.pdf";
+  const agreementHref = alsoPartner ? "/api/expert/agreement/draft" : "/api/expert/agreement/draft";
 
   return NextResponse.json({ clientSecret: setupIntent.client_secret, agreementHref });
 }

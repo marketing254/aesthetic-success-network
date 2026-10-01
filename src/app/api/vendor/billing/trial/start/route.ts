@@ -110,7 +110,7 @@ export async function POST(req: Request) {
     return serverError(err, {
         route: "POST /api/vendor/billing/trial/start",
         status: 502,
-        publicMessage: "Stripe rejected the subscription. Check the card details and try again.",
+        publicMessage: "We couldn't save your card. Nothing was charged. Please try again in a moment, and if it keeps happening email support@aestheticsuccessnetwork.com.",
       });
   }
   const subscription = created.subscription;

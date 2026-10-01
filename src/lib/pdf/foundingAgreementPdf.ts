@@ -280,7 +280,7 @@ async function launchBrowser(): Promise<Browser> {
   });
 }
 
-async function printHtmlToPdf(html: string): Promise<Buffer> {
+export async function printHtmlToPdf(html: string): Promise<Buffer> {
   const browser = await launchBrowser();
   try {
     const page = await browser.newPage();

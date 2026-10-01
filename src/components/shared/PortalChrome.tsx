@@ -136,7 +136,7 @@ export function PortalBrand({
             boxShadow: "0 0 0 1px rgba(255,255,255,0.14)",
           }}
         >
-          <Image src="/asn-nav-icon.png" alt="" fill sizes="34px" style={{ objectFit: "cover" }} priority />
+          <Image src="/asn-nav-icon.png" alt="" fill sizes="34px" style={{ objectFit: "cover" }} />
         </Box>
         {!compact && (
           <Typography

@@ -49,7 +49,6 @@ export default function Logo({
           src="/asn-nav-icon.png"
           alt="Aesthetic Success Network"
           fill
-          priority
           sizes={`${icon}px`}
           style={{ objectFit: "contain", objectPosition: "left center", borderRadius: Math.round(icon * 0.22) }}
         />

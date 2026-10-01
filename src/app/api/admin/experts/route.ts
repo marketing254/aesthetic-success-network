@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { deleteExpertEverywhere } from "@/lib/admin/deleteProvider";
 import { normalizeWebUrl } from "@/lib/waitlist/validate";
 import { getSupabaseAdmin } from "@/lib/supabase/server";
 import { requireAdmin } from "@/lib/auth/guards";
@@ -552,4 +553,41 @@ async function approveExpert(args: {
     }
   }
   return out;
+}
+
+/**
+ * DELETE /api/admin/experts  { id }
+ * Removes the applicant/expert from the database completely (application,
+ * expert profile, founding invites, invite links, sign-in user) and
+ * deletes their Stripe customer, which cancels any trial billing. Owner /
+ * admin only. Not reversible.
+ */
+export async function DELETE(req: Request) {
+  const guard = await requireAdmin();
+  if (!guard.ok) return guard.response;
+  let body: { id?: string };
+  try {
+    body = await req.json();
+  } catch {
+    return NextResponse.json({ error: "Invalid JSON." }, { status: 400 });
+  }
+  if (!body.id) return NextResponse.json({ error: "id is required." }, { status: 400 });
+  try {
+    const supabase = getSupabaseAdmin();
+    const { data: app } = await supabase.from("expert_applications").select("id, email, full_name").eq("id", body.id).maybeSingle();
+    const { data: exp } = app ? { data: null } : await supabase.from("experts").select("id, email, full_name").eq("id", body.id).maybeSingle();
+    const email = app?.email ?? exp?.email;
+    if (!email) return NextResponse.json({ error: "Expert not found." }, { status: 404 });
+    const report = await deleteExpertEverywhere({ applicationId: app?.id ?? null, email });
+    await supabase.from("review_actions").insert({
+      target_type: "expert_application",
+      target_id: body.id,
+      action: "delete",
+      note: `Deleted ${email} (${report.removed.join(", ")}; Stripe ${report.stripe})`,
+      admin_id: guard.adminId,
+    });
+    return NextResponse.json(report);
+  } catch (err) {
+    return serverError(err, { route: "DELETE /api/admin/experts" });
+  }
 }

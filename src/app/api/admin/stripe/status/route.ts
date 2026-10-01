@@ -120,8 +120,12 @@ export async function GET() {
     if (!match) problems.push(`No webhook endpoint for ${expected}. Create one in Stripe (Developers → Webhooks) and set STRIPE_WEBHOOK_SECRET.`);
     else if (match.status !== "enabled") problems.push("The webhook endpoint for this deployment is disabled.");
     if (!process.env.STRIPE_WEBHOOK_SECRET) problems.push("STRIPE_WEBHOOK_SECRET is not set; signed events will be rejected.");
-    for (const ev of ["customer.subscription.updated", "customer.subscription.deleted", "invoice.paid", "invoice.payment_failed", "customer.subscription.trial_will_end"]) {
-      if (match && !match.enabled_events.includes("*") && !match.enabled_events.includes(ev)) problems.push(`Webhook is missing the event ${ev}.`);
+    const has = (ev: string) => Boolean(match && (match.enabled_events.includes("*") || match.enabled_events.includes(ev)));
+    for (const ev of ["customer.subscription.updated", "customer.subscription.deleted", "invoice.payment_failed", "customer.subscription.trial_will_end"]) {
+      if (match && !has(ev)) problems.push(`Webhook is missing the event ${ev}.`);
+    }
+    if (match && !has("invoice.paid") && !has("invoice.payment_succeeded")) {
+      problems.push("Webhook is missing the paid-invoice event: tick invoice.paid or invoice.payment_succeeded (either works).");
     }
 
     return NextResponse.json({ ...out, ok: problems.length === 0, problems });

@@ -37,6 +37,8 @@ const RELEVANT_EVENTS = new Set([
   "customer.subscription.deleted",
   "customer.subscription.trial_will_end",
   "invoice.paid",
+  // Newer Stripe dashboards list the same moment as invoice.payment_succeeded.
+  "invoice.payment_succeeded",
   "invoice.payment_failed",
 ]);
 
@@ -515,7 +517,8 @@ async function handleEvent(event: Stripe.Event, stripe: Stripe): Promise<string 
   }
 
   // ---- invoice.paid / invoice.payment_failed ------------------------
-  if (event.type === "invoice.paid" || event.type === "invoice.payment_failed") {
+  const paidEvent = event.type === "invoice.paid" || event.type === "invoice.payment_succeeded";
+  if (paidEvent || event.type === "invoice.payment_failed") {
     const invoice = event.data.object as Stripe.Invoice;
     const customerId =
       typeof invoice.customer === "string" ? invoice.customer : invoice.customer?.id ?? null;
@@ -532,7 +535,7 @@ async function handleEvent(event: Stripe.Event, stripe: Stripe): Promise<string 
     // date ("September 2026"), Masterclass-tracker style. Best-effort,
     // env-gated, deduped by the webhook's per-event idempotency.
     if (
-      event.type === "invoice.paid" &&
+      paidEvent &&
       (invoice.amount_paid ?? 0) > 0 &&
       process.env.SALES_TRACKER_WEBHOOK_URL
     ) {
@@ -569,7 +572,7 @@ async function handleEvent(event: Stripe.Event, stripe: Stripe): Promise<string 
     // the real conversion (value = what was collected). The event id is
     // the invoice id, so the browser cannot duplicate it and Stripe
     // retries dedupe on stripe_events. Only ever fires for amount > 0.
-    if (event.type === "invoice.paid" && (invoice.amount_paid ?? 0) > 0) {
+    if (paidEvent && (invoice.amount_paid ?? 0) > 0) {
       try {
         const subIdForInvoice =
           typeof invoice.parent?.subscription_details?.subscription === "string"
@@ -608,7 +611,7 @@ async function handleEvent(event: Stripe.Event, stripe: Stripe): Promise<string 
     // double-counting: the whole webhook de-dupes on stripe_events (top of
     // this file), so each invoice.paid is processed exactly once. $0 trial
     // invoices simply add nothing.
-    if (event.type === "invoice.paid") {
+    if (paidEvent) {
       const amountPaid = invoice.amount_paid ?? 0;
       if (amountPaid > 0) {
         const { data: member } = await sb

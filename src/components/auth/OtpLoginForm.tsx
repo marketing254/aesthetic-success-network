@@ -337,7 +337,7 @@ export default function OtpLoginForm({ config, band }: { config: OtpLoginConfig;
                   border: `1px solid ${CP.sidebarLine}`,
                 }}
               >
-                <Image src="/asn-nav-icon.png" alt="Aesthetic Success Network" fill sizes="56px" priority style={{ objectFit: "cover" }} />
+                <Image src="/asn-nav-icon.png" alt="Aesthetic Success Network" fill sizes="56px" style={{ objectFit: "cover" }} />
               </Box>
               <Box sx={{ minWidth: 0 }}>
                 <Typography sx={{ fontFamily: PORTAL_FONT, fontSize: { xs: "0.9375rem", md: "1.0625rem" }, fontWeight: 700, color: "#FFFFFF", lineHeight: 1.2, letterSpacing: "-0.01em" }}>

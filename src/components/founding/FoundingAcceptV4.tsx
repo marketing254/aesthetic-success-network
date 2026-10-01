@@ -32,6 +32,8 @@ function getStripePromise() {
 }
 
 const NAVY = "#0E2A3D";
+/** One calm message for anything that is not a card problem the person can fix. */
+const STD_ERR = "We couldn't save your card. Nothing was charged. Please try again in a moment, and if it keeps happening email support@aestheticsuccessnetwork.com.";
 const NAVY_DARK = "#06182A";
 
 export type FoundingAcceptProps = {
@@ -230,18 +232,20 @@ function PaymentAcceptForm(props: FoundingAcceptProps & { roleLabel: string; dis
     setBusy(true);
     setError(null);
 
-    const { error: confirmErr, setupIntent } = await stripe.confirmSetup({
+    const result = await stripe.confirmSetup({
       elements,
       confirmParams: { return_url: `${window.location.origin}${window.location.pathname}` },
       redirect: "if_required",
     });
-    if (confirmErr) {
-      setError(confirmErr.message ?? "Your card couldn't be saved. Try again.");
+    const already = result.error?.setup_intent;
+    const setupIntent = result.setupIntent ?? (already && already.status === "succeeded" ? already : undefined);
+    if (!setupIntent) {
+      setError(result.error?.type === "card_error" || result.error?.type === "validation_error" ? (result.error.message ?? STD_ERR) : STD_ERR);
       setBusy(false);
       return;
     }
-    if (!setupIntent || setupIntent.status !== "succeeded" || typeof setupIntent.payment_method !== "string") {
-      setError("Your card couldn't be saved. Try again.");
+    if (setupIntent.status !== "succeeded" || typeof setupIntent.payment_method !== "string") {
+      setError(STD_ERR);
       setBusy(false);
       return;
     }
@@ -254,13 +258,13 @@ function PaymentAcceptForm(props: FoundingAcceptProps & { roleLabel: string; dis
       });
       const body = (await res.json().catch(() => ({}))) as { ok?: boolean; next?: string; error?: string };
       if (!res.ok || !body.ok) {
-        setError(body.error ?? "Something went wrong. Try again.");
+        setError(body.error ?? STD_ERR);
         setBusy(false);
         return;
       }
       router.push(body.next ?? "/");
     } catch {
-      setError("Something went wrong. Try again.");
+      setError(STD_ERR);
       setBusy(false);
     }
   };

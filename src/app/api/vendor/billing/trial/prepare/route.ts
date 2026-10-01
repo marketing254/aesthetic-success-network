@@ -83,9 +83,8 @@ export async function POST() {
     .select("id")
     .eq("email", (vendor.contact_email ?? "").toLowerCase())
     .maybeSingle();
-  const agreementHref = alsoExpert
-    ? "/agreements/asn-provider-agreement.pdf"
-    : "/agreements/asn-provider-agreement.pdf";
+  // Personalised, unaccepted copy with this company's own plan and dates.
+  const agreementHref = alsoExpert ? "/api/vendor/agreement/draft" : "/api/vendor/agreement/draft";
 
   return NextResponse.json({ clientSecret: setupIntent.client_secret, agreementHref });
 }

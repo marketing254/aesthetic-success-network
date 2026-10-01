@@ -106,12 +106,12 @@ function buildCsp(): string {
     // js.stripe.com + m.stripe.network for risk-check calls the SDK makes.
     // cdn.jsdelivr.net: pdf.js worker/cmaps fetched at runtime.
     // *.pusher.com: transport for the Vercel Live widget on previews.
-    `connect-src 'self' ${supabaseHttps} ${supabaseWss} https://cdn.jsdelivr.net https://fonts.gstatic.com https://www.google-analytics.com https://www.googletagmanager.com https://analytics.google.com https://vercel.live https://*.pusher.com wss://*.pusher.com https://api.stripe.com https://js.stripe.com https://m.stripe.network https://checkout.stripe.com https://www.facebook.com https://connect.facebook.net`,
+    `connect-src 'self' ${supabaseHttps} ${supabaseWss} https://cdn.jsdelivr.net https://fonts.gstatic.com https://www.google-analytics.com https://www.googletagmanager.com https://analytics.google.com https://vercel.live https://*.pusher.com wss://*.pusher.com https://api.stripe.com https://js.stripe.com https://m.stripe.network https://m.stripe.com https://r.stripe.com https://checkout.stripe.com https://fonts.googleapis.com https://www.facebook.com https://connect.facebook.net`,
     // frame-src controls <iframe> sources. Supabase is needed so the resource
     // viewer can render PDFs inline; Microsoft Office Online viewer is needed
     // for slide decks (.pptx). Stripe: js.stripe.com hosts the
     // PaymentElement iframe; hooks.stripe.com hosts 3-D Secure challenges.
-    `frame-src 'self' ${supabaseHttps} https://view.officeapps.live.com https://vercel.live https://js.stripe.com https://hooks.stripe.com https://*.js.stripe.com https://checkout.stripe.com https://www.facebook.com`,
+    `frame-src 'self' ${supabaseHttps} https://view.officeapps.live.com https://vercel.live https://js.stripe.com https://hooks.stripe.com https://*.js.stripe.com https://m.stripe.network https://checkout.stripe.com https://www.facebook.com`,
     "frame-ancestors 'none'",
     "form-action 'self'",
     "base-uri 'self'",
@@ -133,7 +133,9 @@ function applySecurityHeaders(res: NextResponse): NextResponse {
     "Permissions-Policy",
     // microphone=(self): Beacon's voice input (Web Speech API) needs mic
     // access on our own origin. Everything else stays fully denied.
-    "accelerometer=(), camera=(), geolocation=(), gyroscope=(), magnetometer=(), microphone=(self), payment=(), usb=()",
+    // payment: Stripe's PaymentElement iframe uses the Payment Request API
+    // (Link, wallets); without this the console logs a policy violation.
+    'accelerometer=(), camera=(), geolocation=(), gyroscope=(), magnetometer=(), microphone=(self), payment=(self "https://js.stripe.com" "https://checkout.stripe.com"), usb=()',
   );
   res.headers.set("X-DNS-Prefetch-Control", "on");
   res.headers.set("Content-Security-Policy", CSP);

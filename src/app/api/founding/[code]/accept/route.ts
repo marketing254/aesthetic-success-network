@@ -161,7 +161,7 @@ export async function POST(req: Request, ctx: { params: Promise<{ code: string }
       return serverError(err, {
         route: "POST /api/founding/[code]/accept",
         status: 502,
-        publicMessage: "Stripe rejected the subscription. Check the card details and try again.",
+        publicMessage: "We couldn't save your card. Nothing was charged. Please try again in a moment, and if it keeps happening email support@aestheticsuccessnetwork.com.",
       });
     }
   }
@@ -190,7 +190,7 @@ export async function POST(req: Request, ctx: { params: Promise<{ code: string }
       return serverError(err, {
         route: "POST /api/founding/[code]/accept",
         status: 502,
-        publicMessage: "Stripe rejected the subscription. Check the card details and try again.",
+        publicMessage: "We couldn't save your card. Nothing was charged. Please try again in a moment, and if it keeps happening email support@aestheticsuccessnetwork.com.",
       });
     }
   }

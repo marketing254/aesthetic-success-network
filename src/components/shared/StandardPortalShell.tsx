@@ -617,7 +617,7 @@ function Brand({ href }: { href: string }) {
       }}
     >
       <Box sx={{ position: "relative", width: 28, height: 28, borderRadius: "6px", overflow: "hidden", flexShrink: 0 }}>
-        <Image src="/asn-nav-icon.png" alt="" fill sizes="28px" style={{ objectFit: "cover" }} priority />
+        <Image src="/asn-nav-icon.png" alt="" fill sizes="28px" style={{ objectFit: "cover" }} />
       </Box>
       <Typography
         sx={{
