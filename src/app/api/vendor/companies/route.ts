@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { getSupabaseAdmin } from "@/lib/supabase/server";
-import { requirePaidVendor } from "@/lib/auth/guards";
+import { requirePaidVendor, requireVendor } from "@/lib/auth/guards";
 import { serverError } from "@/lib/api/errorResponse";
 
 export const runtime = "nodejs";
@@ -22,8 +22,13 @@ export const dynamic = "force-dynamic";
  * shared-session leakage.
  */
 export async function GET() {
+  // The portal shell calls this on every load, including before the card
+  // is saved. An unpaid company simply gets an empty switcher (200), not a
+  // 402 that shows up as an error in the browser console.
+  const signedIn = await requireVendor();
+  if (!signedIn.ok) return signedIn.response;
   const guard = await requirePaidVendor();
-  if (!guard.ok) return guard.response;
+  if (!guard.ok) return NextResponse.json({ companies: [], locked: true });
 
   try {
     const admin = getSupabaseAdmin();

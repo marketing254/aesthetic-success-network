@@ -78,6 +78,8 @@ export type EmailDraft = {
   headline: string;
   /** Paragraphs under the headline. */
   intro: string[];
+  /** A button right under the intro, for the action nobody should have to scroll for. */
+  ctaTop?: EmailCta;
   sections?: EmailSection[];
   /** Buttons rendered after the sections (first is primary). */
   ctas?: EmailCta[];
@@ -146,6 +148,9 @@ function buttons(ctas: EmailCta[], accent: string): string {
 
 export function renderEmailHtml(d: EmailDraft): string {
   const intro = d.intro.map((t, i) => p(t, { last: i === d.intro.length - 1 })).join("");
+  const ctaTop = d.ctaTop
+    ? `<table role="presentation" cellpadding="0" cellspacing="0" style="margin:22px 0 4px;"><tr><td><a href="${escapeHtml(d.ctaTop.url)}" style="display:inline-block;padding:14px 24px;color:#FFFFFF;background:${d.accent};font-family:${FONT_UI};font-size:14px;font-weight:700;text-decoration:none;border-radius:8px;">${escapeHtml(d.ctaTop.label)} &nbsp;&rarr;</a></td></tr></table>`
+    : "";
   const sections = (d.sections ?? []).map((s) => section(s, d.accent)).join("");
   const ctas = buttons(d.ctas ?? [], d.accent);
   const notes = d.notes?.length
@@ -215,6 +220,7 @@ export function renderEmailHtml(d: EmailDraft): string {
               <td class="card-pad" style="padding:18px 34px 4px;">
                 <h1 style="margin:0 0 18px;color:${PALETTE.ink};font-family:${FONT_DISPLAY};font-size:30px;line-height:1.12;font-weight:500;letter-spacing:-.02em;">${escapeHtml(d.headline)}</h1>
                 ${intro}
+                ${ctaTop}
               </td>
             </tr>
             <tr>
@@ -259,6 +265,7 @@ export function renderEmailText(d: EmailDraft): string {
     "",
     ...d.intro,
     "",
+    ...(d.ctaTop ? [`${d.ctaTop.label}: ${d.ctaTop.url}`, ""] : []),
     sections,
     "",
     ...(d.ctas ?? []).map((c) => `${c.label}: ${c.url}`),

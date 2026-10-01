@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { deleteVendorEverywhere } from "@/lib/admin/deleteProvider";
 import { getSupabaseAdmin } from "@/lib/supabase/server";
 import { createServerSupabase } from "@/lib/supabase/server-ssr";
 import { requireAdmin } from "@/lib/auth/guards";
@@ -559,5 +560,38 @@ export async function POST(req: Request) {
     return NextResponse.json({ ok: true, vendor_id: vendorId, magicLinkSent, invite_url: inviteLink?.invite_url ?? null });
   } catch (err) {
     return serverError(err, { route: "POST /api/admin/vendors" });
+  }
+}
+
+/**
+ * DELETE /api/admin/vendors  { id }
+ * Removes the company from the database completely (row, covered
+ * companies, application, founding invites, invite links, sign-in user)
+ * and deletes its Stripe customer, which cancels any trial billing.
+ * Admin only. Not reversible.
+ */
+export async function DELETE(req: Request) {
+  const guard = await requireAdmin();
+  if (!guard.ok) return guard.response;
+  let body: { id?: string };
+  try {
+    body = await req.json();
+  } catch {
+    return NextResponse.json({ error: "Invalid JSON." }, { status: 400 });
+  }
+  if (!body.id) return NextResponse.json({ error: "id is required." }, { status: 400 });
+  try {
+    const report = await deleteVendorEverywhere({ vendorId: body.id });
+    if (!report.ok) return NextResponse.json({ error: report.error }, { status: 404 });
+    await getSupabaseAdmin().from("review_actions").insert({
+      target_type: "vendor",
+      target_id: body.id,
+      action: "delete",
+      note: `Deleted ${report.email} (${report.removed.join(", ")}; Stripe ${report.stripe})`,
+      admin_id: guard.adminId,
+    });
+    return NextResponse.json(report);
+  } catch (err) {
+    return serverError(err, { route: "DELETE /api/admin/vendors" });
   }
 }

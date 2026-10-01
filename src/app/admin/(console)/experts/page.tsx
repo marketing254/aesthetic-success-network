@@ -28,6 +28,7 @@ import RateReviewOutlinedIcon from "@mui/icons-material/RateReviewOutlined";
 import SchoolOutlinedIcon from "@mui/icons-material/SchoolOutlined";
 import RestartAltOutlinedIcon from "@mui/icons-material/RestartAltOutlined";
 import WorkspacePremiumOutlinedIcon from "@mui/icons-material/WorkspacePremiumOutlined";
+import DeleteOutlineIcon from "@mui/icons-material/DeleteOutlined";
 
 // Shape mirrors the columns selected by /api/admin/experts (a Pick of
 // ExpertApplicationsRow, not the full row).
@@ -150,6 +151,30 @@ function Inner() {
       await loadSlots();
     } catch (err) {
       setError(err instanceof Error ? err.message : "Could not grant the exemption.");
+    }
+  };
+
+  const deleteExpert = async (row: ExpertRow) => {
+    const name = row.full_name || row.email;
+    if (!window.confirm(`Delete ${name} completely?\n\nThis removes the application, the expert profile, any founding invite, the sign-in user and their Stripe customer (any trial billing is cancelled). It cannot be undone.`)) return;
+    setActingId(row.id);
+    try {
+      const res = await fetch("/api/admin/experts", {
+        method: "DELETE",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ id: row.id }),
+      });
+      const body = (await res.json()) as { ok?: boolean; error?: string; removed?: string[]; stripe?: string };
+      if (!res.ok || body.error) {
+        setToast(body.error ?? `Delete failed (${res.status})`);
+        return;
+      }
+      setToast(`${name} deleted (${(body.removed ?? []).join(", ")}; Stripe: ${body.stripe ?? "none"}).`);
+      await load();
+    } catch (err) {
+      setToast(err instanceof Error ? err.message : "Delete failed.");
+    } finally {
+      setActingId(null);
     }
   };
 
@@ -483,13 +508,20 @@ function Inner() {
                     {actingId === v.id ? (
                       <CircularProgress size={18} sx={{ color: "#A07823" }} />
                     ) : (
-                      <RowActions
-                        status={v.status}
-                        onAction={(a) => runAction(v.id, a)}
-                        isExempt={exemptEmails.has(v.email.toLowerCase())}
-                        slotsLeft={slots?.remaining ?? null}
-                        onGrantFree={() => grantFree(v.email, v.full_name || v.email)}
-                      />
+                      <>
+                        <RowActions
+                          status={v.status}
+                          onAction={(a) => runAction(v.id, a)}
+                          isExempt={exemptEmails.has(v.email.toLowerCase())}
+                          slotsLeft={slots?.remaining ?? null}
+                          onGrantFree={() => grantFree(v.email, v.full_name || v.email)}
+                        />
+                        <Tooltip title="Delete from the database (application, profile, invites, sign-in, Stripe customer)">
+                          <IconButton size="small" sx={{ color: "error.main" }} onClick={() => void deleteExpert(v)}>
+                            <DeleteOutlineIcon fontSize="small" />
+                          </IconButton>
+                        </Tooltip>
+                      </>
                     )}
                   </Stack>
                 </Box>

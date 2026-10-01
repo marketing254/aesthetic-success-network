@@ -379,6 +379,26 @@ export async function createProviderSubscription(opts: {
 }): Promise<ProviderSubscriptionResult> {
   const stripe = getStripe();
   const plan = normalizeProviderRate(opts.rate);
+
+  // Idempotency: if an earlier attempt already created this provider's
+  // billing (for example the row update failed after Stripe succeeded),
+  // reuse it instead of creating a second subscription.
+  const existing = await stripe.subscriptions.list({ customer: opts.customerId, status: "all", limit: 20 });
+  const reusable = existing.data.find(
+    (sub) => (sub.status === "trialing" || sub.status === "active") && sub.metadata?.audience === opts.audience,
+  );
+  if (reusable) {
+    const trialEnd = reusable.trial_end ? new Date(reusable.trial_end * 1000) : new Date();
+    return {
+      subscription: reusable,
+      priceId: reusable.items.data[0]?.price.id ?? "",
+      freePeriodEndsAt: trialEnd.toISOString(),
+      standardStartsAt: reusable.metadata?.standard_starts_at ?? null,
+      provisional: reusable.metadata?.free_period === "provisional",
+      rateLabel: COMPANY_LAUNCH_LABEL,
+    };
+  }
+
   const free = providerFreePeriodEnd(freeMonthsFor({ audience: opts.audience, founding: opts.founding }));
   const freeSec = Math.floor(free.date.getTime() / 1000);
   const base: Record<string, string> = {
@@ -442,10 +462,11 @@ export async function createProviderSubscription(opts: {
   });
   const subId = typeof schedule.subscription === "string" ? schedule.subscription : schedule.subscription?.id;
   if (!subId) throw new Error("Schedule did not create a subscription.");
-  const subscription = await stripe.subscriptions.update(subId, {
-    metadata: { ...ladderBase, plan: "partner_growth_monthly" },
-    trial_settings: { end_behavior: { missing_payment_method: "pause" } },
-  });
+  // A schedule-managed subscription cannot be updated directly (Stripe
+  // rejects it with 400), so nothing is written to it here. The phase
+  // metadata above is copied onto the subscription by Stripe when each
+  // phase starts, which is what the webhook routes on.
+  const subscription = await stripe.subscriptions.retrieve(subId);
   return {
     subscription,
     priceId: launchPriceId,

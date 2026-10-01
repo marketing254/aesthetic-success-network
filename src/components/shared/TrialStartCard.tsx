@@ -41,6 +41,8 @@ import {
  * is charged today. The card itself uses the community palette for both.
  */
 const STRIPE_PK = process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY;
+/** One calm message for anything that is not a card problem the person can fix. */
+const STD_ERR = "We couldn't save your card. Nothing was charged. Please try again in a moment, and if it keeps happening email support@aestheticsuccessnetwork.com.";
 const AGREEMENT_VERSION = "v1";
 
 const NAVY = "#0A1320";
@@ -261,25 +263,24 @@ function CheckoutInner({
     setBusy(true);
     setError(null);
 
-    const { error: confirmErr, setupIntent } = await stripe.confirmSetup({
+    const result = await stripe.confirmSetup({
       elements,
       confirmParams: {
         return_url: `${window.location.origin}${window.location.pathname}`,
       },
       redirect: "if_required",
     });
-
-    if (confirmErr) {
-      setError(confirmErr.message ?? "Your card couldn't be saved. Try again.");
+    // A retry after a server-side hiccup finds the SetupIntent already
+    // confirmed; Stripe reports that as an error that carries the intent.
+    const already = result.error?.setup_intent;
+    const setupIntent = result.setupIntent ?? (already && already.status === "succeeded" ? already : undefined);
+    if (!setupIntent) {
+      setError(result.error?.type === "card_error" || result.error?.type === "validation_error" ? (result.error.message ?? STD_ERR) : STD_ERR);
       setBusy(false);
       return;
     }
-    if (
-      !setupIntent ||
-      setupIntent.status !== "succeeded" ||
-      typeof setupIntent.payment_method !== "string"
-    ) {
-      setError("Your card couldn't be saved. Try again.");
+    if (setupIntent.status !== "succeeded" || typeof setupIntent.payment_method !== "string") {
+      setError(STD_ERR);
       setBusy(false);
       return;
     }
@@ -296,14 +297,14 @@ function CheckoutInner({
       });
       const body = (await res.json().catch(() => ({}))) as { ok?: boolean; error?: string };
       if (!res.ok || !body.ok) {
-        setError(body.error ?? "Something went wrong on our side. Try again.");
+        setError(body.error ?? STD_ERR);
         setBusy(false);
         return;
       }
       if (onSuccess) onSuccess();
       window.location.reload();
     } catch {
-      setError("Something went wrong on our side. Try again.");
+      setError(STD_ERR);
       setBusy(false);
     }
   };
@@ -334,7 +335,7 @@ function CheckoutInner({
             rel="noopener noreferrer"
             sx={{ color: NAVY, fontWeight: 600, textDecoration: "underline", textUnderlineOffset: 2 }}
           >
-            ASN Provider Agreement ({AGREEMENT_VERSION})
+            ASN Provider Agreement
           </Box>
           {" "}(<Box
             component={Link}

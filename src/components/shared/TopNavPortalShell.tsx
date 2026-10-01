@@ -435,7 +435,7 @@ export default function TopNavPortalShell({
                   }}
                 >
                   <Box sx={{ position: "relative", width: 40, height: 40, borderRadius: "10px", overflow: "hidden", flexShrink: 0 }}>
-                    <Image src="/asn-nav-icon.png" alt="" fill sizes="40px" style={{ objectFit: "cover" }} priority />
+                    <Image src="/asn-nav-icon.png" alt="" fill sizes="40px" style={{ objectFit: "cover" }} />
                   </Box>
                   <Box sx={{ minWidth: 0, display: { xs: "none", sm: "block" } }}>
                     <Typography sx={{ fontSize: "0.9375rem", fontWeight: 800, letterSpacing: "-0.02em", color: EP.espresso, lineHeight: 1.15 }} noWrap>

@@ -31,6 +31,7 @@ import PlayCircleOutlinedIcon from "@mui/icons-material/PlayCircleOutlined";
 import PersonAddAlt1OutlinedIcon from "@mui/icons-material/PersonAddAlt1Outlined";
 import VpnKeyOutlinedIcon from "@mui/icons-material/VpnKeyOutlined";
 import DomainAddOutlinedIcon from "@mui/icons-material/DomainAddOutlined";
+import DeleteOutlineIcon from "@mui/icons-material/DeleteOutlined";
 import AddCompanyDialog from "@/components/admin/AddCompanyDialog";
 import { normalizeVendorPlan, vendorPlanChipLabel, vendorRamp } from "@/lib/vendorPricing";
 
@@ -96,6 +97,30 @@ function Inner() {
   useEffect(() => {
     void load();
   }, [load]);
+
+  const deleteVendor = async (v: VendorRow) => {
+    const name = v.display_name || v.company_name;
+    if (!window.confirm(`Delete ${name} completely?\n\nThis removes the company (and any covered companies under it), the application, any founding invite, the sign-in user and its Stripe customer (any trial billing is cancelled). It cannot be undone.`)) return;
+    setActingId(v.id);
+    try {
+      const res = await fetch("/api/admin/vendors", {
+        method: "DELETE",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ id: v.id }),
+      });
+      const body = (await res.json()) as { ok?: boolean; error?: string; removed?: string[]; stripe?: string };
+      if (!res.ok || body.error) {
+        setToast(body.error ?? `Delete failed (${res.status})`);
+        return;
+      }
+      setToast(`${name} deleted (${(body.removed ?? []).join(", ")}; Stripe: ${body.stripe ?? "none"}).`);
+      await load();
+    } catch (err) {
+      setToast(err instanceof Error ? err.message : "Delete failed.");
+    } finally {
+      setActingId(null);
+    }
+  };
 
   const runAction = async (vendorId: string, action: ActionKey, plan?: "ladder" | "flat") => {
     setActingId(vendorId);
@@ -425,6 +450,11 @@ function Inner() {
                     {v.status === "rejected" && (
                       <ApproveMenu onPick={(plan) => void runAction(v.id, "approve", plan)} />
                     )}
+                    <Tooltip title="Delete from the database (company, application, invites, sign-in, Stripe customer)">
+                      <IconButton size="small" sx={{ color: "error.main" }} onClick={() => void deleteVendor(v)}>
+                        <DeleteOutlineIcon fontSize="small" />
+                      </IconButton>
+                    </Tooltip>
                   </>
                 )}
               </Stack>
