@@ -18,6 +18,13 @@ export default function SmoothScroll() {
     const reduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
     if (reduced) return;
 
+    // Lenis only smooths wheel/trackpad input (syncTouch is off), so on a
+    // touch-only device it would just spin an idle requestAnimationFrame
+    // loop for the whole session. Skip it there: native touch scrolling is
+    // unchanged and the battery/main-thread cost goes away.
+    const touchOnly = window.matchMedia("(hover: none) and (pointer: coarse)").matches;
+    if (touchOnly) return;
+
     const lenis = new Lenis({
       duration: 1.05,
       easing: (t: number) => Math.min(1, 1.001 - Math.pow(2, -10 * t)),

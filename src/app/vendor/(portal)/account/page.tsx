@@ -9,7 +9,6 @@ import {
   Divider,
   Grid,
   IconButton,
-  LinearProgress,
   Stack,
   Tooltip,
   Typography,
@@ -45,9 +44,9 @@ type Invoice = {
   hostedUrl: string | null;
 };
 
-// Price ramps live in src/lib/vendorPricing.ts, keyed by vendors.billing_plan:
-// website and founding_ladder ($39 months 1 to 12, then $149, no free
-// period), founding_flat ($39, no increase).
+// Price terms live in src/lib/vendorPricing.ts, keyed by vendors.billing_plan:
+// free founding months (6 from the member launch), then $39 (standard) or
+// $149 (large) a month with no increase.
 
 export default function VendorAccountPage() {
   const [loading, setLoading] = useState(true);
@@ -133,18 +132,16 @@ export default function VendorAccountPage() {
   }
 
   const plan = normalizeVendorPlan(vendor.billing_plan);
-  const ramp = vendorRamp(plan);
-  const isWebsite = plan === "website";
-  const months = vendor.months_in_program ?? 0;
   const hasTrial = vendor.subscription_status === "trialing";
-  const currentRow = currentRampRow(plan, months);
-  const nextBill = ramp.monthlyNow(months, hasTrial);
-  // Progress box: website and founding-ladder companies count down the 12
-  // months at $39 (the 12-month term); founding flat has no step to count
-  // down to.
-  const firstStepEnd = ramp.rows[0]?.to ?? null;
-  const monthsLeftInStep = firstStepEnd === null ? 0 : Math.max(0, firstStepEnd - months);
-  const stepProgress = firstStepEnd === null ? 100 : Math.min(100, (months / firstStepEnd) * 100);
+  const freeUntil = hasTrial ? vendor.current_period_end : null;
+  const ramp = vendorRamp(plan, freeUntil);
+  const isWebsite = !vendor.founding_partner_locked;
+  const months = vendor.months_in_program ?? 0;
+  const currentRow = currentRampRow(plan, hasTrial, freeUntil);
+  const nextBill = ramp.monthlyNow(hasTrial);
+  const freeUntilLabel = freeUntil
+    ? new Date(freeUntil).toLocaleDateString("en-US", { year: "numeric", month: "long", day: "numeric" })
+    : null;
   const lifetimeBilled = (invoices ?? []).reduce((sum, inv) => sum + (Number(inv.amountPaid) || 0), 0);
 
   return (
@@ -169,7 +166,7 @@ export default function VendorAccountPage() {
           />
         </Grid>
         <Grid size={{ xs: 12, sm: 6, lg: 3 }}>
-          <StatCard icon={TimelineOutlinedIcon} accent="gold" label="Months in program" value={`${months} of ${ramp.termMonths}`} footer={isWebsite ? "First year" : "Founding term"} />
+          <StatCard icon={TimelineOutlinedIcon} accent="gold" label="Months in program" value={`${months}`} footer={hasTrial ? "Free founding months" : "Paying member"} />
         </Grid>
         <Grid size={{ xs: 12, sm: 6, lg: 3 }}>
           <StatCard
@@ -177,7 +174,7 @@ export default function VendorAccountPage() {
             accent="green"
             label="Lifetime billed"
             value={`$${lifetimeBilled.toFixed(2)}`}
-            footer={plan === "founding_flat" ? "$39 a month, no increase" : "$39 a month for months 1 to 12"}
+            footer={`${ramp.rate} a month after your free months, no increase`}
           />
         </Grid>
       </Grid>
@@ -187,7 +184,7 @@ export default function VendorAccountPage() {
         <Grid size={{ xs: 12, lg: 7 }}>
           <SectionCard
             title="Subscription"
-            subtitle={isWebsite ? "Your first-year schedule, then the standard rate." : "Your founding rate, locked for as long as you stay."}
+            subtitle="Free founding months, then your flat rate for as long as you stay."
             padding="default"
             action={
               <Stack direction="row" spacing={0.5} sx={{ flexWrap: "wrap", gap: 0.5 }}>
@@ -197,33 +194,27 @@ export default function VendorAccountPage() {
             }
           >
             <Stack spacing={2.5}>
-              {/* Step progress: 12 months at $39 (website and founding ladder); no bar for flat */}
-              {firstStepEnd !== null ? (
-                <Box sx={{ p: 2, borderRadius: "12px", bgcolor: CP.sand }}>
-                  <Stack direction="row" sx={{ alignItems: "baseline", justifyContent: "space-between", mb: 1 }}>
-                    <Typography sx={{ fontSize: "0.875rem", fontWeight: 700, color: INK }}>
-                      {isWebsite ? "Launch rate, first year" : "Founding term"}
-                    </Typography>
-                    <Typography sx={{ ...portalText.meta, color: CP.goldText, fontWeight: 600 }}>
-                      {monthsLeftInStep} month{monthsLeftInStep === 1 ? "" : "s"} left at {ramp.rows[0].price}
-                    </Typography>
-                  </Stack>
-                  <LinearProgress variant="determinate" value={stepProgress} sx={{ bgcolor: "rgba(255,255,255,0.8)" }} />
-                </Box>
-              ) : (
-                <Box sx={{ p: 2, borderRadius: "12px", bgcolor: CP.sand }}>
-                  <Typography sx={{ fontSize: "0.875rem", fontWeight: 700, color: INK }}>
-                    Founding company: $39 a month, no increase
-                  </Typography>
-                </Box>
-              )}
+              <Box sx={{ p: 2, borderRadius: "12px", bgcolor: CP.sand }}>
+                <Typography sx={{ fontSize: "0.875rem", fontWeight: 700, color: INK }}>
+                  {hasTrial
+                    ? freeUntilLabel
+                      ? `Free until ${freeUntilLabel}, then ${ramp.rate} a month with no increase`
+                      : `Free founding months, then ${ramp.rate} a month with no increase`
+                    : `${ramp.rate} a month, no increase`}
+                </Typography>
+                <Typography sx={{ ...portalText.meta, mt: 0.5 }}>
+                  {hasTrial
+                    ? "Nothing is charged until your free months end. We remind you 7 days before your first charge; cancel before then and you won't be charged."
+                    : "Cancel with 30 days' written notice."}
+                </Typography>
+              </Box>
 
               <Divider />
 
               {/* Pricing ladder */}
               <Stack spacing={1}>
                 <Typography sx={{ fontSize: "0.875rem", fontWeight: 700, color: INK }}>
-                  {ramp.rows.length > 1 ? "Pricing ladder" : "Pricing"}
+                  Your terms
                 </Typography>
                 {ramp.rows.map((row) => (
                   <LadderRow
@@ -288,10 +279,10 @@ export default function VendorAccountPage() {
                     No payment method required yet
                   </Typography>
                   <Typography sx={portalText.body}>
-                    {isWebsite ? (
+                    {!vendor.stripe_subscription_id ? (
                       <>
-                        Add a card below to start your listing:{" "}
-                        <Box component="strong" sx={{ color: INK, fontWeight: 700 }}>$39 a month for months 1 to 12</Box>, then $149 a month from month 13. Your first $39 charge is today.
+                        Save a card below to activate your listing. Nothing is charged until your free founding months end; after that it&apos;s{" "}
+                        <Box component="strong" sx={{ color: INK, fontWeight: 700 }}>{ramp.rate} a month</Box> with no increase.
                       </>
                     ) : (
                       <>Your card is on file with Stripe. Open the Stripe portal to update it.</>
@@ -309,9 +300,9 @@ export default function VendorAccountPage() {
 
             <SectionCard title="Cancellation" padding="default">
               <Typography sx={portalText.body}>
-                Cancel anytime with <Box component="strong" sx={{ color: INK, fontWeight: 700 }}>30 days&apos; written notice</Box>{" "}
-                through this portal. You remain responsible for fees accrued through the effective date of
-                termination.
+                Cancel any time before your first charge and you won&apos;t be charged. After that, cancel with{" "}
+                <Box component="strong" sx={{ color: INK, fontWeight: 700 }}>30 days&apos; written notice</Box> through this portal.
+                You remain responsible for fees accrued through the effective date of termination.
               </Typography>
               <Button
                 onClick={openPortal}
@@ -329,12 +320,12 @@ export default function VendorAccountPage() {
         </Grid>
       </Grid>
 
-      {/* Sign-and-pay card: shown on first login after approval. Captures
-          the card via SetupIntent + <PaymentElement>, then creates the
-          $39 x 12 then $149 subscription schedule (first $39 charged
-          today). Once active, this card hides and normal billing UI
-          takes over. */}
-      {isWebsite && !vendor.stripe_subscription_id && (
+      {/* Sign-and-pay card: shown when a company has no subscription yet
+          (approved before the agreement-by-email step). Captures the card
+          via SetupIntent + <PaymentElement>, then creates the subscription:
+          free until the launch-based date, then the rate. Nothing is
+          charged today. Once active, this card hides. */}
+      {!vendor.stripe_subscription_id && (
         <TrialStartCard
           prepareEndpoint="/api/vendor/billing/trial/prepare"
           startEndpoint="/api/vendor/billing/trial/start"

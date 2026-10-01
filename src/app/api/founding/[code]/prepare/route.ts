@@ -1,7 +1,9 @@
 import { NextResponse } from "next/server";
 import { getStripe } from "@/lib/stripe";
 import { getSupabaseAdmin } from "@/lib/supabase/server";
-import { serverError } from "@/lib/api/errorResponse";
+import { apiError, serverError } from "@/lib/api/errorResponse";
+import { checkRateLimit } from "@/lib/waitlist/rateLimit";
+import { clientIp } from "@/lib/security/hashIp";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -18,9 +20,16 @@ export const dynamic = "force-dynamic";
  * converts to $39/month, founding companies are billed $39/month from
  * acceptance.
  */
-export async function POST(_req: Request, ctx: { params: Promise<{ code: string }> }) {
+export async function POST(req: Request, ctx: { params: Promise<{ code: string }> }) {
   const { code } = await ctx.params;
   if (!code) return NextResponse.json({ error: "Missing code." }, { status: 400 });
+
+  // The code is the only credential, so cap guesses per IP (5 per 10 min,
+  // the shared public-route limit) before any lookup or Stripe call.
+  // The acceptance page calls this on every load (SetupIntent); allow
+  // generous reloads while still stopping scripted abuse.
+  const rl = await checkRateLimit(`founding-prepare:${clientIp(req)}`, { maxHits: 60, windowMs: 10 * 60 * 1000 });
+  if (!rl.allowed) return apiError.rateLimited("POST /api/founding/[code]/prepare");
 
   const sb = getSupabaseAdmin();
   const { data: invite } = await sb

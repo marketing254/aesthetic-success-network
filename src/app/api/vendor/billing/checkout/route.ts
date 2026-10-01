@@ -24,7 +24,8 @@ export const dynamic = "force-dynamic";
  * partner_standard_* keys are never accepted here.
  *
  * Note: a fresh company never lands here; the first subscription is the
- * $39 then $149 ladder schedule created by /api/vendor/billing/trial/start.
+ * free-months-then-$39 (or the admin-set large rate) subscription created
+ * by /api/vendor/billing/trial/start.
  */
 function isValidPlan(p: unknown): p is PartnerPlanKey {
   return typeof p === "string" && (OFFERED_PARTNER_PLAN_KEYS as string[]).includes(p);

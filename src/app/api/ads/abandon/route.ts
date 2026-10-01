@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { MEMBER_LAUNCH_ENABLED, MEMBER_LAUNCH_MESSAGE } from "@/lib/launch";
 import { checkRateLimit } from "@/lib/waitlist/rateLimit";
 import { captureAbandon } from "@/lib/abandoned";
 
@@ -20,6 +21,7 @@ function clientIp(req: Request): string {
 }
 
 export async function POST(req: Request) {
+  if (!MEMBER_LAUNCH_ENABLED) return new NextResponse(null, { status: 204 });
   const rl = await checkRateLimit(`ads-abandon:${clientIp(req)}`);
   if (!rl.allowed) return new NextResponse(null, { status: 204 });
 

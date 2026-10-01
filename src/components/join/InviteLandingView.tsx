@@ -90,7 +90,7 @@ export default function InviteLandingView({
                     Your {roleLabel.toLowerCase()} profile
                     {companyName ? <> for <Box component="strong">{companyName}</Box></> : null}
                     {cardRequired
-                      ? " is ready in the Aesthetic Success Network. Accept the standard agreement below, then sign in. You'll add your card in the portal to activate your free trial."
+                      ? " is ready in the Aesthetic Success Network. Accept the standard agreement below, then sign in. You'll add your card in the portal to activate your free founding months."
                       : " is ready in the Aesthetic Success Network. Accept the standard agreement below, then sign in. Your billing is already set up, so the portal is one login away."}
                   </>
                 ) : (
@@ -171,7 +171,7 @@ function ProfileAcceptCard({ kind, code, loginHref, cardRequired = true }: { kin
         </Typography>
         <Typography sx={{ color: COLORS.inkSoft, fontSize: "0.95rem", lineHeight: 1.6, mb: 2.5 }}>
           {cardRequired
-            ? "Next step: sign in with your email (a 6-digit code, no password). Inside the portal you'll add your card to activate your free trial (nothing is charged today)."
+            ? "Next step: sign in with your email (a 6-digit code, no password). Inside the portal you'll add your card to activate your free founding months (nothing is charged today)."
             : "Next step: sign in with your email (a 6-digit code, no password). Your billing is already set up, so you're straight into the portal."}
         </Typography>
         <Button component={Link} href={loginHref} variant="contained" endIcon={<ArrowForwardRoundedIcon />}
@@ -189,7 +189,7 @@ function ProfileAcceptCard({ kind, code, loginHref, cardRequired = true }: { kin
         {[
           "Standard ASN provider terms, no bespoke founding agreement",
           "Cancel anytime, 30-day written notice",
-          cardRequired ? "Free trial activates once you add a card in the portal" : "Your billing is already set up, nothing more to add",
+          cardRequired ? "Free founding months activate once you add a card in the portal" : "Your billing is already set up, nothing more to add",
         ].map((line) => (
           <Stack key={line} direction="row" spacing={1} sx={{ alignItems: "flex-start" }}>
             <Box sx={{ width: 16, height: 16, borderRadius: "50%", bgcolor: "rgba(217,168,75,0.12)", color: accent, display: "grid", placeItems: "center", fontSize: "0.7rem", fontWeight: 800, flexShrink: 0, mt: 0.25 }}>✓</Box>
@@ -218,7 +218,7 @@ function ProfileAcceptCard({ kind, code, loginHref, cardRequired = true }: { kin
       {error && <Alert severity="error" sx={{ mt: 2, fontSize: "0.82rem" }}>{error}</Alert>}
       <Typography sx={{ fontSize: "0.78rem", color: COLORS.muted, mt: 2, textAlign: "center" }}>
         {cardRequired
-          ? "No card needed on this page · You'll add it inside the portal to start your free trial"
+          ? "No card needed on this page · You'll add it inside the portal to start your free founding months"
           : "Nothing to pay here. Your billing is already in place"}
       </Typography>
     </Box>

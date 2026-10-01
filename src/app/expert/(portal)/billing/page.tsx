@@ -30,14 +30,13 @@ const BRONZE_TINT = EP.bronzeTint;
 const HOVER = EP.bronzeTint;
 
 /**
- * Expert ramp: a free period, then $39 a month for good. There is no
- * month-13 step for experts. The free period is 6 months for website
- * experts and 12 months for founding-invite experts; the "Until" date
- * comes from the Stripe trial end so both read correctly.
+ * Expert terms: free founding months (6 from the member launch), then
+ * $39 a month with no increase. The "Until" date comes from the Stripe
+ * trial end on the row.
  */
 const RAMP = {
-  launch: { months: "Free period", price: "$0", note: "Founding waiver" },
-  growth: { months: "After your free period", price: "$39", note: "Locked rate, no increase" },
+  launch: { months: "Free founding months", price: "$0", note: "From the member launch" },
+  growth: { months: "After that", price: "$39", note: "Flat rate, no increase" },
 } as const;
 
 type Invoice = {
@@ -136,8 +135,7 @@ export default function ExpertBillingPage() {
   const monthsInProgram = expert?.months_in_program ?? 0;
   const trialing = expert?.subscription_status === "trialing";
   // Experts only ever move launch -> growth. While Stripe says "trialing"
-  // they are in the free period regardless of months_in_program (founding
-  // experts trial for 12 months, website experts for 6).
+  // they are in the free founding months regardless of months_in_program.
   const phase: "launch" | "growth" = trialing ? "launch" : phaseForMonth(monthsInProgram, "expert") === "launch" ? "launch" : "growth";
   const currentPrice = `${RAMP[phase].price} / mo`;
   const freePeriodEnds = trialing && expert?.current_period_end ? formatDate(expert.current_period_end) : null;
@@ -145,8 +143,8 @@ export default function ExpertBillingPage() {
   // Billing exemption (manual admin override). No card, no subscription, no invoices.
   const billingExempt = !!expert?.billing_exempt;
   const rampSentence = freePeriodEnds
-    ? `Free until ${freePeriodEnds}, then $39 a month. It stays $39, with no increase. Cancel anytime.`
-    : "Free for your first 6 months, then $39 a month. It stays $39, with no increase. Cancel anytime.";
+    ? `Free until ${freePeriodEnds}, then $39 a month. It stays $39, with no increase. Cancel before your first charge and you won't be charged.`
+    : "Your first 6 months are free, starting the day we open to members. After that it's $39 a month, and it stays $39 with no increase.";
 
   const planLabel = useMemo(() => {
     const phaseLabel = phase === "launch" ? "Launch" : "Growth";
@@ -155,7 +153,7 @@ export default function ExpertBillingPage() {
 
   const status = useMemo(() => {
     const s = expert?.subscription_status;
-    if (s === "trialing") return { label: "Trialing", tone: "leaf" as const };
+    if (s === "trialing") return { label: "Free months", tone: "leaf" as const };
     if (s === "active") return { label: "Active", tone: "leaf" as const };
     if (s === "past_due" || s === "unpaid") return { label: "Payment due", tone: "gold" as const };
     if (s === "canceled" || s === "incomplete_expired") return { label: "Canceled", tone: "red" as const };
@@ -262,7 +260,7 @@ export default function ExpertBillingPage() {
               {phase === "launch"
                 ? freePeriodEnds
                   ? `Free until ${freePeriodEnds}`
-                  : "Your free period"
+                  : "Your free founding months"
                 : `Now: ${RAMP.growth.price} a month`}
             </Typography>
             <Typography sx={{ fontSize: "0.875rem", color: CP.ivory80, lineHeight: 1.6, mt: 0.5 }}>
@@ -324,7 +322,7 @@ export default function ExpertBillingPage() {
               <StatusPill label={status.label} tone={status.tone} />
             </MetaItem>
             {renewalLabel && <MetaItem label="Billing">{renewalLabel}</MetaItem>}
-            <MetaItem label="Course revenue">You keep 70%</MetaItem>
+            <MetaItem label="Course revenue">You keep the full price</MetaItem>
           </Stack>
 
           {portalError && (
@@ -373,16 +371,16 @@ export default function ExpertBillingPage() {
         </SectionCard>
       )}
 
-      {/* ---- Pricing ladder ---- (never shown to billing-exempt experts) */}
+      {/* ---- Your terms ---- (never shown to billing-exempt experts) */}
       {!billingExempt && (
       <SectionCard
-        title="Pricing ladder"
+        title="Your terms"
         subtitle={
           phase === "launch"
             ? freePeriodEnds
               ? `Free until ${freePeriodEnds}`
-              : "Your free period"
-            : "Free period complete"
+              : "Your free founding months"
+            : "Free months complete"
         }
         padding="none"
       >
@@ -392,8 +390,9 @@ export default function ExpertBillingPage() {
         </Stack>
         <Box sx={{ px: 3, py: 2, borderTop: `1px solid ${LINE}` }}>
           <Typography sx={{ fontSize: "0.8125rem", color: MUTED, lineHeight: 1.6 }}>
-            <Box component="strong" sx={{ color: INK, fontWeight: 600 }}>Course revenue split</Box>: sell paid
-            courses through ASN and keep 70% (ASN keeps 30%), paid out monthly via Stripe Connect.
+            <Box component="strong" sx={{ color: INK, fontWeight: 600 }}>Course revenue</Box>: sell your own
+            courses and products to members and keep the full price. Members buy on your site; the one
+            condition is a member-only offer on each.
           </Typography>
         </Box>
       </SectionCard>

@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
-import { getStripe, appOrigin, partnerPriceIdFor, createCompanyLadderSchedule } from "@/lib/stripe";
+import { getStripe, appOrigin, partnerPriceIdFor, createProviderSubscription } from "@/lib/stripe";
+import { normalizeProviderRate } from "@/lib/providerBilling";
 import { getSupabaseAdmin } from "@/lib/supabase/server";
 import { requireVendor } from "@/lib/auth/guards";
 import { renderAgreementPdf } from "@/lib/pdf/agreementPdf";
@@ -13,14 +14,14 @@ export const dynamic = "force-dynamic";
 /**
  * POST /api/vendor/billing/trial/start
  *
- * Second half of the website company sign-and-pay flow (the route name is
- * historical; there is no trial for companies). Given the setupIntentId +
- * paymentMethodId (from the /prepare step's <PaymentElement>
- * confirmation), attaches the card as default, records the agreement
- * acceptance stamp, and creates the company ladder subscription schedule
- * (createCompanyLadderSchedule): $39 a month for months 1 to 12 charged
- * from today, then $149 a month from month 13. Identical Stripe objects
- * to a founding "ladder" invite acceptance.
+ * Second half of the portal sign-and-pay flow for a company that was
+ * approved before the agreement-by-email step existed (the normal path
+ * is now the /founding/<code> acceptance page). Given the setupIntentId +
+ * paymentMethodId from the /prepare step, attaches the card as default,
+ * records the agreement acceptance, and creates the company subscription
+ * (createProviderSubscription): free until 6 months after the member
+ * launch, then the company's rate ($39 standard / $149 large) with no
+ * increase. Nothing is charged today.
  */
 
 type Body = { setupIntentId?: string; paymentMethodId?: string; agreementVersion?: string };
@@ -42,8 +43,7 @@ export async function POST(req: Request) {
   let stripe;
   try {
     stripe = getStripe();
-    // Pre-flight both price env vars so a misconfiguration is a 503, not a
-    // half-created schedule.
+    // Pre-flight the price env vars so a misconfiguration is a 503.
     partnerPriceIdFor("partner_growth_monthly");
     partnerPriceIdFor("partner_founding_standard_monthly");
   } catch (err) {
@@ -53,7 +53,7 @@ export async function POST(req: Request) {
   const sb = getSupabaseAdmin();
   const { data: vendor } = await sb
     .from("vendors")
-    .select("id, contact_email, billing_email, company_name, contact_name, stripe_customer_id, stripe_subscription_id, subscription_status")
+    .select("id, contact_email, billing_email, company_name, contact_name, stripe_customer_id, stripe_subscription_id, subscription_status, billing_plan")
     .eq("id", guard.vendorId)
     .maybeSingle();
   if (!vendor?.stripe_customer_id) {
@@ -94,19 +94,17 @@ export async function POST(req: Request) {
     invoice_settings: { default_payment_method: paymentMethodId },
   });
 
-  // Create the company ladder schedule: phase 1 = $39 x 12 months charged
-  // from today, phase 2 = $149 open-ended. Same helper as the founding
-  // accept route.
-  let ladder;
+  // Create the company subscription: free until the launch-based date,
+  // then the rate on the row. Same helper as the founding accept route.
+  const rate = normalizeProviderRate(vendor.billing_plan);
+  let created;
   try {
-    ladder = await createCompanyLadderSchedule({
+    created = await createProviderSubscription({
       customerId: vendor.stripe_customer_id,
       paymentMethodId,
-      metadata: {
-        vendor_id: vendor.id,
-        source: "website",
-        ramp: "company-ladder-12x39-then-149",
-      },
+      audience: "vendor",
+      rate,
+      metadata: { vendor_id: vendor.id, source: "website", ramp: "website-company" },
     });
   } catch (err) {
     return serverError(err, {
@@ -115,8 +113,8 @@ export async function POST(req: Request) {
         publicMessage: "Stripe rejected the subscription. Check the card details and try again.",
       });
   }
-  const subscription = ladder.subscription;
-  const priceGrowth = ladder.growthPriceId;
+  const subscription = created.subscription;
+  const priceGrowth = created.priceId;
 
   // `default_payment_method` came in as a string ID from the create
   // call, so `subscription.default_payment_method` is still a string,
@@ -145,7 +143,7 @@ export async function POST(req: Request) {
     .update({
       stripe_subscription_id: subscription.id,
       stripe_price_id: priceGrowth,
-      subscription_status: subscription.status, // "active" (first $39 charged today)
+      subscription_status: subscription.status, // "trialing" until the free months end
       subscription_interval: "month",
       current_period_end:
         typeof subscription.items.data[0]?.current_period_end === "number"
@@ -166,6 +164,8 @@ export async function POST(req: Request) {
     const pdfBuffer = await renderAgreementPdf({
       role: "partner",
       agreementVersion,
+      rate,
+      freePeriodEndsAt: created.freePeriodEndsAt,
       signer: {
         name: vendor.contact_name ?? "Partner",
         email: vendor.contact_email,
@@ -186,7 +186,9 @@ export async function POST(req: Request) {
     }
     void sendJoinConfirmationEmail({
       role: "partner",
+      rate,
       to: vendor.billing_email ?? vendor.contact_email,
+      accountEmail: vendor.contact_email,
       contactName: vendor.contact_name ?? "Partner",
       companyName: vendor.company_name ?? null,
       pdfBuffer,
@@ -194,7 +196,7 @@ export async function POST(req: Request) {
       portalUrl: `${appOrigin()}/vendor/account`,
       agreementVersion,
       signedAt,
-      partnerStandardStartsAt: ladder.standardStartsAt,
+      freePeriodEndsAt: created.freePeriodEndsAt,
       cardCaptured: true,
     });
   } catch (err) {

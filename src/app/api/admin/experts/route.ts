@@ -4,10 +4,11 @@ import { requireAdmin } from "@/lib/auth/guards";
 import { sendExpertApprovalEmail } from "@/lib/waitlist/confirmationEmail";
 import { notifyTeamEvent } from "@/lib/email/teamNotify";
 import { createOrReuseInviteLink } from "@/lib/inviteLinks";
+import { inviteApplicant } from "@/lib/founding/sendInvite";
 import type { ExpertApplicationStatus } from "@/lib/supabase/types";
 import { serverError } from "@/lib/api/errorResponse";
 import { insertNotification } from "@/lib/api/notifications";
-import { appOrigin, appUrl } from "@/lib/stripe";
+import { appUrl } from "@/lib/stripe";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -224,10 +225,10 @@ export async function POST(req: Request) {
       admin_id: guard.adminId,
     });
 
-    // Provision portal access (same path as mark_onboarded).
+    // Same path as approving an application: approval email + agreement.
+    // The expert row and portal access are created when they accept.
     const bio = body.bio?.trim() || null;
-    const provisioning = await provisionExpert({
-      supabase,
+    const provisioning = await approveExpert({
       application: {
         id: applicationId,
         email,
@@ -238,17 +239,10 @@ export async function POST(req: Request) {
         topics: body.topics?.trim() || null,
         website: body.website?.trim() || null,
         booking_link: body.booking_link?.trim() || null,
+        bio,
       },
       adminId: guard.adminId,
-      origin: appOrigin(),
     });
-
-    // Bio supplied at creation goes straight onto the experts row (the
-    // application table has no bio column; the row is what the publish
-    // gate reads).
-    if (bio && provisioning.experts_row.id) {
-      await supabase.from("experts").update({ bio }).eq("id", provisioning.experts_row.id);
-    }
 
     // In-app admin notification.
     await insertNotification(supabase, {
@@ -268,11 +262,13 @@ export async function POST(req: Request) {
       name: fullName,
       email,
       adminLink: appUrl("/admin/experts?filter=onboarded"),
-      highlight: provisioning?.email?.sent
-        ? "Portal access provisioned. Welcome email sent."
-        : "Portal access provisioned.",
+      highlight: provisioning?.agreement?.sent
+        ? "Approval email and agreement sent. Portal opens when they accept."
+        : "Added. The agreement email did not confirm; resend it from /admin/founding.",
       fields: [
+        { label: "Source", value: "Added by admin" },
         { label: "Teaches / coaches on", value: specialty },
+        { label: "Bio", value: bio },
         { label: "Company", value: body.company_name },
         { label: "Phone", value: body.phone },
         { label: "Website", value: body.website },
@@ -308,9 +304,11 @@ const ACTION_STATUS: Record<Action, ExpertApplicationStatus> = {
  *                  ↘ declined
  * `reset` moves anything back to `new` (for misclicks).
  *
- * The previous `invite` step (soft yes before onboarding) was removed —
- * reviewers go straight to `mark_onboarded` which provisions the portal
- * + sends the welcome email in one step.
+ * `mark_onboarded` = approve. It sends the "You're approved" email and,
+ * right after, the founding expert agreement (private /founding/<code>
+ * link with the personalized PDF). The expert row, auth user and Stripe
+ * subscription are created when they accept the agreement
+ * (/api/founding/[code]/accept), which is also what opens the portal.
  */
 export async function PATCH(req: Request) {
   const guard = await requireAdmin();
@@ -338,7 +336,7 @@ export async function PATCH(req: Request) {
     const { data: existing, error: readErr } = await supabase
       .from("expert_applications")
       .select(
-        "id, full_name, email, status, phone, company_name, specialty, topics, website, booking_link",
+        "id, full_name, email, status, phone, company_name, specialty, topics, website, booking_link, bio",
       )
       .eq("id", body.id)
       .maybeSingle();
@@ -380,7 +378,7 @@ export async function PATCH(req: Request) {
         action === "mark_onboarded" ? "expert_onboarded" : "expert_declined";
       const title =
         action === "mark_onboarded"
-          ? `Expert onboarded, portal activated: ${existing.full_name}`
+          ? `Expert approved, agreement sent: ${existing.full_name}`
           : `Expert declined: ${existing.full_name}`;
       const filter = action === "mark_onboarded" ? "onboarded" : "declined";
       await insertNotification(supabase, {
@@ -394,26 +392,12 @@ export async function PATCH(req: Request) {
       });
     }
 
-    // ─────────────────────────────────────────────────────────────────
-    // PROVISIONING (mark_onboarded only): create experts row + auth
-    // user + magic link + welcome email — all in one step. The team
-    // has already had the onboarding call manually before clicking
-    // Mark onboarded; the email + portal access are the post-call
-    // welcome packet.
-    //
-    // Each step is best-effort and logs its outcome — failures don't
-    // roll back the status transition the team already confirmed, but
-    // they surface in the response so the admin sees what to retry.
-    // ─────────────────────────────────────────────────────────────────
+    // APPROVAL (mark_onboarded only): "You're approved" email, then the
+    // agreement email with the private acceptance link. Provisioning
+    // (expert row, auth user, subscription) happens at acceptance.
     let provisioning: ProvisioningReport | undefined;
-
     if (action === "mark_onboarded") {
-      provisioning = await provisionExpert({
-        supabase,
-        application: existing,
-        adminId: guard.adminId,
-        origin: appOrigin(),
-      });
+      provisioning = await approveExpert({ application: existing, adminId: guard.adminId });
     }
 
     return NextResponse.json({ ok: true, provisioning });
@@ -423,27 +407,20 @@ export async function PATCH(req: Request) {
 }
 
 type ProvisioningReport = {
-  experts_row: { id?: string; created?: boolean; error?: string };
-  auth_user: { id?: string; created?: boolean; error?: string };
-  magic_link: { generated?: boolean; error?: string };
   email: { sent?: boolean; error?: string };
+  agreement: { sent?: boolean; invite_url?: string; error?: string };
 };
 
 /**
- * provisionExpert
+ * approveExpert
  *
- * Idempotent: re-clicking "Mark onboarded" should not crash. Each sub-step
- * handles "already exists" gracefully and either generates a fresh magic
- * link or surfaces the error to the admin without blocking.
- *
- * Steps:
- *   1. Upsert `experts` row (looked up by email; create if missing).
- *   2. Pre-create Supabase auth user (so magic-link sign-in works).
- *   3. Generate a fresh Supabase magic link (one-click sign-in).
- *   4. Send the approval email containing that link.
+ * Idempotent: re-clicking resends the same agreement link rather than
+ * creating a second one. Steps:
+ *   1. Send the "You're approved" email (what to gather, terms).
+ *   2. Create (or reuse) the founding invite for this applicant and send
+ *      the agreement email with their personalized PDF.
  */
-async function provisionExpert(args: {
-  supabase: ReturnType<typeof getSupabaseAdmin>;
+async function approveExpert(args: {
   application: {
     id: string;
     email: string;
@@ -454,205 +431,59 @@ async function provisionExpert(args: {
     topics: string | null;
     website: string | null;
     booking_link: string | null;
+    bio?: string | null;
   };
   adminId: string;
-  origin: string;
 }): Promise<ProvisioningReport> {
-  const { supabase, application, adminId, origin } = args;
-  const out: ProvisioningReport = {
-    experts_row: {},
-    auth_user: {},
-    magic_link: {},
-    email: {},
-  };
-
+  const { application, adminId } = args;
+  const out: ProvisioningReport = { email: {}, agreement: {} };
   const email = application.email.toLowerCase();
-  const portalLoginUrl = `${origin.replace(/\/$/, "")}/expert/login`;
 
-  // 1. Upsert experts row (find by email; create if missing).
-  let expertId: string | null = null;
-  try {
-    const { data: existingExpert } = await supabase
-      .from("experts")
-      .select("id, status")
-      .eq("email", email)
-      .maybeSingle();
-
-    if (existingExpert) {
-      expertId = existingExpert.id;
-      out.experts_row = { id: expertId, created: false };
-    } else {
-      const { data: inserted, error: insErr } = await supabase
-        .from("experts")
-        .insert({
-          application_id: application.id,
-          email,
-          full_name: application.full_name,
-          phone: application.phone,
-          company_name: application.company_name,
-          specialty: application.specialty,
-          topics: application.topics,
-          website: application.website,
-          booking_link: application.booking_link,
-          status: "invited",
-          invited_by: adminId,
-        })
-        .select("id")
-        .single();
-      if (insErr) throw insErr;
-      expertId = inserted.id;
-      out.experts_row = { id: expertId, created: true };
-    }
-  } catch (err) {
-    console.error("[admin:experts] provisioning step failed: experts_row", err);
-    out.experts_row = {
-      error: "Failed to upsert expert row.",
-    };
-    // Without an experts row we can't continue meaningfully; bail.
-    return out;
-  }
-
-  // 2. Pre-create Supabase auth user. shouldCreateUser:false on the login
-  //    route means the user MUST already exist before magic-link sign-in.
-  try {
-    const { data: created, error: createErr } = await supabase.auth.admin.createUser({
-      email,
-      email_confirm: true,
-      user_metadata: { user_type: "expert", expert_id: expertId },
-    });
-    if (createErr) {
-      if (/already.*registered|exists/i.test(createErr.message)) {
-        // Look up the existing user id so we can link experts.auth_user_id.
-        // Supabase Admin SDK doesn't have a direct "find by email", so we
-        // page through listUsers — fine at small scale.
-        const { data: list } = await supabase.auth.admin.listUsers({ page: 1, perPage: 200 });
-        const found = list.users.find((u) => u.email?.toLowerCase() === email);
-        if (found) {
-          out.auth_user = { id: found.id, created: false };
-        } else {
-          out.auth_user = { error: "User exists but could not be located." };
-        }
-      } else {
-        out.auth_user = { error: createErr.message };
-      }
-    } else {
-      out.auth_user = { id: created.user.id, created: true };
-    }
-
-    // Link auth_user_id on the experts row if we got an id.
-    if (out.auth_user.id && expertId) {
-      await supabase
-        .from("experts")
-        .update({ auth_user_id: out.auth_user.id })
-        .eq("id", expertId);
-    }
-  } catch (err) {
-    console.error("[admin:experts] provisioning step failed: auth_user", err);
-    out.auth_user = {
-      error: "Failed to create auth user.",
-    };
-  }
-
-  // 3. Generate a fresh Supabase magic link for one-click sign-in.
-  //
-  // Important: we DON'T use the `action_link` returned by generateLink —
-  // that link points to Supabase's `/auth/v1/verify` endpoint on the
-  // Supabase domain, which sets session cookies on Supabase's domain (not
-  // ours). With SSR auth, those cookies don't transfer when verify
-  // redirects to our callback, so the user lands at /auth/callback with
-  // no session and the existing handler returns "Missing code in callback".
-  //
-  // The SSR-compatible pattern: take the `hashed_token` from generateLink,
-  // build a URL on OUR domain (`/auth/callback?token_hash=...&type=magiclink
-  // &next=/expert&role=expert`), and let our callback call `verifyOtp` —
-  // which sets the auth cookies on our domain so the session sticks.
-  let portalLink: string | null = null;
-  try {
-    const { data, error } = await supabase.auth.admin.generateLink({
-      type: "magiclink",
-      email,
-      options: {
-        // redirectTo here is informational — Supabase requires it but with
-        // our token_hash flow it doesn't drive the actual redirect target.
-        redirectTo: `${origin.replace(/\/$/, "")}/auth/callback?next=/expert&role=expert`,
-      },
-    });
-    if (error) throw error;
-    const hashedToken = data.properties?.hashed_token;
-    if (hashedToken) {
-      const baseUrl = origin.replace(/\/$/, "");
-      const params = new URLSearchParams({
-        token_hash: hashedToken,
-        type: "magiclink",
-        next: "/expert",
-        role: "expert",
-      });
-      portalLink = `${baseUrl}/auth/callback?${params.toString()}`;
-      out.magic_link = { generated: true };
-    } else {
-      out.magic_link = {
-        generated: false,
-        error: "generateLink returned no hashed_token.",
-      };
-    }
-  } catch (err) {
-    console.error("[admin:experts] provisioning step failed: magic_link", err);
-    out.magic_link = {
-      generated: false,
-      error: "Failed to generate magic link.",
-    };
-  }
-
-  // 4. Send the approval email. If the magic link failed, we still send the
-  //    email but use the login page URL as the CTA so the expert can request
-  //    their own link.
   try {
     const firstName = application.full_name.trim().split(/\s+/)[0] ?? application.full_name;
-    const result = await sendExpertApprovalEmail({
-      email,
-      firstName,
-      expertId: expertId ?? application.id,
-      portalLink: portalLink ?? portalLoginUrl,
-      portalLoginUrl,
-    });
+    const result = await sendExpertApprovalEmail({ email, firstName, expertId: application.id });
     out.email = { sent: result.sent };
-
-    if (expertId) {
-      await supabase.from("email_events").insert({
-        template: "expert_approved",
-        recipient: email,
-        subject: "You're confirmed as an Aesthetic Success Network expert: here's your portal",
-        provider: process.env.SMTP_HOST
-          ? "smtp"
-          : process.env.GMAIL_USER
-            ? "gmail"
-            : process.env.RESEND_API_KEY
-              ? "resend"
-              : "log",
-        status: result.sent ? "queued" : "failed",
-        metadata: { expert_id: expertId, application_id: application.id },
-      });
-    }
   } catch (err) {
-    console.error("[admin:experts] provisioning step failed: email", err);
-    out.email = {
-      sent: false,
-      error: "Failed to send approval email.",
-    };
+    console.error("[admin:experts] approval email failed", err);
+    out.email = { sent: false, error: "Failed to send the approval email." };
   }
 
-  // Standard invite link for the fresh expert profile — appears in
-  // /admin/invites ready to copy into a manually written email.
-  if (expertId) {
-    await createOrReuseInviteLink(supabase, {
-      kind: "expert",
-      expertId,
+  try {
+    const r = await inviteApplicant({
+      role: "expert",
       fullName: application.full_name,
       email,
-      companyName: application.company_name ?? null,
+      companyName: application.company_name,
+      phone: application.phone,
+      website: application.website,
+      category: application.specialty,
+      calendarLink: application.booking_link,
+      description: application.bio ?? application.topics ?? null,
+      source: "Website expert application",
       createdBy: adminId,
     });
+    out.agreement = r.ok ? { sent: r.emailed, invite_url: r.inviteUrl } : { sent: false, error: r.error };
+  } catch (err) {
+    console.error("[admin:experts] agreement invite failed", err);
+    out.agreement = { sent: false, error: "Failed to send the agreement." };
   }
 
+  // Keep /admin/invites complete; nothing is emailed from here.
+  try {
+    const supabase = getSupabaseAdmin();
+    const { data: expertRow } = await supabase.from("experts").select("id").eq("email", email).maybeSingle();
+    if (expertRow) {
+      await createOrReuseInviteLink(supabase, {
+        kind: "expert",
+        expertId: expertRow.id,
+        fullName: application.full_name,
+        email,
+        companyName: application.company_name ?? null,
+        createdBy: adminId,
+      });
+    }
+  } catch {
+    /* best effort */
+  }
   return out;
 }

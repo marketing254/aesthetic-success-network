@@ -59,23 +59,41 @@ export default function ExpertDirectory() {
 
   return (
     <>
-      <div className="directory-grid">
+      <div className="directory-grid company-grid expert-grid">
         {experts.map((e) => (
-          <Link key={e.id} className="dcard" href={`/experts/${e.id}`}>
-            <div className="dc-avatar">
-              {e.headshot_url ? (
-                // eslint-disable-next-line @next/next/no-img-element
-                <img src={e.headshot_url} alt={e.name} />
-              ) : (
-                initials(e.name)
-              )}
+          <article key={e.id} className="ccard ecard">
+            <div className="cc-body">
+              <div className="ec-head">
+                <Link href={`/experts/${e.id}`} className="ec-photo" aria-label={`${e.name} profile`}>
+                  {e.headshot_url ? (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img src={e.headshot_url} alt={e.name} loading="lazy" />
+                  ) : (
+                    <span className="cc-initials">{initials(e.name)}</span>
+                  )}
+                </Link>
+                <div className="ec-id">
+                  <h3>
+                    <Link href={`/experts/${e.id}`}>{e.name}</Link>
+                  </h3>
+                  {e.company_name && <div className="ec-company">{e.company_name}</div>}
+                  {e.specialty && <span className="cc-cat">{e.specialty}</span>}
+                </div>
+              </div>
+              {e.bio && <p>{e.bio}</p>}
+              <div className="cc-actions">
+                <Link href={`/experts/${e.id}`} className="cc-link">
+                  View profile &rarr;
+                </Link>
+                <span className="cc-verified" title="Reviewed and vetted by the ASN team">
+                  <svg width="12" height="12" viewBox="0 0 12 12" aria-hidden="true">
+                    <path d="M2.5 6.2l2.2 2.2L9.6 3.6" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
+                  </svg>
+                  Vetted expert
+                </span>
+              </div>
             </div>
-            <h3>{e.name}</h3>
-            {(e.specialty || e.company_name) && (
-              <div className="dc-sub">{e.specialty ?? e.company_name}</div>
-            )}
-            {e.bio && <p>{e.bio}</p>}
-          </Link>
+          </article>
         ))}
       </div>
       {total > experts.length && (

@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { Fraunces, Inter } from "next/font/google";
 import Providers from "@/components/Providers";
 import GoogleAnalytics from "@/components/analytics/GoogleAnalytics";
@@ -26,6 +26,13 @@ const fraunces = Fraunces({
 });
 
 const SITE = "https://www.aestheticsuccessnetwork.com";
+
+// Explicit viewport so every route (public site and portals) lays out at
+// device width on phones. Next only injects a default when nothing is set.
+export const viewport: Viewport = {
+  width: "device-width",
+  initialScale: 1,
+};
 
 export const metadata: Metadata = {
   metadataBase: new URL(SITE),

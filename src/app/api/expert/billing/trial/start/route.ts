@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { getStripe, appOrigin, expertPriceIdFor, TRIAL_DAYS } from "@/lib/stripe";
+import { getStripe, appOrigin, expertPriceIdFor, createProviderSubscription } from "@/lib/stripe";
 import { getSupabaseAdmin } from "@/lib/supabase/server";
 import { requireExpert } from "@/lib/auth/guards";
 import { renderAgreementPdf } from "@/lib/pdf/agreementPdf";
@@ -12,7 +12,9 @@ export const dynamic = "force-dynamic";
 
 /**
  * POST /api/expert/billing/trial/start — mirror of the vendor version.
- * Records the agreement acceptance atomically with subscription create.
+ * Saves the card, records the agreement acceptance and creates the expert
+ * subscription (free until 6 months after the member launch, then $39
+ * with no increase). Nothing is charged today.
  */
 type Body = { setupIntentId?: string; paymentMethodId?: string; agreementVersion?: string };
 
@@ -81,20 +83,13 @@ export async function POST(req: Request) {
     invoice_settings: { default_payment_method: paymentMethodId },
   });
 
-  let subscription;
+  let created;
   try {
-    subscription = await stripe.subscriptions.create({
-      customer: expert.stripe_customer_id,
-      items: [{ price: priceGrowth }],
-      trial_period_days: TRIAL_DAYS,
-      default_payment_method: paymentMethodId,
-      trial_settings: { end_behavior: { missing_payment_method: "pause" } },
-      metadata: {
-        audience: "expert",
-        expert_id: expert.id,
-        plan: "expert_growth_monthly",
-      },
-      expand: ["latest_invoice"],
+    created = await createProviderSubscription({
+      customerId: expert.stripe_customer_id,
+      paymentMethodId,
+      audience: "expert",
+      metadata: { expert_id: expert.id, source: "website", ramp: "website-expert" },
     });
   } catch (err) {
     return serverError(err, {
@@ -103,6 +98,7 @@ export async function POST(req: Request) {
         publicMessage: "Stripe rejected the subscription. Check the card details and try again.",
       });
   }
+  const subscription = created.subscription;
 
   // Fetch payment method explicitly — passing paymentMethodId as a
   // string to the create call means subscription.default_payment_method
@@ -153,6 +149,7 @@ export async function POST(req: Request) {
     const pdfBuffer = await renderAgreementPdf({
       role: "expert",
       agreementVersion,
+      freePeriodEndsAt: created.freePeriodEndsAt,
       signer: {
         name: expert.full_name ?? "Expert",
         email: expert.email,
@@ -174,6 +171,7 @@ export async function POST(req: Request) {
     void sendJoinConfirmationEmail({
       role: "expert",
       to: expert.email,
+      accountEmail: expert.email,
       contactName: expert.full_name ?? "Expert",
       companyName: expert.specialty ?? null,
       pdfBuffer,
@@ -181,10 +179,7 @@ export async function POST(req: Request) {
       portalUrl: `${appOrigin()}/expert/billing`,
       agreementVersion,
       signedAt,
-      expertTrialEndsAt:
-        typeof subscription.trial_end === "number"
-          ? new Date(subscription.trial_end * 1000).toISOString()
-          : null,
+      freePeriodEndsAt: created.freePeriodEndsAt,
       cardCaptured: true,
     });
   } catch (err) {

@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { getSupabaseAdmin } from "@/lib/supabase/server";
 import { requireApplicant } from "@/lib/auth/guards";
 import { apiError, serverError } from "@/lib/api/errorResponse";
+import { checkRateLimit } from "@/lib/waitlist/rateLimit";
 import { roleLabel } from "@/lib/jobs/constants";
 import {
   cvExtension,
@@ -60,6 +61,12 @@ export async function POST(
   if (!slug || !/^[a-z0-9-]{3,160}$/.test(slug)) {
     return apiError.badRequest("Unknown job.", route);
   }
+
+  // Each application uploads a CV and sends two emails, so cap submissions
+  // per account (5 per 10 min, the shared public-route limit). Keyed on
+  // the account, not the IP, because applying needs a session anyway.
+  const rl = await checkRateLimit(`job-apply:${guard.memberId}`);
+  if (!rl.allowed) return apiError.rateLimited(route);
 
   let form: FormData;
   try {

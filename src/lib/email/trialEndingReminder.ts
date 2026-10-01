@@ -1,191 +1,98 @@
 import "server-only";
-import { emailBrandHeader } from "@/lib/email/brandHeader";
-import { escapeHtml } from "@/lib/email/escapeHtml";
-import { applyEmailSandbox } from "@/lib/email/sandbox";
+import {
+  ACCENT,
+  EXPERTS_EMAIL,
+  PARTNERSHIPS_EMAIL,
+  SITE_HOST,
+  firstNameOf,
+  sendEmailDraft,
+  type EmailDraft,
+} from "@/lib/email/layout";
+import {
+  CANCEL_NOTICE_DAYS,
+  EXPERT_RATE_LABEL,
+  PAYMENT_GRACE_DAYS,
+  PROVIDER_FREE_MONTHS,
+  formatLongDate,
+  rateLabel,
+} from "@/lib/providerBilling";
 
 /**
- * Trial-ending reminder email. Fired by the Stripe webhook when
- * customer.subscription.trial_will_end (default: 3 days before trial
- * ends). For the 7-day-before ask in the product spec, run a daily
- * cron that queries experts where trial_end is 7 days out and calls
- * this same function.
+ * The single reminder before a provider's first charge:
+ * "Your free founding months end in 7 days." Sent once per provider by
+ * the daily cron (/api/cron/provider-reminders) and stamped on the row
+ * (free_period_reminder_sent_at). The Stripe trial_will_end webhook is a
+ * safety net only and never sends a second copy.
  *
- * EXPERTS ONLY. Experts (website 6-month trial or founding 12-month
- * trial) pay $39 after the trial and stay at $39 for good. Companies
- * never trial: every company pays $39 from the day it adds a card and
- * moves to $149 at month 13 through a subscription schedule, so Stripe
- * never emits trial_will_end for them. A call with role "partner" is a
- * no-op (returns false) so a legacy "trialing" company row can never
- * receive free-period copy.
- *
- * Transport priority mirrors joinConfirmation.ts — SMTP → Resend → log.
+ * Applies to experts AND companies: every provider has the same free
+ * founding months, then a flat rate ($39 experts; $39 or $149 companies).
+ * Never says "trial".
  */
-
-const DEFAULT_FROM = "Aesthetic Success Network <support@aestheticsuccessnetwork.com>";
-const SUPPORT_EMAIL = process.env.FOUNDING_SUPPORT_EMAIL ?? "support@aestheticsuccessnetwork.com";
-
-function fromAddress(): string {
-  return process.env.MAIL_FROM ?? DEFAULT_FROM;
-}
 
 export type TrialEndingReminderInput = {
   role: "partner" | "expert";
   to: string;
   contactName: string;
-  daysLeft: number; // 3 for Stripe's default webhook, 7 for the cron
+  daysLeft: number;
   trialEndDate: Date;
+  /** Portal billing page (update card, cancel). */
   portalUrl: string;
+  /** Company rate ("standard" / "large"). Ignored for experts. */
+  rate?: string | null;
 };
 
-export async function sendTrialEndingReminder(
-  input: TrialEndingReminderInput,
-): Promise<boolean> {
-  if (input.role !== "expert") {
-    // Companies have no trial (see header). Nothing to send.
-    console.info(`[trial-ending:${input.role}] skipped: companies have no free period`, {
-      to: input.to,
-    });
-    return false;
-  }
-  const roleLabel = "expert";
-  const firstName = input.contactName.trim().split(/\s+/)[0] || "there";
-  const subject =
-    input.daysLeft === 1
-      ? `Your ASN ${roleLabel} trial ends tomorrow`
-      : `Your ASN ${roleLabel} trial ends in ${input.daysLeft} days`;
-
-  const html = buildHtml({ ...input, roleLabel, firstName });
-  const text = buildText({ ...input, roleLabel, firstName });
-
-  try {
-    const from = fromAddress();
-
-    const smtpHost = process.env.SMTP_HOST;
-    const smtpUser = process.env.SMTP_USER;
-    const smtpPass = process.env.SMTP_PASS;
-    if (smtpHost && smtpUser && smtpPass) {
-      const port = Number(process.env.SMTP_PORT ?? "465");
-      const nodemailer = (await import("nodemailer")).default;
-      const transporter = nodemailer.createTransport({
-        host: smtpHost,
-        port,
-        secure: port === 465,
-        auth: { user: smtpUser, pass: smtpPass },
-      });
-      await transporter.sendMail(
-        applyEmailSandbox({ from, to: input.to, replyTo: SUPPORT_EMAIL, subject, html, text }),
-      );
-      console.info(`[trial-ending:${input.role}] sent via SMTP`, { to: input.to });
-      return true;
-    }
-
-    const resendKey = process.env.RESEND_API_KEY;
-    if (resendKey) {
-      const res = await fetch("https://api.resend.com/emails", {
-        method: "POST",
-        headers: {
-          Authorization: `Bearer ${resendKey}`,
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(
-          applyEmailSandbox({ from, to: [input.to], reply_to: SUPPORT_EMAIL, subject, html, text }),
-        ),
-      });
-      if (!res.ok) {
-        console.error(
-          `[trial-ending:${input.role}] Resend failed`,
-          await res.text().catch(() => ""),
-        );
-        return false;
-      }
-      console.info(`[trial-ending:${input.role}] sent via Resend`, { to: input.to });
-      return true;
-    }
-
-    console.info(
-      `[trial-ending:${input.role}] (no transport) reminder for ${input.to} skipped`,
-    );
-    return false;
-  } catch (err) {
-    console.error(`[trial-ending:${input.role}] send failed`, err);
-    return false;
-  }
-}
-
 function endsWords(daysLeft: number): string {
-  return daysLeft === 1 ? "tomorrow" : `in ${daysLeft} days`;
+  if (daysLeft <= 0) return "today";
+  if (daysLeft === 1) return "tomorrow";
+  return `in ${daysLeft} days`;
 }
 
-/** What the rate does after the first paid month. Experts never step up. */
-const AFTER_FIRST_CHARGE_LINE =
-  "Your rate stays at $39 a month for as long as your expert membership is active.";
-
-function formatTrialEnd(d: Date): string {
-  return d.toLocaleDateString("en-US", {
-    weekday: "long",
-    month: "long",
-    day: "numeric",
-    year: "numeric",
-  });
-}
-
-function buildHtml(
-  opts: TrialEndingReminderInput & { roleLabel: string; firstName: string },
-): string {
-  const dateStr = formatTrialEnd(opts.trialEndDate);
-  return `<!doctype html>
-<html><body style="font-family:system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif;background:#F7F5F0;padding:24px;color:#0A1A2F;">
-<div style="max-width:560px;margin:0 auto;background:#FFFFFF;border-radius:12px;padding:32px;border:1px solid #E0DACE;">
-  <div style="text-align:center;margin-bottom:24px;">
-    ${emailBrandHeader({ dark: false })}
-  </div>
-  <h1 style="font-family:Georgia,'Times New Roman',serif;font-size:22px;font-weight:500;margin:0 0 8px 0;color:#0A1A2F;">
-    Heads-up, ${escapeHtml(opts.firstName)}: your free trial ends ${endsWords(opts.daysLeft)}.
-  </h1>
-  <p style="color:#3B4A55;line-height:1.55;font-size:15px;">
-    Your ASN ${escapeHtml(opts.roleLabel)} trial ends on <strong>${escapeHtml(dateStr)}</strong>. On that
-    day Stripe will charge the card on file for the first paid month at
-    $39. ${escapeHtml(AFTER_FIRST_CHARGE_LINE)} If the card has expired or changed, update it now so your
-    listing doesn't get suspended.
-  </p>
-  <div style="background:#F7EED9;border:1px solid #D9A84B;border-radius:8px;padding:14px;margin:20px 0;">
-    <p style="margin:0;font-size:14px;color:#0A1A2F;line-height:1.55;">
-      <strong>What happens if the charge fails?</strong> The portal locks
-      until you update the card. Nothing on your public listing changes
-      immediately. You have a short grace period to fix it.
-    </p>
-  </div>
-  <div style="text-align:center;margin:24px 0 8px 0;">
-    <a href="${escapeHtml(opts.portalUrl)}" style="display:inline-block;background:#0E2A3D;color:#FFFFFF;padding:12px 24px;border-radius:999px;text-decoration:none;font-weight:600;font-size:14px;">
-      Update payment method &rarr;
-    </a>
-  </div>
-  <p style="color:#7A8590;font-size:12px;line-height:1.5;margin:24px 0 0 0;text-align:center;">
-    Questions? Reply to this email: ${escapeHtml(SUPPORT_EMAIL)}.<br/>
-    Aesthetic Success Network, operated by Ekwa Marketing Inc. &middot; Powered by Business of Aesthetics
-  </p>
-</div>
-</body></html>`;
-}
-
-function buildText(
-  opts: TrialEndingReminderInput & { roleLabel: string; firstName: string },
-): string {
-  const dateStr = formatTrialEnd(opts.trialEndDate);
-  return `Heads-up, ${opts.firstName}: your free trial ends ${endsWords(opts.daysLeft)}.
-
-Your ASN ${opts.roleLabel} trial ends on ${dateStr}. On that day Stripe will
-charge the card on file for the first paid month at $39. ${AFTER_FIRST_CHARGE_LINE}
-If the card has expired or changed, update it now so your listing doesn't
-get suspended.
-
-If the charge fails, the portal locks until you update the card.
-Nothing on your public listing changes immediately. You have a short
-grace period to fix it.
-
-Update payment method: ${opts.portalUrl}
-
-Questions? Reply to this email: ${SUPPORT_EMAIL}.
-Aesthetic Success Network, operated by Ekwa Marketing Inc. Powered by Business of Aesthetics.
-`;
+export async function sendTrialEndingReminder(input: TrialEndingReminderInput): Promise<boolean> {
+  const name = firstNameOf(input.contactName);
+  const rate = input.role === "expert" ? EXPERT_RATE_LABEL : rateLabel(input.rate);
+  const what = input.role === "expert" ? "expert membership" : "company listing";
+  const date = formatLongDate(input.trialEndDate) ?? "the end of your free months";
+  const when = endsWords(input.daysLeft);
+  const draft: EmailDraft = {
+    subject: `Your free founding months end ${when}`,
+    preview: `Your ${PROVIDER_FREE_MONTHS} free founding months end on ${date}. ${rate} a month after that, with no increase.`,
+    eyebrow: "Billing reminder",
+    headline: `Heads-up, ${name}: your free founding months end ${when}.`,
+    intro: [
+      `Your ${PROVIDER_FREE_MONTHS} free founding months end on ${date}. On that day, Stripe will charge the card on file ${rate} for your first paid month. Your rate stays ${rate} a month with no increase, for as long as your ${what} is active.`,
+    ],
+    sections: [
+      {
+        title: "Want to continue?",
+        paragraphs: ["You don't need to do anything. If your card has expired or changed, update it now so nothing is interrupted."],
+        tone: "green",
+      },
+      {
+        title: "Want to stop?",
+        paragraphs: [
+          `Cancel any time before ${date} and you won't be charged. Open your billing page and choose Cancel, or reply to this email with the word "cancel" and we'll take care of it. ${
+            input.role === "expert" ? "Your playbook and material are yours to keep." : "Your material is yours to keep."
+          } After your first charge, cancellation takes ${CANCEL_NOTICE_DAYS} days' written notice.`,
+        ],
+      },
+      {
+        title: "What happens if the charge fails?",
+        paragraphs: [
+          `We'll email you right away. Your listing stays live for ${PAYMENT_GRACE_DAYS} days while you update your card. After that, your listing is paused until payment goes through.`,
+        ],
+      },
+    ],
+    ctas: [
+      { label: "Update payment method", url: input.portalUrl },
+      { label: "Cancel my membership", url: input.portalUrl, secondary: true },
+    ],
+    closing: "Questions? Reply to this email and we'll get back to you within one business day.",
+    footerNote: "Billing reminder",
+    footerLines: [
+      `One reminder, sent ${input.daysLeft} days before your first charge. No further reminders will be sent.`,
+      `Aesthetic Success Network · ${input.role === "expert" ? EXPERTS_EMAIL : PARTNERSHIPS_EMAIL} · ${SITE_HOST}`,
+    ],
+    accent: input.role === "expert" ? ACCENT.expert : ACCENT.partner,
+  };
+  return sendEmailDraft({ to: input.to, audience: input.role, draft, tag: `free-period-reminder:${input.role}` });
 }

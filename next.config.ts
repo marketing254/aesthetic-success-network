@@ -26,6 +26,16 @@ const supabaseHost = (process.env.NEXT_PUBLIC_SUPABASE_URL ?? "")
 const nextConfig: NextConfig = {
   poweredByHeader: false,
   reactStrictMode: true,
+  // gzip/brotli for self-hosted responses (Vercel compresses at the edge
+  // regardless; explicit so `next start` behaves the same).
+  compress: true,
+  experimental: {
+    // Rewrite barrel imports (`import { Box } from "@mui/material"`) to
+    // per-module paths at build time so unused components and the 10k+
+    // icon re-exports never enter a client chunk. Both packages are in
+    // Next's built-in default list; listing them keeps that explicit.
+    optimizePackageImports: ["@mui/material", "@mui/icons-material"],
+  },
   // @sparticuz/chromium ships a compressed binary that must be resolved
   // from node_modules at runtime, not bundled/tree-shaken by Next — same
   // for puppeteer-core's native bits. Without this, PDF generation can

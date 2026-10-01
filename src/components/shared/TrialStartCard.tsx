@@ -35,10 +35,10 @@ import {
  * stays disabled until the agreement box is ticked.
  *
  * `audience` picks the benefits list AND the ramp ("green" = expert,
- * "gold" = company). Website experts: $0 months 1 to 6, then $39 for good.
- * Website companies: no free period. $39 a month for months 1 to 12
- * (first charge today), then $149 a month from month 13. The card itself
- * uses the community palette for both.
+ * "gold" = company). Every provider: free founding months (6 from the
+ * member launch), then a flat rate with no increase ($39 for experts;
+ * $39 standard or $149 large for companies, passed as `rate`). Nothing
+ * is charged today. The card itself uses the community palette for both.
  */
 const STRIPE_PK = process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY;
 const AGREEMENT_VERSION = "v1";
@@ -66,13 +66,17 @@ export default function TrialStartCard({
   prepareEndpoint,
   startEndpoint,
   audience: _audience,
+  rate,
   onSuccess,
 }: {
   prepareEndpoint: string;
   startEndpoint: string;
   audience: "gold" | "green";
+  /** Company rate label after the free months ("$39" or "$149"). Experts are always $39. */
+  rate?: string;
   onSuccess?: () => void;
 }) {
+  const rateLabel = _audience === "green" ? "$39" : rate ?? "$39";
   // ASN has ONE Provider Agreement covering experts, companies and
   // expert+company. The prepare endpoint may still override the link
   // (e.g. a versioned PDF), so it stays in state.
@@ -130,16 +134,15 @@ export default function TrialStartCard({
         overflow: "hidden",
         maxWidth: 560,
         width: "100%",
+        minWidth: 0,
       }}
     >
-      <Box sx={{ p: 3 }}>
+      <Box sx={{ p: { xs: 2, sm: 3 } }}>
         <Typography sx={{ fontSize: "1.125rem", fontWeight: 700, letterSpacing: "-0.02em", color: INK, mb: 0.5 }}>
           {_audience === "green" ? "Start your membership" : "Start your company membership"}
         </Typography>
         <Typography sx={{ fontSize: "0.8125rem", color: MUTED, mb: 2.5, lineHeight: 1.55 }}>
-          {_audience === "green"
-            ? "Add a card and accept the agreement. Nothing is charged until month 7."
-            : "Add a card and accept the agreement. Your first $39 charge is today."}
+          Save a card and accept the agreement. Nothing is charged until your free founding months end, and we remind you 7 days before.
         </Typography>
 
         {/* Due today */}
@@ -157,23 +160,14 @@ export default function TrialStartCard({
         >
           <Typography sx={{ fontSize: "0.875rem", color: GOLD_TEXT, fontWeight: 600 }}>Due today</Typography>
           <Typography sx={{ fontSize: "1.75rem", fontWeight: 800, letterSpacing: "-0.02em", color: INK, lineHeight: 1, fontVariantNumeric: "tabular-nums" }}>
-            {_audience === "green" ? "$0.00" : "$39.00"}
+            $0.00
           </Typography>
         </Stack>
 
-        {/* Ramp summary: expert = free period then $39; company = $39 x 12 then $149 */}
+        {/* Terms: free founding months, then the flat rate */}
         <Box sx={{ border: `1px solid ${LINE}`, borderRadius: "12px", px: 2, py: 1.25, mb: 2.5 }}>
-          {_audience === "green" ? (
-            <>
-              <RampLine label="Months 1 to 6" price="$0/mo" bold />
-              <RampLine label="From month 7" price="$39/mo" />
-            </>
-          ) : (
-            <>
-              <RampLine label="Months 1 to 12" price="$39/mo" bold />
-              <RampLine label="Month 13 onward" price="$149/mo" />
-            </>
-          )}
+          <RampLine label="First 6 months, from member launch" price="$0/mo" bold />
+          <RampLine label="After that, no increase" price={`${rateLabel}/mo`} />
         </Box>
 
         {/* Payment element: skeleton while it boots, no status text */}
@@ -211,12 +205,12 @@ export default function TrialStartCard({
         <Stack direction="row" spacing={0.75} sx={{ alignItems: "center", justifyContent: "center" }}>
           <LockRoundedIcon sx={{ fontSize: 13, color: MUTED }} />
           <Typography sx={{ fontSize: "0.75rem", color: MUTED, textAlign: "center", lineHeight: 1.5 }}>
-            Secured by Stripe. Billing starts at month 7. A copy of your agreement is emailed to you.
+            Secured by Stripe. Billing starts when your free founding months end. A copy of your agreement is emailed to you.
           </Typography>
         </Stack>
       </Box>
     </Box>
-    <BenefitsPanel audience={_audience} />
+    <BenefitsPanel audience={_audience} rate={rateLabel} />
     </Stack>
   );
 }
@@ -398,7 +392,7 @@ function RampLine({ label, price, bold }: { label: string; price: string; bold?:
 
 /** What the card pays for, listed beside the payment form so the person
  *  knows exactly what they get. Audience "green" = expert, "gold" = company. */
-function BenefitsPanel({ audience }: { audience: "gold" | "green" }) {
+function BenefitsPanel({ audience, rate }: { audience: "gold" | "green"; rate: string }) {
   const expert = audience === "green";
   const items = expert
     ? [
@@ -406,7 +400,7 @@ function BenefitsPanel({ audience }: { audience: "gold" | "green" }) {
         "One recording becomes a full kit: training video, action guide, checklist, worksheet, slide deck",
         "Every kit carries your booking link, so members book straight onto your calendar",
         "Post updates to the network feed and answer member inquiries",
-        "Sell your own paid courses and keep 70% of net revenue",
+        "Sell your own courses and products to members and keep the full price (members buy on your site; the one condition is a member-only offer)",
         "Refer and earn: $50 per referred member, paid after their first payment",
       ]
     : [
@@ -430,9 +424,7 @@ function BenefitsPanel({ audience }: { audience: "gold" | "green" }) {
     >
       <Typography sx={{ fontSize: "1rem", fontWeight: 700, letterSpacing: "-0.01em", color: INK, mb: 0.5 }}>What your membership includes</Typography>
       <Typography sx={{ fontSize: "0.8125rem", color: BODY, mb: 2, lineHeight: 1.55 }}>
-        {expert
-          ? "Free for months 1 to 6, then $39 a month, and it stays $39. Cancel with 30 days notice."
-          : "$39 a month for your first 12 months, starting today, then $149 a month from month 13. Cancel with 30 days notice."}
+        {`Your first 6 months are free, starting the day we open to members. After that it's ${rate} a month, and it stays ${rate} with no increase. Cancel before your first charge and you won't be charged; after that, 30 days' notice.`}
       </Typography>
       <Stack component="ul" spacing={1.25} sx={{ listStyle: "none", p: 0, m: 0 }}>
         {items.map((t) => (

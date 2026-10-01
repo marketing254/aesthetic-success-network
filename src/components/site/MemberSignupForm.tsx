@@ -122,16 +122,20 @@ export default function MemberSignupForm({
 
   const [done, setDone] = useState<string | null>(null);
 
-  // Launch phase: member signups go to the waitlist only. No plan step, no
-  // payment, no portal access. The team activates members from the admin
-  // console when the member portal opens.
+  // Launch switch (NEXT_PUBLIC_MEMBER_LAUNCH_ENABLED):
+  //   off  -> the signup goes to the waitlist only. No plan step, no
+  //           payment, no portal access, no email.
+  //   on   -> the same form creates the member (POST /api/member/signup,
+  //           which also records the waitlist details) and continues to
+  //           /upgrade for plan + Stripe checkout.
+  const launchOn = process.env.NEXT_PUBLIC_MEMBER_LAUNCH_ENABLED === "true";
   const submit = async () => {
     setSubmitting(true);
     setError(null);
     const fullName = [firstName.trim(), lastName.trim()].filter(Boolean).join(" ");
     const resolveOther = (v: string, other: string) => (v === OTHER ? other.trim() : v || undefined);
     try {
-      const res = await fetch("/api/waitlist", {
+      const res = await fetch(launchOn ? "/api/member/signup" : "/api/waitlist", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -152,16 +156,34 @@ export default function MemberSignupForm({
           smsConsentAt: smsConsent ? new Date().toISOString() : null,
           source: "landing-join",
           ref: params.get("ref") ?? undefined,
-          utm: { form: "asn-member-signup", heard_about: resolveOther(heardAbout, heardAboutOther) ?? null },
+          utm: {
+            form: "asn-member-signup",
+            heard_about: resolveOther(heardAbout, heardAboutOther) ?? null,
+            role_label: resolveOther(roleLabel, roleLabelOther) ?? null,
+            locations: locations || null,
+            biggest_challenge: resolveOther(challenge, challengeOther) ?? null,
+            ref: params.get("ref") ?? null,
+            promo: params.get("promo") ?? null,
+          },
         }),
       });
-      const data = (await res.json().catch(() => ({}))) as { ok?: boolean; duplicate?: boolean; message?: string; error?: string };
+      const data = (await res.json().catch(() => ({}))) as { ok?: boolean; duplicate?: boolean; message?: string; error?: string; next?: string };
       if (!res.ok || !data.ok) {
         setError(data?.error ?? "Couldn't save your spot right now. Please try again.");
         setSubmitting(false);
         return;
       }
       trackEvent("sign_up", { method: params.get("ref") ? "referral" : "organic" });
+      if (launchOn) {
+        // Doors open: on to the plan picker and Stripe. Keep ?ref / ?promo.
+        const next = new URL(data.next ?? "/upgrade", window.location.origin);
+        for (const k of ["ref", "promo"]) {
+          const v = params.get(k);
+          if (v) next.searchParams.set(k, v);
+        }
+        window.location.assign(next.pathname + next.search);
+        return;
+      }
       setDone(data.duplicate && data.message ? data.message : "You're on the founding waitlist. We'll email you before the doors open, and you confirm before any charge.");
     } catch {
       setError("Network error. Check your connection and try again.");
@@ -186,7 +208,7 @@ export default function MemberSignupForm({
       {refCtx && (
         <div className="signup-ref">
           {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src={refCtx.imageUrl ?? "/asn-app-icon.png"} alt="" width={44} height={44} />
+          <img src={refCtx.imageUrl ?? "/asn-app-icon-256.png"} alt="" width={44} height={44} />
           <div>
             <b>{refCtx.kind === "team" ? "A gift from the Aesthetic Success Network team" : `Invited by ${refCtx.name}`}</b>
             <span>

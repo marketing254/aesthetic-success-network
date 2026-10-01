@@ -455,57 +455,31 @@ async function handleEvent(event: Stripe.Event, stripe: Stripe): Promise<string 
   }
 
   // ---- customer.subscription.trial_will_end -------------------------
-  // Fires ~3 days before a trial ends (Stripe's fixed default). Routes
-  // the ping to the founding partner or expert, prompting them to
-  // update their card if the on-file one has expired. For the 7-day
-  // reminder in the product spec, add a daily cron that queries
-  // vendors/experts where trial_end is 7 days away and calls
-  // sendTrialEndingReminder directly.
+  // Fires ~3 days before a trial ends (Stripe's fixed default). The ONE
+  // reminder providers get is the 7-day email from
+  // /api/cron/provider-reminders, stamped on the row. This handler is a
+  // safety net only: it sends the same email if (and only if) the cron
+  // never did, then stamps the row so nobody gets two.
   if (event.type === "customer.subscription.trial_will_end") {
     const sub = event.data.object as Stripe.Subscription;
-    const customerId =
-      typeof sub.customer === "string" ? sub.customer : sub.customer.id;
+    const customerId = typeof sub.customer === "string" ? sub.customer : sub.customer.id;
     const audience = (sub.metadata?.audience ?? "") as string;
-
     const trialEnd = sub.trial_end
       ? new Date(sub.trial_end * 1000)
       : sub.items.data[0]?.current_period_end
         ? new Date(sub.items.data[0].current_period_end * 1000)
         : new Date();
-    const daysLeft = Math.max(
-      1,
-      Math.ceil((trialEnd.getTime() - Date.now()) / (1000 * 60 * 60 * 24)),
-    );
+    const daysLeft = Math.max(1, Math.ceil((trialEnd.getTime() - Date.now()) / (1000 * 60 * 60 * 24)));
+    const stamp = new Date().toISOString();
 
-    if (audience === "vendor") {
-      const { data: vendor } = await sb
-        .from("vendors")
-        .select("id, contact_name, contact_email, billing_email")
-        .eq("stripe_customer_id", customerId)
-        .maybeSingle();
-      if (vendor) {
-        void sendTrialEndingReminder({
-          role: "partner",
-          to: vendor.billing_email ?? vendor.contact_email,
-          contactName: vendor.contact_name ?? "there",
-          daysLeft,
-          trialEndDate: trialEnd,
-          portalUrl: `${appOrigin()}/vendor/account`,
-        });
-      }
-      return null;
-    }
     if (audience === "expert") {
       const { data: expert } = await sb
         .from("experts")
-        .select("id, full_name, email, billing_exempt")
+        .select("id, full_name, email, billing_exempt, free_period_reminder_sent_at")
         .eq("stripe_customer_id", customerId)
         .maybeSingle();
-      if (expert) {
-        // Billing-exempt experts (manual override) are never charged —
-        // never warn them about a trial ending. (Their expert row shouldn't
-        // carry a Stripe customer at all; this is a belt-and-braces guard.)
-        if (expert.billing_exempt) return null;
+      if (expert && !expert.billing_exempt && !expert.free_period_reminder_sent_at) {
+        await sb.from("experts").update({ free_period_reminder_sent_at: stamp } as never).eq("id", expert.id);
         void sendTrialEndingReminder({
           role: "expert",
           to: expert.email,
@@ -514,25 +488,25 @@ async function handleEvent(event: Stripe.Event, stripe: Stripe): Promise<string 
           trialEndDate: trialEnd,
           portalUrl: `${appOrigin()}/expert/billing`,
         });
-        return null;
       }
-      // No expert matched. A legacy dual-role row may only point at this
-      // customer from the company side. Fall back to it so the company,
-      // which IS billed, still gets its trial-ending warning instead of
-      // silence.
-      const { data: vendorFallback } = await sb
+      return null;
+    }
+    if (audience === "vendor") {
+      const { data: vendor } = await sb
         .from("vendors")
-        .select("id, contact_name, contact_email, billing_email")
+        .select("id, contact_name, contact_email, billing_email, billing_plan, free_period_reminder_sent_at")
         .eq("stripe_customer_id", customerId)
         .maybeSingle();
-      if (vendorFallback) {
+      if (vendor && !vendor.free_period_reminder_sent_at) {
+        await sb.from("vendors").update({ free_period_reminder_sent_at: stamp } as never).eq("id", vendor.id);
         void sendTrialEndingReminder({
           role: "partner",
-          to: vendorFallback.billing_email ?? vendorFallback.contact_email,
-          contactName: vendorFallback.contact_name ?? "there",
+          to: vendor.billing_email ?? vendor.contact_email,
+          contactName: vendor.contact_name ?? "there",
           daysLeft,
           trialEndDate: trialEnd,
           portalUrl: `${appOrigin()}/vendor/account`,
+          rate: vendor.billing_plan,
         });
       }
       return null;

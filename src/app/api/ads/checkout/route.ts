@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { MEMBER_LAUNCH_ENABLED, MEMBER_LAUNCH_MESSAGE } from "@/lib/launch";
 import { randomUUID } from "node:crypto";
 import { getSupabaseAdmin } from "@/lib/supabase/server";
 import { checkRateLimit } from "@/lib/waitlist/rateLimit";
@@ -126,6 +127,9 @@ function clientIp(req: Request): string {
 }
 
 export async function POST(req: Request) {
+  if (!MEMBER_LAUNCH_ENABLED) {
+    return NextResponse.json({ error: MEMBER_LAUNCH_MESSAGE }, { status: 403 });
+  }
   const route = "POST /api/ads/checkout";
 
   let json: unknown;

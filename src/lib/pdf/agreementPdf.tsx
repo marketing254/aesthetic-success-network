@@ -12,6 +12,13 @@ import {
   renderToBuffer,
   Font,
 } from "@react-pdf/renderer";
+import {
+  EXPERT_RATE_LABEL,
+  PROVIDER_FREE_MONTHS,
+  formatLongDate,
+  normalizeProviderRate,
+  rateLabel,
+} from "@/lib/providerBilling";
 
 /**
  * ASN Provider Agreement PDF — server-only.
@@ -258,7 +265,7 @@ const PARTNER_COMMITMENTS = [
     n: "5",
     title: "Pay the fee",
     body:
-      "$39 per month for months 1 to 12 (locked launch rate, first charge the day you add a card), then $149 per month from month 13 (Featured Partner rate).",
+      `Nothing for your first ${PROVIDER_FREE_MONTHS} months, which start the day the network opens to members, then your flat monthly rate (see the fee schedule) with no increase.`,
   },
 ];
 
@@ -270,8 +277,8 @@ const PARTNER_RECEIVES = [
 ];
 
 const EXPERT_TERMS = [
-  "Experts share one recording (up to about one hour) of themselves teaching a topic, plus supporting details. We produce the content kit (training video, action guide, checklist, key takeaways, worksheet, slide deck, wall poster, and extras), and you approve it before it goes live under your profile. You keep ownership of your content and grant ASN a license to produce, host, and distribute the kits to members. Expert access pricing: $0 for months 1 to 6, then $39 per month, and it stays $39 per month for as long as your expert access remains continuously active.",
-  "Paid courses: you may list your own paid courses to members. You keep 70% of net course revenue; the network retains 30%. Payouts are processed monthly. Hotline referrals are routed by fit, never by payment.",
+  `Experts share one recording (up to about one hour) of themselves teaching a topic, plus supporting details. We produce the content kit (training video, action guide, checklist, key takeaways, worksheet, slide deck, wall poster, and extras), and you approve it before it goes live under your profile. You keep ownership of your content and grant ASN a license to produce, host, and distribute the kits to members. Expert access pricing: nothing for your first ${PROVIDER_FREE_MONTHS} months, which start the day the network opens to members, then ${EXPERT_RATE_LABEL} per month, and it stays ${EXPERT_RATE_LABEL} per month for as long as your expert access remains continuously active.`,
+  "Paid courses and products: you may offer your own paid courses and products to members. Members buy on your own site and you keep the full price; the one condition is a member-only offer on each. Hotline referrals are routed by fit, never by payment.",
 ];
 
 const GENERAL_SECTIONS: { title: string; body: string }[] = [
@@ -298,7 +305,7 @@ const GENERAL_SECTIONS: { title: string; body: string }[] = [
   {
     title: "8. Term, renewal, and termination",
     body:
-      "The initial term is 12 months from signup, renewing automatically for successive 12-month terms unless either party gives 30 days' non-renewal notice. Either party may terminate for convenience with 30 days' written notice. Either party may terminate immediately for a material breach that remains uncured 15 days after written notice, for insolvency, or for conduct that materially harms the network. On termination: the profile is removed, the badge license ends, and unpaid fees become due. Expert kits are unpublished from the member library; purchasers of paid courses retain access, and final course payouts are processed within 30 days.",
+      "The initial term is 12 months from signup, renewing automatically for successive 12-month terms unless either party gives 30 days' non-renewal notice. You may cancel at any time before your first charge with immediate effect and no charge. After the first charge, either party may terminate for convenience with 30 days' written notice. Either party may terminate immediately for a material breach that remains uncured 15 days after written notice, for insolvency, or for conduct that materially harms the network. On termination: the profile is removed, the badge license ends, and unpaid fees become due. Expert kits are unpublished from the member library; purchasers of paid courses retain access.",
   },
   {
     title: "9. Disclaimers and liability",
@@ -315,6 +322,10 @@ const GENERAL_SECTIONS: { title: string; body: string }[] = [
 export type AgreementPdfInput = {
   role: "partner" | "expert" | "both";
   agreementVersion: string;
+  /** Company rate after the free months: "standard" ($39) or "large" ($149). */
+  rate?: string | null;
+  /** ISO date the free founding months end, when known. */
+  freePeriodEndsAt?: string | null;
   signer: {
     name: string;
     email: string;
@@ -353,6 +364,9 @@ function AgreementDoc({ input }: { input: AgreementPdfInput }) {
   });
   const showPartnerSections = input.role !== "expert";
   const showExpertSection = input.role !== "partner";
+  const companyRate = rateLabel(normalizeProviderRate(input.rate));
+  const freeUntil = formatLongDate(input.freePeriodEndsAt ?? null);
+  const freeLabel = freeUntil ? `Through ${freeUntil}` : `First ${PROVIDER_FREE_MONTHS} months (from member launch)`;
 
   return (
     <Document
@@ -383,7 +397,7 @@ function AgreementDoc({ input }: { input: AgreementPdfInput }) {
         </View>
 
         {/* Parties */}
-        <View style={styles.parties}>
+        <View style={styles.parties} wrap={false}>
           <View style={styles.partyRow}>
             <Text style={styles.partyLabel}>Between:</Text>
             <Text style={styles.partyValue}>
@@ -419,10 +433,10 @@ function AgreementDoc({ input }: { input: AgreementPdfInput }) {
         </Text>
 
         {/* 1. Partner commitments */}
-        <Text style={styles.sectionTitle}>1. The five partner commitments</Text>
+        <Text style={styles.sectionTitle} minPresenceAhead={60}>1. The five partner commitments</Text>
         {showPartnerSections ? (
           PARTNER_COMMITMENTS.map((c) => (
-            <View key={c.n} style={styles.commitmentRow}>
+            <View key={c.n} style={styles.commitmentRow} wrap={false}>
               <Text style={styles.commitmentNumber}>{c.n}.</Text>
               <View style={styles.commitmentBody}>
                 <Text style={styles.commitmentTitle}>{c.title}</Text>
@@ -438,7 +452,7 @@ function AgreementDoc({ input }: { input: AgreementPdfInput }) {
         )}
 
         {/* 2. What partners receive */}
-        <Text style={styles.sectionTitle}>2. What partners receive</Text>
+        <Text style={styles.sectionTitle} minPresenceAhead={60}>2. What partners receive</Text>
         {showPartnerSections ? (
           PARTNER_RECEIVES.map((line, i) => (
             <View key={i} style={styles.bulletRow}>
@@ -451,7 +465,7 @@ function AgreementDoc({ input }: { input: AgreementPdfInput }) {
         )}
 
         {/* 3. Expert terms */}
-        <Text style={styles.sectionTitle}>3. Expert terms</Text>
+        <Text style={styles.sectionTitle} minPresenceAhead={60}>3. Expert terms</Text>
         {showExpertSection ? (
           EXPERT_TERMS.map((line, i) => (
             <Text key={i} style={styles.paragraph}>
@@ -465,12 +479,10 @@ function AgreementDoc({ input }: { input: AgreementPdfInput }) {
           </Text>
         )}
 
-        {/* Fee schedule. Partner capability: $39 x 12 months from the day
-            the card is added, then $149 (no free period). Expert
-            capability: a free period, then $39 with no increase. */}
+        {/* Fee schedule: free founding months, then a flat rate. */}
         {showPartnerSections ? (
-          <>
-            <Text style={styles.sectionTitle}>
+          <View wrap={false}>
+            <Text style={styles.sectionTitle} minPresenceAhead={80}>
               {showExpertSection ? "Fee schedule: partner listing" : "Fee schedule"}
             </Text>
             <View style={styles.feeRowHead}>
@@ -479,20 +491,20 @@ function AgreementDoc({ input }: { input: AgreementPdfInput }) {
               <Text style={[styles.feeColStrong, { flex: 2 }]}>Note</Text>
             </View>
             <View style={styles.feeRow}>
-              <Text style={[styles.feeCol, { flex: 1 }]}>Months 1 to 12</Text>
-              <Text style={[styles.feeCol, { flex: 0.7 }]}>$39/mo</Text>
-              <Text style={[styles.feeCol, { flex: 2 }]}>Locked launch rate; first charge the day the card is added</Text>
+              <Text style={[styles.feeCol, { flex: 1 }]}>{freeLabel}</Text>
+              <Text style={[styles.feeCol, { flex: 0.7 }]}>$0</Text>
+              <Text style={[styles.feeCol, { flex: 2 }]}>Free founding months; card on file, nothing charged</Text>
             </View>
             <View style={styles.feeRow}>
-              <Text style={[styles.feeCol, { flex: 1 }]}>Month 13 onward</Text>
-              <Text style={[styles.feeCol, { flex: 0.7 }]}>$149/mo</Text>
-              <Text style={[styles.feeCol, { flex: 2 }]}>Standard rate</Text>
+              <Text style={[styles.feeCol, { flex: 1 }]}>After that</Text>
+              <Text style={[styles.feeCol, { flex: 0.7 }]}>{companyRate}/mo</Text>
+              <Text style={[styles.feeCol, { flex: 2 }]}>Flat rate, no increase</Text>
             </View>
-          </>
+          </View>
         ) : null}
         {showExpertSection ? (
-          <>
-            <Text style={styles.sectionTitle}>
+          <View wrap={false}>
+            <Text style={styles.sectionTitle} minPresenceAhead={80}>
               {showPartnerSections ? "Fee schedule: expert access" : "Fee schedule"}
             </Text>
             <View style={styles.feeRowHead}>
@@ -501,16 +513,16 @@ function AgreementDoc({ input }: { input: AgreementPdfInput }) {
               <Text style={[styles.feeColStrong, { flex: 2 }]}>Note</Text>
             </View>
             <View style={styles.feeRow}>
-              <Text style={[styles.feeCol, { flex: 1 }]}>Months 1 to 6</Text>
+              <Text style={[styles.feeCol, { flex: 1 }]}>{freeLabel}</Text>
               <Text style={[styles.feeCol, { flex: 0.7 }]}>$0</Text>
-              <Text style={[styles.feeCol, { flex: 2 }]}>Founding waiver via 180-day Stripe trial; card on file</Text>
+              <Text style={[styles.feeCol, { flex: 2 }]}>Free founding months; card on file, nothing charged</Text>
             </View>
             <View style={styles.feeRow}>
-              <Text style={[styles.feeCol, { flex: 1 }]}>Month 7 onward</Text>
-              <Text style={[styles.feeCol, { flex: 0.7 }]}>$39/mo</Text>
-              <Text style={[styles.feeCol, { flex: 2 }]}>Locked rate, no increase</Text>
+              <Text style={[styles.feeCol, { flex: 1 }]}>After that</Text>
+              <Text style={[styles.feeCol, { flex: 0.7 }]}>{EXPERT_RATE_LABEL}/mo</Text>
+              <Text style={[styles.feeCol, { flex: 2 }]}>Flat rate, no increase</Text>
             </View>
-          </>
+          </View>
         ) : null}
 
         {/* Member offer: personalized. Shown for partner / both. */}
@@ -527,12 +539,12 @@ function AgreementDoc({ input }: { input: AgreementPdfInput }) {
         {/* 4 to 10 */}
         {GENERAL_SECTIONS.map((s) => (
           <React.Fragment key={s.title}>
-            <Text style={styles.sectionTitle}>{s.title}</Text>
+            <Text style={styles.sectionTitle} minPresenceAhead={60}>{s.title}</Text>
             <Text style={styles.paragraph}>{s.body}</Text>
           </React.Fragment>
         ))}
 
-        <Text style={styles.sectionTitle}>11. Contact and full text</Text>
+        <Text style={styles.sectionTitle} minPresenceAhead={60}>11. Contact and full text</Text>
         <Text style={styles.paragraph}>
           Questions about this agreement: {BRAND.contactEmail} or {BRAND.phone}. The standing,
           human-readable version of this agreement is published at {BRAND.agreementUrl} and is
@@ -541,7 +553,7 @@ function AgreementDoc({ input }: { input: AgreementPdfInput }) {
 
         {/* Signature block: "Acceptance record" once accepted, otherwise
             a personalized-but-pending prepared-for block on the invite copy. */}
-        <View style={styles.signatureBlock}>
+        <View style={styles.signatureBlock} wrap={false}>
           <Text style={styles.signatureTitle}>
             {accepted ? "Acceptance record" : "Prepared for"}
           </Text>

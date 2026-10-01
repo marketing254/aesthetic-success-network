@@ -142,7 +142,7 @@ export async function getPromoContext(promo: string | undefined | null): Promise
       name: "Aesthetic Success Network",
       kind: "team",
       tagline: "We'd love to welcome you in",
-      imageUrl: "/asn-app-icon.png",
+      imageUrl: "/asn-app-icon-256.png",
       pairedName: null,
       offerActive: true,
       offerMonths: Math.max(1, Math.round((row.trial_days ?? 90) / 30)),

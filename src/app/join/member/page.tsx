@@ -6,6 +6,7 @@ import SiteFooter from "@/components/site/SiteFooter";
 import MemberSignupForm, { type SignupPrefill } from "@/components/site/MemberSignupForm";
 import { getPromoContext, getReferralContext, type RefContext } from "@/lib/referralContext";
 import { resolveResumeToken } from "@/lib/abandoned";
+import { getSupabaseAdmin } from "@/lib/supabase/server";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -29,15 +30,41 @@ export const metadata: Metadata = {
 export default async function JoinMemberPage({
   searchParams,
 }: {
-  searchParams: Promise<{ ref?: string | string[]; promo?: string | string[]; resume?: string | string[] }>;
+  searchParams: Promise<{ ref?: string | string[]; promo?: string | string[]; resume?: string | string[]; wl?: string | string[] }>;
 }) {
   const params = await searchParams;
   const ref = Array.isArray(params.ref) ? params.ref[0] : params.ref;
   const promo = Array.isArray(params.promo) ? params.promo[0] : params.promo;
   const resume = Array.isArray(params.resume) ? params.resume[0] : params.resume;
+  const wl = Array.isArray(params.wl) ? params.wl[0] : params.wl;
 
   let refCtx: RefContext | null = (await getReferralContext(ref)) ?? (await getPromoContext(promo));
   let prefill: SignupPrefill | null = null;
+
+  // ?wl=<waitlist signup id>: the launch email link. Prefills the details
+  // the member gave on the waitlist (name, email, practice); nothing else
+  // is exposed and the id is an unguessable uuid.
+  if (wl && /^[0-9a-f-]{36}$/i.test(wl)) {
+    try {
+      const { data: w } = await getSupabaseAdmin()
+        .from("waitlist_signups")
+        .select("email, full_name, first_name, last_name, practice_name")
+        .eq("id", wl)
+        .eq("role", "member")
+        .maybeSingle();
+      if (w) {
+        const parts = (w.full_name ?? "").trim().split(/\s+/);
+        prefill = {
+          firstName: w.first_name ?? parts[0] ?? null,
+          lastName: w.last_name ?? (parts.length > 1 ? parts.slice(1).join(" ") : null),
+          email: w.email,
+          practiceName: w.practice_name,
+        };
+      }
+    } catch {
+      /* no prefill */
+    }
+  }
 
   if (resume) {
     const rc = await resolveResumeToken(resume).catch(() => null);
@@ -53,7 +80,7 @@ export default async function JoinMemberPage({
           name: "Aesthetic Success Network",
           kind: "team",
           tagline: "Welcome back. We saved your spot",
-          imageUrl: "/asn-app-icon.png",
+          imageUrl: "/asn-app-icon-256.png",
           pairedName: null,
           offerActive: true,
           offerMonths: 1,

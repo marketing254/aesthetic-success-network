@@ -1,35 +1,27 @@
 import { NextResponse } from "next/server";
-import {
-  getStripe,
-  appOrigin,
-  partnerPriceIdFor,
-  expertPriceIdFor,
-  appUrl,
-  FOUNDING_EXPERT_TRIAL_DAYS,
-  createCompanyLadderSchedule,
-} from "@/lib/stripe";
+import { getStripe, appOrigin, appUrl, createProviderSubscription } from "@/lib/stripe";
+import { normalizeProviderRate, formatLongDate, rateLabel, EXPERT_RATE_LABEL } from "@/lib/providerBilling";
+import { inviteDetailFields } from "@/lib/founding/sendInvite";
 import { getSupabaseAdmin } from "@/lib/supabase/server";
 import { renderFoundingAgreementPdf } from "@/lib/pdf/foundingAgreementPdf";
 import { sendJoinConfirmationEmail } from "@/lib/email/joinConfirmation";
 import { notifyTeamEvent } from "@/lib/email/teamNotify";
-import { serverError } from "@/lib/api/errorResponse";
+import { apiError, serverError } from "@/lib/api/errorResponse";
 import { clientIp, hashIp } from "@/lib/security/hashIp";
+import { checkRateLimit } from "@/lib/waitlist/rateLimit";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
 
-// Founding billing (owner decision 2026-09-30). Every founding invite saves
-// a card at acceptance; what happens next depends on the role:
-//   • Expert side (role expert / both): ONE subscription on the expert
-//     growth price with a 365-day trial (FOUNDING_EXPERT_TRIAL_DAYS).
-//     $0 for 12 months, then $39/month for good. No billing_exempt.
-//   • Company side (role partner / both): $39/month from day 1.
-//       pricing_plan "ladder" (default): subscription schedule, phase 1 =
-//         partner growth price x 12 iterations, phase 2 = the $149
-//         founding standard price (open-ended).
-//       pricing_plan "flat_49": plain subscription on the growth price,
-//         $39/month with no increase.
+// Founding billing (owner decision 2026-10-01, src/lib/providerBilling.ts).
+// Every acceptance saves a card. Nothing is charged today:
+//   • Expert side (role expert / both): one subscription on the expert
+//     price, free until 6 months after the member launch, then $39/month
+//     with no increase.
+//   • Company side (role partner / both): one subscription on the company
+//     rate price (pricing_plan "standard" = $39, "large" = $149), free
+//     until the same date, then that rate with no increase.
 //   • Role "both": both of the above on the SAME Stripe customer. The
 //     expert row mirrors the expert subscription, the vendor row mirrors
 //     the company subscription.
@@ -41,7 +33,7 @@ type BillingSnapshot = {
   priceId: string;
   status: string;
   periodEnd: string | null;
-  /** Trial end (expert side) as ISO, when trialing. */
+  /** ISO date the free founding months end (Stripe trial end). */
   trialEnd: string | null;
 };
 
@@ -68,6 +60,11 @@ export async function POST(req: Request, ctx: { params: Promise<{ code: string }
     return NextResponse.json({ error: "Missing invite code." }, { status: 400 });
   }
 
+  // Code-gated public route: cap attempts per IP + code so neither the
+  // code nor the Stripe references can be hammered.
+  const rl = await checkRateLimit(`founding-accept:${clientIp(req)}:${code}`, { maxHits: 20, windowMs: 10 * 60 * 1000 });
+  if (!rl.allowed) return apiError.rateLimited("POST /api/founding/[code]/accept");
+
   const sb = getSupabaseAdmin();
   const { data: invite } = await sb
     .from("founding_invites")
@@ -90,8 +87,8 @@ export async function POST(req: Request, ctx: { params: Promise<{ code: string }
 
   const wantsExpert = invite.role === "expert" || invite.role === "both";
   const wantsPartner = invite.role === "partner" || invite.role === "both";
-  // Every founding role saves a card now (experts start a 12-month trial
-  // that converts to $39/month; companies are billed from day 1).
+  // Every founding role saves a card now; nothing is charged until the
+  // free founding months end.
   if (!setupIntentId || !paymentMethodId) {
     return NextResponse.json({ error: "Missing payment references." }, { status: 400 });
   }
@@ -143,45 +140,25 @@ export async function POST(req: Request, ctx: { params: Promise<{ code: string }
     /* best effort */
   }
 
-  const ladder = invite.pricing_plan !== "flat_49";
-  let expertGrowthPrice: string | null = null;
-  let partnerGrowthPrice: string | null = null;
-  let partnerFoundingStandardPrice: string | null = null;
-  try {
-    if (wantsExpert) expertGrowthPrice = expertPriceIdFor("expert_growth_monthly");
-    if (wantsPartner) {
-      partnerGrowthPrice = partnerPriceIdFor("partner_growth_monthly");
-      if (ladder) partnerFoundingStandardPrice = partnerPriceIdFor("partner_founding_standard_monthly");
-    }
-  } catch (err) {
-    return serverError(err, { route: "POST /api/founding/[code]/accept", status: 503 });
-  }
+  const rate = normalizeProviderRate(invite.pricing_plan);
+  const baseMeta = { founding_invite: code, role: invite.role, pricing_plan: rate };
 
-  // ---- Expert side: 365-day trial on the expert growth price, then $39.
+  // ---- Expert side: free until the launch-based date, then $39.
   let expertBilling: BillingSnapshot | null = null;
-  if (wantsExpert && expertGrowthPrice) {
+  if (wantsExpert) {
     try {
-      const sub = await stripe.subscriptions.create({
-        customer: customerId,
-        items: [{ price: expertGrowthPrice }],
-        trial_period_days: FOUNDING_EXPERT_TRIAL_DAYS,
-        default_payment_method: paymentMethodId,
-        trial_settings: { end_behavior: { missing_payment_method: "pause" } },
-        metadata: {
-          founding_invite: code,
-          role: invite.role,
-          pricing_plan: invite.pricing_plan,
-          audience: "expert",
-          plan: "expert_growth_monthly",
-          ramp: "founding-expert-12mo-free",
-        },
+      const r = await createProviderSubscription({
+        customerId,
+        paymentMethodId,
+        audience: "expert",
+        metadata: { ...baseMeta, ramp: "founding-expert" },
       });
       expertBilling = {
-        subscriptionId: sub.id,
-        priceId: expertGrowthPrice,
-        status: sub.status,
-        periodEnd: periodEndIso(sub),
-        trialEnd: typeof sub.trial_end === "number" ? new Date(sub.trial_end * 1000).toISOString() : null,
+        subscriptionId: r.subscription.id,
+        priceId: r.priceId,
+        status: r.subscription.status,
+        periodEnd: periodEndIso(r.subscription),
+        trialEnd: r.freePeriodEndsAt,
       };
     } catch (err) {
       return serverError(err, {
@@ -192,51 +169,25 @@ export async function POST(req: Request, ctx: { params: Promise<{ code: string }
     }
   }
 
-  // ---- Company side: $39/month from day 1 (x12), then $149 (ladder) or
-  // $39 for good (flat_49).
+  // ---- Company side: free until the same date, then the rate chosen on
+  // the invite ($39 standard or $149 large), no increase.
   let partnerBilling: BillingSnapshot | null = null;
-  let partnerStandardStartsAt: string | null = null;
-  if (wantsPartner && partnerGrowthPrice) {
+  if (wantsPartner) {
     try {
-      if (ladder && partnerFoundingStandardPrice) {
-        // Shared with the website company sign-and-pay route: $39 x 12
-        // months from today, then $149 open-ended, as one schedule.
-        const result = await createCompanyLadderSchedule({
-          customerId,
-          paymentMethodId,
-          metadata: { founding_invite: code, role: invite.role, pricing_plan: invite.pricing_plan },
-        });
-        partnerBilling = {
-          subscriptionId: result.subscription.id,
-          priceId: partnerGrowthPrice,
-          status: result.subscription.status,
-          periodEnd: periodEndIso(result.subscription),
-          trialEnd: null,
-        };
-        partnerStandardStartsAt = result.standardStartsAt;
-      } else {
-        // Flat plan: $39/month from today with no increase.
-        const sub = await stripe.subscriptions.create({
-          customer: customerId,
-          items: [{ price: partnerGrowthPrice }],
-          default_payment_method: paymentMethodId,
-          metadata: {
-            founding_invite: code,
-            role: invite.role,
-            pricing_plan: invite.pricing_plan,
-            audience: "vendor",
-            plan: "partner_growth_monthly",
-            ramp: "founding-company-flat",
-          },
-        });
-        partnerBilling = {
-          subscriptionId: sub.id,
-          priceId: partnerGrowthPrice,
-          status: sub.status,
-          periodEnd: periodEndIso(sub),
-          trialEnd: null,
-        };
-      }
+      const r = await createProviderSubscription({
+        customerId,
+        paymentMethodId,
+        audience: "vendor",
+        rate,
+        metadata: { ...baseMeta, ramp: "founding-company" },
+      });
+      partnerBilling = {
+        subscriptionId: r.subscription.id,
+        priceId: r.priceId,
+        status: r.subscription.status,
+        periodEnd: periodEndIso(r.subscription),
+        trialEnd: r.freePeriodEndsAt,
+      };
     } catch (err) {
       return serverError(err, {
         route: "POST /api/founding/[code]/accept",
@@ -245,6 +196,7 @@ export async function POST(req: Request, ctx: { params: Promise<{ code: string }
       });
     }
   }
+  const freePeriodEndsAt = partnerBilling?.trialEnd ?? expertBilling?.trialEnd ?? null;
 
   // Pre-create the auth user so they can log into the portal later.
   let authUserId: string | null = null;
@@ -291,12 +243,12 @@ export async function POST(req: Request, ctx: { params: Promise<{ code: string }
   // company subscription. For "both" these are two different subscriptions
   // on the same customer.
   const expertSubFields = { ...agreementFields, ...billingFieldsFor(expertBilling) };
-  // vendors.billing_plan (0070) drives the price ramp the company portal
-  // shows: ladder = $39 months 1 to 12 then $149; flat_49 = $39 for good.
+  // vendors.billing_plan (0071) is the rate the company portal shows
+  // after the free months: standard = $39, large = $149.
   const partnerSubFields = {
     ...agreementFields,
     ...billingFieldsFor(partnerBilling),
-    billing_plan: ladder ? "founding_ladder" : "founding_flat",
+    billing_plan: rate,
   };
 
   let expertId: string | null = null;
@@ -502,8 +454,8 @@ export async function POST(req: Request, ctx: { params: Promise<{ code: string }
       accepted_at: signedAt.toISOString(),
       accepted_ip_hash: ipHash,
       accepted_user_agent: userAgent,
-      // One column on the invite: prefer the company subscription (the one
-      // billed from day 1), else the expert one.
+      // One column on the invite: prefer the company subscription, else
+      // the expert one.
       stripe_subscription_id: partnerBilling?.subscriptionId ?? expertBilling?.subscriptionId ?? null,
       agreement_pdf_path: signedPath ?? invite.agreement_pdf_path,
       expert_id: expertId,
@@ -517,8 +469,9 @@ export async function POST(req: Request, ctx: { params: Promise<{ code: string }
   if (signedPdf) {
     void sendJoinConfirmationEmail({
       role: invite.role,
-      pricing: invite.pricing_plan,
+      rate,
       to: email,
+      accountEmail: email,
       contactName: signerName,
       companyName: invite.company_name,
       pdfBuffer: signedPdf,
@@ -529,37 +482,27 @@ export async function POST(req: Request, ctx: { params: Promise<{ code: string }
       memberOffer: invite.member_offer,
       companies: invite.companies ?? undefined,
       founding: true,
-      expertTrialEndsAt: expertBilling?.trialEnd ?? expertBilling?.periodEnd ?? null,
-      partnerStandardStartsAt,
+      freePeriodEndsAt,
       cardCaptured: true,
     });
   }
 
   // Alert the whole team that the invitee accepted + saved their card so
   // they know this person is ready to sign in.
-  const nice = (iso: string | null) =>
-    iso ? new Date(iso).toLocaleDateString("en-US", { year: "numeric", month: "long", day: "numeric" }) : null;
   void notifyTeamEvent({
     kind: "invite_accepted",
     role: invite.role,
     name: signerName,
     email,
     adminLink: appUrl("/admin/founding"),
-    highlight: "Card on file. They're ready to sign in.",
-    fields: [
-      { label: "Role", value: invite.role === "both" ? "Expert + Company" : invite.role },
-      { label: "Company", value: invite.company_name },
-      { label: "Payment method", value: "On file" },
-      { label: "Expert subscription", value: expertBilling?.status ?? null },
-      { label: "Expert free period ends", value: nice(expertBilling?.trialEnd ?? null) },
-      { label: "Company subscription", value: partnerBilling?.status ?? null },
-      {
-        label: "Company rate",
-        value: partnerBilling ? (ladder ? "$39/month for 12 months, then $149/month" : "$39/month, no increase") : null,
-      },
-      { label: "Company $149 starts", value: nice(partnerStandardStartsAt) },
-      { label: "Member offer", value: invite.member_offer },
-    ],
+    highlight: "Card on file, nothing charged. They're ready to sign in.",
+    fields: inviteDetailFields(invite, [
+      { label: "Payment method", value: cardBrand && cardLast4 ? `${cardBrand} ending ${cardLast4}` : "On file" },
+      { label: "Expert subscription", value: expertBilling ? `${expertBilling.status} (${EXPERT_RATE_LABEL} a month after the free months)` : null },
+      { label: "Company subscription", value: partnerBilling ? `${partnerBilling.status} (${rateLabel(rate)} a month after the free months)` : null },
+      { label: "Free months end / first charge", value: formatLongDate(freePeriodEndsAt) },
+      { label: "Accepted on", value: formatLongDate(signedAt) },
+    ]),
   });
 
   const loginPath = wantsExpert ? "/expert/login" : "/vendor/login";

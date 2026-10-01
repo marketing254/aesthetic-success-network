@@ -562,11 +562,11 @@ export async function processAbandonedQueue(): Promise<{ sent: number; stopped: 
  * birth, so the cron never emails it. Before the migration runs, the
  * drafts fall back to pointing every button at the plain signup page.
  */
-export async function sendDraftEmails(): Promise<{ sent: string[]; liveLinks: boolean }> {
+export async function sendDraftEmails(reviewersOverride?: string[]): Promise<{ sent: string[]; liveLinks: boolean }> {
   const tx = transport();
   if (!tx) throw new Error("SMTP transport not configured (SMTP_TX_* env)");
 
-  const reviewers = queueAlertList();
+  const reviewers = reviewersOverride && reviewersOverride.length > 0 ? reviewersOverride : queueAlertList();
   const reviewerPrimary = reviewers[0];
   const sampleCode = generateRecoveryCode();
   const sampleExpiry = new Date(Date.now() + CODE_TTL_HOURS * HOUR);

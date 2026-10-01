@@ -23,44 +23,71 @@ type Props = {
  *
  * Asset: /asn-nav-icon.png, the 128px navy rounded-tile monogram from the
  * ASN logo pack (see public/README.md). It is square (1:1) and reads
- * correctly on both light and dark surfaces, so the `dark` prop no longer
- * applies a brightness/invert filter. The prop is kept so every existing
- * caller keeps compiling. `variant` and `showSubline` are accepted for
- * API compatibility and ignored, as in DMN.
+ * correctly on both light and dark surfaces; `dark` only switches the
+ * text colour of the name. `variant="lockup"` (default) = icon + name
+ * (+ subline unless showSubline is false); `variant="sigil"` = icon only.
  */
 export default function Logo({
   dark = false,
   variant = "lockup",
+  showSubline = true,
   height = 56,
   href,
   ariaLabel = "Aesthetic Success Network · home",
 }: Props) {
-  void dark;
-  void variant;
-  const aspect = 1;
-  const width = Math.round(height * aspect);
+  // Icon is square; the lockup adds the network name (and subline) beside
+  // it so every surface matches the public site nav. "sigil" = icon only.
+  const icon = Math.min(height, 64);
+  const nameSize = Math.max(14, Math.min(22, Math.round(icon * 0.42)));
+  const ink = dark ? "#F6F1E7" : "#0A1320";
+  const sub = dark ? "rgba(246,241,231,0.7)" : "#8A6528";
 
   const content = (
-    <Box
-      sx={{
-        display: "inline-flex",
-        alignItems: "center",
-        position: "relative",
-        height,
-        width,
-      }}
-    >
-      <Image
-        src="/asn-nav-icon.png"
-        alt="Aesthetic Success Network"
-        fill
-        priority
-        sizes={`${width}px`}
-        style={{
-          objectFit: "contain",
-          objectPosition: "left center",
-        }}
-      />
+    <Box sx={{ display: "inline-flex", alignItems: "center", gap: `${Math.round(icon * 0.27)}px`, minWidth: 0 }}>
+      <Box sx={{ position: "relative", height: icon, width: icon, flex: "none" }}>
+        <Image
+          src="/asn-nav-icon.png"
+          alt="Aesthetic Success Network"
+          fill
+          priority
+          sizes={`${icon}px`}
+          style={{ objectFit: "contain", objectPosition: "left center", borderRadius: Math.round(icon * 0.22) }}
+        />
+      </Box>
+      {variant !== "sigil" && (
+        <Box sx={{ display: "flex", flexDirection: "column", minWidth: 0, lineHeight: 1.15 }}>
+          <Box
+            component="span"
+            sx={{
+              fontFamily: 'var(--font-display), "Fraunces", Georgia, serif',
+              fontSize: nameSize,
+              fontWeight: 600,
+              letterSpacing: "-0.01em",
+              color: ink,
+              whiteSpace: "nowrap",
+            }}
+          >
+            Aesthetic Success Network
+          </Box>
+          {showSubline && (
+            <Box
+              component="span"
+              sx={{
+                fontSize: Math.max(8, Math.round(nameSize * 0.56)),
+                fontWeight: 600,
+                letterSpacing: "0.14em",
+                textTransform: "uppercase",
+                color: sub,
+                mt: "3px",
+                whiteSpace: "nowrap",
+                display: { xs: "none", sm: "inline" },
+              }}
+            >
+              Powered by Business of Aesthetics
+            </Box>
+          )}
+        </Box>
+      )}
     </Box>
   );
 

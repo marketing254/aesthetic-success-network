@@ -38,6 +38,17 @@ export default function SiteNav({ active }: { active?: string }) {
   const [signinOpen, setSigninOpen] = useState(false);
   const signinRef = useRef<HTMLDivElement | null>(null);
 
+  // Close both menus whenever the route changes (covers navigations that
+  // don't go through a link's onClick, e.g. back/forward). State is
+  // adjusted during render on a pathname change rather than in an effect,
+  // so there is no extra committed frame with the menu still open.
+  const [menuPath, setMenuPath] = useState(pathname);
+  if (menuPath !== pathname) {
+    setMenuPath(pathname);
+    setOpen(false);
+    setSigninOpen(false);
+  }
+
   useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > 16);
     window.addEventListener("scroll", onScroll, { passive: true });
@@ -81,6 +92,10 @@ export default function SiteNav({ active }: { active?: string }) {
             width={44}
             height={44}
           />
+          <span className="brand-name">
+            <span className="brand-name-main">Aesthetic Success Network</span>
+            <span className="brand-name-sub">Powered by Business of Aesthetics</span>
+          </span>
         </Link>
 
         <div className="nav-links">

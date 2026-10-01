@@ -7,7 +7,6 @@ import {
   Button,
   CircularProgress,
   Grid,
-  LinearProgress,
   Stack,
   Typography,
 } from "@mui/material";
@@ -152,15 +151,19 @@ export default function VendorOverview() {
     activeOffersCount: 0,
   };
 
-  // Price ramp for THIS company's plan (vendors.billing_plan, 0070):
-  // website and founding_ladder = $39 months 1 to 12, then $149 (no free
-  // period); founding_flat = $39 flat.
+  // Price terms for THIS company (vendors.billing_plan, 0071): free
+  // founding months (6 from the member launch), then $39 standard or $149
+  // large a month with no increase.
   const billingPlan = normalizeVendorPlan(vendor.billing_plan);
-  const ramp = vendorRamp(billingPlan);
+  const hasTrial = vendor.subscription_status === "trialing";
+  const freeUntil = hasTrial ? vendor.current_period_end : null;
+  const ramp = vendorRamp(billingPlan, freeUntil);
   const months = vendor.months_in_program ?? 0;
-  const currentRow = currentRampRow(billingPlan, months);
-  const isWebsite = billingPlan === "website";
-  const foundingProgress = Math.min(100, (months / 12) * 100);
+  const currentRow = currentRampRow(billingPlan, hasTrial, freeUntil);
+  const isWebsite = !vendor.founding_partner_locked;
+  const freeUntilLabel = freeUntil
+    ? new Date(freeUntil).toLocaleDateString("en-US", { year: "numeric", month: "long", day: "numeric" })
+    : null;
   const planLabel = vendor.plan_id?.toUpperCase() ?? "FOUNDING";
 
   const subtitle =
@@ -230,7 +233,7 @@ export default function VendorOverview() {
                 ) : (
                   <HeroChip tone="neutral" label={planLabel} />
                 )}
-                <HeroChip tone="neutral" label={`Month ${months} of ${ramp.termMonths}`} />
+                <HeroChip tone="neutral" label={hasTrial ? "Free founding months" : `Month ${months}`} />
               </Stack>
             </Box>
             <Button
@@ -445,9 +448,8 @@ export default function VendorOverview() {
         </Grid>
       </Grid>
 
-      {/* Pricing card: sand card with a navy header strip. Website and
-          founding-ladder companies see the 12-month launch-rate bar
-          ($39, then $149); founding flat has no bar. */}
+      {/* Pricing card: sand card with a navy header strip. Free founding
+          months, then the flat rate. */}
       <SectionCard accent padding="none">
         <Stack
           direction="row"
@@ -468,30 +470,17 @@ export default function VendorOverview() {
           sx={{ alignItems: { md: "center" }, p: 3 }}
         >
           <Box sx={{ flex: 1, minWidth: 0 }}>
-            {isWebsite || billingPlan === "founding_ladder" ? (
-              <>
-                <Typography sx={{ ...portalText.body, mb: 2 }}>
-                  <Box component="strong" sx={{ color: INK, fontWeight: 700 }}>
-                    {isWebsite
-                      ? "Company: $39 a month for 12 months, then $149"
-                      : "Founding company: $39 a month for 12 months, then $149"}
-                  </Box>
-                  . You are in month {months} of 12.
-                </Typography>
-                <LinearProgress variant="determinate" value={foundingProgress} sx={{ bgcolor: "rgba(255,255,255,0.8)" }} />
-                <Stack direction="row" sx={{ justifyContent: "space-between", mt: 0.75 }}>
-                  <Typography sx={{ fontSize: "0.75rem", color: MUTED }}>Month 1</Typography>
-                  <Typography sx={{ fontSize: "0.75rem", color: MUTED }}>Month 12</Typography>
-                </Stack>
-              </>
-            ) : (
-              <Typography sx={portalText.body}>
-                <Box component="strong" sx={{ color: INK, fontWeight: 700 }}>
-                  Founding company: $39 a month, no increase
-                </Box>
-                . Your rate stays the same for as long as you are in the network.
-              </Typography>
-            )}
+            <Typography sx={portalText.body}>
+              <Box component="strong" sx={{ color: INK, fontWeight: 700 }}>
+                {hasTrial
+                  ? freeUntilLabel
+                    ? `Free until ${freeUntilLabel}, then ${ramp.rate} a month`
+                    : `Free founding months, then ${ramp.rate} a month`
+                  : `${ramp.rate} a month`}
+              </Box>
+              . Your rate never increases for as long as you are in the network.
+              {hasTrial ? " We remind you 7 days before your first charge." : ""}
+            </Typography>
           </Box>
           <Stack
             direction="row"

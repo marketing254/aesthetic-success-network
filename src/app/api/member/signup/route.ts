@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { MEMBER_LAUNCH_ENABLED, MEMBER_LAUNCH_MESSAGE } from "@/lib/launch";
 import { cookies } from "next/headers";
 import { getSupabaseAdmin } from "@/lib/supabase/server";
 import { validateWaitlist } from "@/lib/waitlist/validate";
@@ -53,6 +54,9 @@ function splitName(fullName: string): { first: string; last: string | null } {
 }
 
 export async function POST(req: Request) {
+  if (!MEMBER_LAUNCH_ENABLED) {
+    return NextResponse.json({ error: MEMBER_LAUNCH_MESSAGE }, { status: 403 });
+  }
   const route = "POST /api/member/signup";
 
   let json: unknown;

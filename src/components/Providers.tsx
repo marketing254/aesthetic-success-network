@@ -17,10 +17,33 @@ const SmoothScroll = dynamic(() => import("./SmoothScroll"), { ssr: false });
 
 const LEAN_PREFIXES = ["/summit"];
 
+/**
+ * ASN public pages rendered entirely with the plain-CSS design (site.css +
+ * SiteNav/SiteFooter/LegalShell). They import nothing from MUI, so the
+ * MUI + Emotion runtime is skipped on them and only Lenis is kept.
+ *
+ * Exact paths only: /experts/[id] and /companies/[id] (the public profile
+ * views), /join, /founding/[code] and every /login page DO use MUI and
+ * must keep the provider.
+ */
+const PLAIN_EXACT = new Set(["/", "/experts", "/companies", "/pricing", "/join/member"]);
+const PLAIN_PREFIXES = ["/legal", "/agreement"];
+
 export default function Providers({ children }: { children: React.ReactNode }) {
   const pathname = usePathname() ?? "";
   const lean = LEAN_PREFIXES.some((p) => pathname === p || pathname.startsWith(`${p}/`));
   if (lean) return <>{children}</>;
+  const plain =
+    PLAIN_EXACT.has(pathname) ||
+    PLAIN_PREFIXES.some((p) => pathname === p || pathname.startsWith(`${p}/`));
+  if (plain) {
+    return (
+      <>
+        <SmoothScroll />
+        {children}
+      </>
+    );
+  }
   return (
     <MuiProviders>
       <SmoothScroll />

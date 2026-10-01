@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { MEMBER_LAUNCH_ENABLED, MEMBER_LAUNCH_MESSAGE } from "@/lib/launch";
 import { isOtpThrottle, sendOtpViaFallback, requestOtp } from "@/lib/auth/otpFallback";
 import { createServerSupabase } from "@/lib/supabase/server-ssr";
 import { getSupabaseAdmin } from "@/lib/supabase/server";
@@ -31,6 +32,9 @@ function clientIp(req: Request): string {
 }
 
 export async function POST(req: Request) {
+  if (!MEMBER_LAUNCH_ENABLED) {
+    return NextResponse.json({ error: MEMBER_LAUNCH_MESSAGE }, { status: 403 });
+  }
   let body: { email?: string };
   try {
     body = await req.json();

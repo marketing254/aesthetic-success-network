@@ -38,9 +38,33 @@ export function teamDistributionList(): string[] {
   return emailListFromEnv("TEAM_DISTRIBUTION_LIST");
 }
 
-/** EMAIL_AUDIT_BCC: silent copies of member-facing sequences and job-board mail; summit ops alert. */
+/** EMAIL_AUDIT_BCC: silent copies of EVERY client-facing email (added by applyEmailSandbox). */
 export function auditBccList(): string[] {
-  return emailListFromEnv("EMAIL_AUDIT_BCC");
+  return emailListFromEnv("EMAIL_AUDIT_BCC", ["rushdhaakbar82@gmail.com", "lester@ekwa.com"]);
+}
+
+function addressesOf(v: unknown): string[] {
+  const list = Array.isArray(v) ? v : v ? [v] : [];
+  return list
+    .map((a) => (typeof a === "string" ? a : (a as { address?: string })?.address ?? ""))
+    .map((a) => a.replace(/^.*<([^>]+)>.*$/, "$1").trim().toLowerCase())
+    .filter(Boolean);
+}
+
+/**
+ * Silent audit copy: every real (non-sandboxed) send carries the
+ * EMAIL_AUDIT_BCC addresses as BCC so the team sees what clients receive.
+ * Recipients never see BCC. Skipped when the message is already addressed
+ * to one of the audit addresses (team alerts) so nobody gets it twice.
+ */
+export function withAuditBcc<T extends { to?: unknown; cc?: unknown; bcc?: unknown }>(msg: T): T {
+  const audit = auditBccList().map((a) => a.toLowerCase());
+  if (audit.length === 0) return msg;
+  const visible = new Set([...addressesOf(msg.to), ...addressesOf(msg.cc)]);
+  if (audit.some((a) => visible.has(a))) return msg;
+  const existing = addressesOf(msg.bcc);
+  const merged = [...new Set([...existing, ...audit])];
+  return { ...msg, bcc: merged };
 }
 
 /** EMAIL_QUEUE_ALERT_TO: the job-board review-queue alert and abandoned-draft review sends. */
@@ -92,7 +116,7 @@ function describeRecipients(value: AddressLike | AddressLike[]): string {
 export function applyEmailSandbox<
   T extends { to?: unknown; cc?: unknown; bcc?: unknown; subject?: string },
 >(msg: T): T {
-  if (!isEmailSandbox()) return msg;
+  if (!isEmailSandbox()) return withAuditBcc(msg);
 
   const to = describeRecipients(msg.to as AddressLike | AddressLike[]);
   const cc = describeRecipients(msg.cc as AddressLike | AddressLike[]);

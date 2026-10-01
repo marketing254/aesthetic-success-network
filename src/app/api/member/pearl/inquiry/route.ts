@@ -1,7 +1,9 @@
 import { NextResponse } from "next/server";
+import { MEMBER_LAUNCH_ENABLED, MEMBER_LAUNCH_MESSAGE } from "@/lib/launch";
 import { getSupabaseAdmin } from "@/lib/supabase/server";
 import { requirePaidMember } from "@/lib/auth/guards";
 import { apiError, serverError } from "@/lib/api/errorResponse";
+import { checkRateLimit } from "@/lib/waitlist/rateLimit";
 import { deliverInquiryPack } from "@/lib/inquiry/deliverPack";
 import { notifyInquirySlack } from "@/lib/slack";
 
@@ -28,9 +30,18 @@ const MAX_QUESTION_CHARS = 4000;
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 export async function POST(req: Request) {
+  if (!MEMBER_LAUNCH_ENABLED) {
+    return NextResponse.json({ error: MEMBER_LAUNCH_MESSAGE }, { status: 403 });
+  }
   const guard = await requirePaidMember();
   if (!guard.ok) return guard.response;
   const route = "POST /api/member/pearl/inquiry";
+
+  // Every inquiry renders a PDF, uploads it, emails it and pings Slack —
+  // cap per member (5 per 10 min) so one account can't run the pipeline
+  // in a loop.
+  const rl = await checkRateLimit(`pearl-inquiry:${guard.memberId}`);
+  if (!rl.allowed) return apiError.rateLimited(route);
 
   let body: { question?: string; email?: string };
   try {

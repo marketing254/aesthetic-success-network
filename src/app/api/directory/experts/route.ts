@@ -7,6 +7,21 @@ export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
 /**
+ * Internal accounts never reach the public site: preview/bypass logins
+ * (BILLING_BYPASS_EMAILS) and test addresses (TEST_MEMBER_EMAILS).
+ */
+function isInternalEmail(email: string | null | undefined): boolean {
+  if (!email) return false;
+  const e = email.trim().toLowerCase();
+  const list = [process.env.BILLING_BYPASS_EMAILS ?? "", process.env.TEST_MEMBER_EMAILS ?? ""]
+    .join(",")
+    .split(",")
+    .map((s) => s.trim().toLowerCase())
+    .filter(Boolean);
+  return list.includes(e);
+}
+
+/**
  * GET /api/directory/experts?page=1&pageSize=6
  *
  * PUBLIC — powers the founding-experts directory on the marketing site.
@@ -30,14 +45,14 @@ export async function GET(req: Request) {
     // page in memory — a DB range can't express the house-anchor ordering.
     const { data, error } = await sb
       .from("experts")
-      .select("id, display_name, full_name, specialty, company_name, bio, headshot_url, website")
+      .select("id, display_name, full_name, specialty, company_name, bio, headshot_url, website, email")
       .eq("status", "active")
       .not("headshot_url", "is", null)
       .not("bio", "is", null)
       .order("display_name", { ascending: true, nullsFirst: false });
     if (error) throw error;
 
-    const sorted = sortExpertsHouseFirst(data ?? [], (e) => e.display_name || e.full_name);
+    const sorted = sortExpertsHouseFirst((data ?? []).filter((e) => !isInternalEmail(e.email)), (e) => e.display_name || e.full_name);
     const count = sorted.length;
     const pageRows = sorted.slice(from, from + pageSize);
 

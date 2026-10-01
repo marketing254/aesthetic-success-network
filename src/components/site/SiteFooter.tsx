@@ -48,7 +48,15 @@ export default function SiteFooter() {
             <div className="powered-by">
               Powered by{" "}
               {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img className="boa-logo" src="/boa-logo.png" alt="Business of Aesthetics" />
+              <img
+                className="boa-logo"
+                src="/boa-logo.png"
+                alt="Business of Aesthetics"
+                width={63}
+                height={30}
+                loading="lazy"
+                decoding="async"
+              />
             </div>
             <p>
               A membership for aesthetic practice owners: the Expert Hotline with a written action

@@ -12,9 +12,10 @@ import { COLORS } from "@/theme";
  * Each card's CTA scrolls to #waitlist and sets ?role=member|expert|partner
  * so WaitlistSection opens on the right tab.
  *
- * Visibility rule: do NOT show the founding-expert invite offer (12 months
- * free, then $39) here or anywhere public. Per ASN-SWAP-CANON section 3
- * founding invites are internal-only (invite link only).
+ * Pricing rule (ASN-SWAP-CANON section 3, owner decision 2026-10-01):
+ * every provider gets the first 6 months free from the member launch, then
+ * $39 a month with no increase. Founding invites are internal-only
+ * (invite link only) and the company large rate is never shown publicly.
  */
 type CardRole = "member" | "expert" | "partner";
 
@@ -48,7 +49,7 @@ const CARDS: Array<{
       "A library built for you, in your branding",
       "Featured profile plus warm leads to your calendar",
       "Hotline referrals when a member fits your expertise",
-      "Sell your own courses and keep 70%",
+      "Sell your own courses and products to members and keep the full price",
     ],
     cta: "Apply as an expert",
     role: "expert",
@@ -56,7 +57,7 @@ const CARDS: Array<{
   {
     eyebrow: "Partners",
     title: "For companies serving aesthetic practices",
-    body: "Get in front of aesthetics' most engaged buyers through a trusted shortlist instead of a cold ad. $39 a month, then $149 after your first year.",
+    body: "Get in front of aesthetics' most engaged buyers through a trusted shortlist instead of a cold ad. Your first 6 months are free from the member launch, then $39 a month with no increase.",
     perks: [
       "Profile and placement in your category",
       "Lead flow with a dashboard",

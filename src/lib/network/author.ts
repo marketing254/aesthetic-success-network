@@ -1,6 +1,7 @@
 import "server-only";
 import { getSupabaseAdmin } from "@/lib/supabase/server";
 import { checkBillingAccess } from "@/lib/stripe";
+import { isMemberPaid } from "@/lib/auth/guards";
 import type { NetworkAuthorKind } from "@/lib/supabase/types";
 
 export type NetworkAuthor = {
@@ -108,14 +109,24 @@ export async function resolveNetworkAuthor(
     }
   }
 
-  // 3. Active member?
+  // 3. Active, PAID member? Same gate as requirePaidMember /
+  //    requireMemberOrAdminPreview: a free job-seeker account
+  //    (account_type = 'job_seeker') is not a member, and an active-but-
+  //    unpaid member has no network identity until they subscribe. Both
+  //    fall through (an admin with an unpaid members row still resolves
+  //    as admin below).
   {
     const { data } = await admin
       .from("members")
-      .select("id, first_name, last_name, practice_name, city, status")
+      .select("id, first_name, last_name, practice_name, city, status, account_type, subscription_status")
       .eq("auth_user_id", authUserId)
       .maybeSingle();
-    if (data && data.status === "active") {
+    if (
+      data &&
+      data.status === "active" &&
+      data.account_type !== "job_seeker" &&
+      isMemberPaid(data.subscription_status)
+    ) {
       const fullName = [data.first_name, data.last_name].filter(Boolean).join(" ").trim();
       const subtitle = data.practice_name
         ? data.practice_name

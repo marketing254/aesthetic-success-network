@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { MEMBER_LAUNCH_ENABLED, MEMBER_LAUNCH_MESSAGE } from "@/lib/launch";
 import { getSupabaseAdmin } from "@/lib/supabase/server";
 import { validateWaitlist } from "@/lib/waitlist/validate";
 import { checkRateLimit } from "@/lib/waitlist/rateLimit";
@@ -116,7 +117,7 @@ export async function POST(req: Request) {
     );
   }
 
-  await sendConfirmation(result.data, data.id, data.created_at);
+  if (MEMBER_LAUNCH_ENABLED) await sendConfirmation(result.data, data.id, data.created_at);
 
   forwardWaitlistToKit({
     email: result.data.email,

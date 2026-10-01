@@ -754,3 +754,42 @@ export async function processOnboardingQueue(): Promise<{
 
   return { checked: anchors.length, sent, slack };
 }
+
+/**
+ * Review copies of the whole member onboarding sequence with sample data.
+ * Sends straight through the transactional transport to `to` only: no
+ * member rows, no DB writes.
+ */
+export async function sendOnboardingPreviews(to: string): Promise<string[]> {
+  const transport = txTransport();
+  if (!transport) throw new Error("SMTP transport not configured");
+  const origin = process.env.NEXT_PUBLIC_APP_URL ?? "https://www.aestheticsuccessnetwork.com";
+  const drafts = [
+    renderWelcome("Taylor", 12, "month"),
+    renderKit({
+      firstName: "Taylor",
+      challenge: "Pricing injectables to protect my margin",
+      kitTitle: "Pricing injectables to protect your margin",
+      kitUrl: `${origin}/dashboard/resources/pricing-injectables`,
+      matchKind: "best",
+    }),
+    renderHotline("Taylor"),
+    renderFeedback("Taylor"),
+    renderTrialReminder({ firstName: "Taylor", amountLabel: "$29/mo", chargeDate: "November 1, 2026" }),
+  ];
+  const sent: string[] = [];
+  for (const d of drafts) {
+    await transport.sendMail(
+      applyEmailSandbox({
+        from: FROM_MEMBER_FACING,
+        to,
+        replyTo: REPLY_TO,
+        attachments: logoAttachment(),
+        subject: `[DRAFT] ${d.subject}`,
+        html: d.html,
+      }),
+    );
+    sent.push(d.subject);
+  }
+  return sent;
+}

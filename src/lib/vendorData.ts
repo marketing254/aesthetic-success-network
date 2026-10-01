@@ -29,13 +29,13 @@ export const vendorPlans: VendorPlan[] = [
   {
     id: "founding",
     name: "Launch",
-    priceLabel: "$39",
-    cadenceLabel: "/mo for months 1 to 12",
+    priceLabel: "$0",
+    cadenceLabel: "for your first 6 months, from the member launch",
     blurb:
-      "$39/mo for your first 12 months, charged from the day you add a card. Then $149/mo from month 13. Founding badge in the directory.",
+      "Your first 6 months are free, starting the day we open to members. After that it's $39 a month, and it stays $39 with no increase. Founding badge in the directory.",
     features: [
-      "Months 1 to 12: $39/mo locked launch rate",
-      "Month 13 onward: $149/mo Featured Partner rate",
+      "First 6 months: free, from the member launch",
+      "After that: $39/mo, no increase",
       "Founding Partner badge in the directory",
       "Featured Partner benefits",
       "Verified Partner badge",
@@ -45,8 +45,8 @@ export const vendorPlans: VendorPlan[] = [
     ctaLabel: "Apply to the cohort",
     badge: "LIMITED · LAUNCH PROGRAM",
   },
-  // The Standard ($149/mo) rate is reached by the ramp above rather than
-  // picked at signup, so only the launch plan is listed here.
+  // The company large rate is admin-set at approval rather than picked at
+  // signup and is never shown publicly, so only the launch plan is listed here.
 ];
 
 // Canonical ASN partner categories (ASN-SWAP-CANON section 4). Shared by the
@@ -381,7 +381,7 @@ export const vendorCommitments: VendorCommitment[] = [
     number: "05",
     title: "Pay the fee.",
     body:
-      "$39 per month for months 1 to 12 (locked launch rate, first charge the day you add a card), then $149 per month from month 13 (Featured Partner rate). Annual prepay earns two months free.",
+      "Your first 6 months are free, starting the day we open to members. After that it's $39 a month, and it stays $39 with no increase. Cancel any time before your first charge and you won't be charged; after that, cancel with 30 days' written notice. Annual prepay earns two months free.",
   },
 ];
 
@@ -393,15 +393,15 @@ export type FeeScheduleRow = {
 };
 
 export const vendorFeeSchedule: FeeScheduleRow[] = [
-  { period: "Months 1 to 12", fee: "$39", note: "Locked launch rate, first charge the day you add a card" },
-  { period: "Month 13 onward", fee: "$149", note: "Featured Partner rate" },
+  { period: "Free founding months", fee: "$0", note: "First 6 months, from the member launch" },
+  { period: "After that", fee: "$39", note: "Every month, no increase" },
 ];
 
 // Headline numbers shown above the agreement (the "key terms band").
 // 12-month initial term and 30 days' notice come from provider agreement section 08.
 export const vendorAgreementKeyTerms = [
-  { label: "Months 1 to 12", value: "$39", sub: "per month" },
-  { label: "Month 13+", value: "$149", sub: "per month" },
+  { label: "Free months", value: "$0", sub: "from launch" },
+  { label: "After that", value: "$39", sub: "per month" },
   { label: "Commitment", value: "12 mo", sub: "Initial term" },
   { label: "Cancel", value: "30 d", sub: "Written notice" },
 ];
@@ -420,7 +420,7 @@ export const vendorAgreementSections: AgreementSection[] = [
     number: "02",
     title: "Expert terms (if you also hold the expert capability)",
     body:
-      "Experts share one recording (up to about one hour) of themselves teaching a topic, plus supporting details. We produce the content kit (training video, action guide, checklist, key takeaways, worksheet, slide deck, wall poster, and extras), and you approve it before it goes live under your profile. You keep ownership of your content and grant ASN a license to produce, host, and distribute the kits to members. Expert access pricing follows the same ramp as partners. Paid courses: you keep 70% of net course revenue; the network retains 30%. Payouts are processed monthly. Hotline referrals are routed by fit, never by payment.",
+      "Experts share one recording (up to about one hour) of themselves teaching a topic, plus supporting details. We produce the content kit (training video, action guide, checklist, key takeaways, worksheet, slide deck, wall poster, and extras), and you approve it before it goes live under your profile. You keep ownership of your content and grant ASN a license to produce, host, and distribute the kits to members. Expert access pricing is the same as for partners: the first 6 months free from the member launch, then $39 a month with no increase. Paid courses and products: you sell them on your own site and keep the full price; the one condition is a member-only offer on each. Hotline referrals are routed by fit, never by payment.",
   },
   {
     id: "fees-and-payment",
@@ -455,7 +455,7 @@ export const vendorAgreementSections: AgreementSection[] = [
     number: "07",
     title: "Term, renewal, and termination",
     body:
-      "The initial term is 12 months from signup, renewing automatically for successive 12-month terms unless either party gives 30 days' non-renewal notice. Either party may terminate for convenience with 30 days' written notice. Either party may terminate immediately for a material breach that remains uncured 15 days after written notice, for insolvency, or for conduct that materially harms the network. On termination: the profile is removed, the badge license ends, and unpaid fees become due. Expert kits are unpublished from the member library; purchasers of paid courses retain access, and final course payouts are processed within 30 days.",
+      "The initial term is 12 months from signup, renewing automatically for successive 12-month terms unless either party gives 30 days' non-renewal notice. Either party may terminate for convenience with 30 days' written notice. Either party may terminate immediately for a material breach that remains uncured 15 days after written notice, for insolvency, or for conduct that materially harms the network. On termination: the profile is removed, the badge license ends, and unpaid fees become due. Expert kits are unpublished from the member library; purchasers of paid courses retain the access you sold them on your own site.",
   },
   {
     id: "disclaimers",

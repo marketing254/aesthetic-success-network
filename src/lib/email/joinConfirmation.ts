@@ -1,62 +1,73 @@
 import "server-only";
-import { emailBrandHeader } from "@/lib/email/brandHeader";
-import { readFileSync } from "node:fs";
-import path from "node:path";
-import { escapeHtml } from "@/lib/email/escapeHtml";
-import { applyEmailSandbox } from "@/lib/email/sandbox";
+import {
+  ACCENT,
+  EXPERTS_EMAIL,
+  PARTNERSHIPS_EMAIL,
+  SITE_HOST,
+  TEAM_SIGNOFF,
+  firstNameOf,
+  sendEmailDraft,
+  type EmailAttachment,
+  type EmailDraft,
+  type EmailSection,
+} from "@/lib/email/layout";
+import {
+  CANCEL_NOTICE_DAYS,
+  EXPERT_RATE_LABEL,
+  FIRST_CHARGE_REMINDER_DAYS,
+  PROVIDER_FREE_MONTHS,
+  formatLongDate,
+  rateLabel,
+} from "@/lib/providerBilling";
 
 /**
- * Confirmation email for a new founding partner / expert. Attaches the
- * signed agreement PDF and points them at their portal.
+ * The ONE welcome email a provider receives, sent after they accept the
+ * agreement and save a card (founding accept route and the portal
+ * sign-and-pay routes). Attaches the signed agreement PDF.
  *
- * Copy follows Agreements/ASN_Forms_and_Esign_Spec.md: sender and
- * reply-to support@aestheticsuccessnetwork.com, the ASN legal line, every
- * billing step as a plain calendar date (the first $39 charge, and for
- * founding companies the $149 start), no card details, no em-dashes, and
- * the sign-in email restated (no code is sent from here; the portal login
- * screen sends the 6-digit code once they arrive).
+ *   partner  "You're in, [First name]. Welcome to the Aesthetic Success Network."
+ *   expert   "Welcome to the bench." (portal live, book onboarding call)
+ *   both     the expert welcome with the company block added
  *
- * Billing copy per case:
- *   Founding expert (invite):   $0 for 12 months, then $39/month for good.
- *   Founding company (invite):  $39/month from today for 12 months, then
- *                               $149/month (ladder) or $39 for good (flat).
- *   Website expert:             $0 for 6 months, then $39/month for good.
- *   Website company:            $39/month from today for 12 months, then
- *                               $149/month (same as the founding ladder).
+ * Billing copy: card saved, nothing charged today, free founding months
+ * end on [date] (6 months after the member launch), then the flat rate
+ * with no increase. Cancel before the first charge = no charge; after
+ * that 30 days' notice. One reminder 7 days before.
  *
- * Transport strategy mirrors teamNotify.ts: SMTP if configured, Resend
- * fallback, log-only in dev. Same fromAddress().
+ * `accountEmail` is the address they sign in with and is the ONLY email
+ * printed in the body. Staff copies travel as BCC (applyEmailSandbox).
  */
 
-const DEFAULT_FROM = "Aesthetic Success Network <support@aestheticsuccessnetwork.com>";
-const SUPPORT_EMAIL = process.env.FOUNDING_SUPPORT_EMAIL ?? "support@aestheticsuccessnetwork.com";
-const LEGAL_LINE = "Aesthetic Success Network, operated by Ekwa Marketing Inc.";
-const LOGO_CID = "asn-logo-mark";
+export type JoinConfirmationInput = {
+  role: "partner" | "expert" | "both";
+  /** Company rate ("standard" $39 / "large" $149). Ignored for experts. */
+  rate?: string | null;
+  /** True when this is a founding-invite acceptance. */
+  founding?: boolean;
+  /** ISO date the free founding months end (Stripe trial end). */
+  freePeriodEndsAt?: string | null;
+  to: string;
+  /** The sign-in email shown in the body. Defaults to `to`. */
+  accountEmail?: string;
+  contactName: string;
+  companyName?: string | null;
+  pdfBuffer: Buffer;
+  pdfFilename: string;
+  portalUrl: string;
+  agreementVersion: string;
+  signedAt?: Date;
+  /** Partner roles: the member offer on file. */
+  memberOffer?: string | null;
+  /** Multi-company agreements: every company with its own offer. */
+  companies?: { name: string; category?: string | null; member_offer?: string | null }[] | null;
+  /** Whether a card was saved as part of this acceptance. */
+  cardCaptured?: boolean;
+  /** Legacy fields still passed by older callers; freePeriodEndsAt wins. */
+  expertTrialEndsAt?: string | null;
+  trialEndsAt?: string | null;
+};
 
-function fromAddress(): string {
-  return process.env.MAIL_FROM ?? DEFAULT_FROM;
-}
-
-let LOGO_BUFFER: Buffer | null | undefined;
-function getLogoBuffer(): Buffer | null {
-  if (LOGO_BUFFER !== undefined) return LOGO_BUFFER;
-  try {
-    // Square navy tile mark (128px, ~15 KB). The full lockups are far too
-    // large to attach inline to every email.
-    const file = path.join(process.cwd(), "public", "asn-logo-email.png");
-    LOGO_BUFFER = readFileSync(file);
-  } catch {
-    LOGO_BUFFER = null;
-  }
-  return LOGO_BUFFER;
-}
-
-function hasPartnerRole(role: JoinConfirmationInput["role"]): boolean {
-  return role === "partner" || role === "both";
-}
-function hasExpertRole(role: JoinConfirmationInput["role"]): boolean {
-  return role === "expert" || role === "both";
-}
+const ONBOARDING_CALL_URL = process.env.ONBOARDING_CALL_URL ?? "";
 
 function formatDateTime(date: Date): string {
   return new Intl.DateTimeFormat("en-US", {
@@ -70,485 +81,245 @@ function formatDateTime(date: Date): string {
   }).format(date);
 }
 
-function formatDate(date: Date): string {
-  return new Intl.DateTimeFormat("en-US", {
-    year: "numeric",
-    month: "long",
-    day: "numeric",
-    timeZone: "UTC",
-  }).format(date);
+function hasPartner(role: JoinConfirmationInput["role"]) {
+  return role === "partner" || role === "both";
+}
+function hasExpert(role: JoinConfirmationInput["role"]) {
+  return role === "expert" || role === "both";
 }
 
-function addMonths(date: Date, months: number): Date {
-  const result = new Date(date.getTime());
-  result.setUTCMonth(result.getUTCMonth() + months);
-  return result;
+function roleLabelFor(role: JoinConfirmationInput["role"]): string {
+  if (role === "both") return "Founding Expert and Partner";
+  return role === "partner" ? "Founding Partner" : "Founding Expert";
 }
 
-export type JoinConfirmationInput = {
-  role: "partner" | "expert" | "both";
-  /** Company price plan (founding invites, 0066). "ladder" (the default) = $39 for 12 months then $149; "flat_49" = $39 for good. */
-  pricing?: "ladder" | "flat_49" | null;
-  /** True when this is a founding-invite acceptance (case A / B pricing). Website flows leave it unset. */
-  founding?: boolean;
-  /** ISO date the EXPERT free period ends (first $39 expert charge). Founding: 12 months; website: 6 months. */
-  expertTrialEndsAt?: string | null;
-  /** ISO date the COMPANY moves to $149/month (month 13; founding ladder and website). */
-  partnerStandardStartsAt?: string | null;
-  to: string;
-  contactName: string;
-  companyName?: string | null;
-  pdfBuffer: Buffer;
-  pdfFilename: string;
-  portalUrl: string;
-  agreementVersion: string;
-  /** When the agreement was accepted. Defaults to now if omitted. */
-  signedAt?: Date;
-  /** Member offer text, partner roles only. Omit the whole section if empty. */
-  memberOffer?: string | null;
-  /** Multi-company agreements: every company on the agreement with its own
-   * offer. When 2+ entries exist the email lists offers per company instead
-   * of the single memberOffer line. */
-  companies?: { name: string; category?: string | null; member_offer?: string | null }[] | null;
-  /** ISO date the website EXPERT trial ends / first $39 charge lands. Legacy field; expertTrialEndsAt wins. Ignored for companies (no trial). */
-  trialEndsAt?: string | null;
-  /** Whether a card was actually saved to Stripe as part of this signup (founding invite accept, portal trial start). Public join/apply flows don't capture a card here, so default false. */
-  cardCaptured?: boolean;
-};
-
-/** Normalize the companies list; folds the invite-level offer into the
- * primary company so the per-company list is complete. */
-function companiesWithOffers(opts: {
-  companies?: JoinConfirmationInput["companies"];
-  memberOffer?: string | null;
-}): { name: string; category: string | null; member_offer: string | null }[] {
-  const list = (opts.companies ?? [])
-    .map((c) => ({
-      name: (c.name ?? "").trim(),
-      category: c.category?.trim() || null,
-      member_offer: c.member_offer?.trim() || null,
-    }))
-    .filter((c) => c.name);
-  if (list.length > 0 && !list[0].member_offer && opts.memberOffer?.trim()) {
-    list[0].member_offer = opts.memberOffer.trim();
-  }
-  return list;
-}
-
-export async function sendJoinConfirmationEmail(
-  input: JoinConfirmationInput,
-): Promise<boolean> {
-  const roleLabel =
-    input.role === "both"
-      ? "Founding Expert + Partner"
-      : input.role === "partner"
-        ? "Founding Partner"
-        : "Founding Expert";
-  const firstName = input.contactName.trim().split(/\s+/)[0] || "there";
-  const subject = `You're in, ${firstName}. Welcome to the Aesthetic Success Network.`;
-  const preheader = `Your ${roleLabel} agreement is confirmed. A copy is attached for your records.`;
-
-  const opts = { ...input, roleLabel, firstName, preheader };
-  const html = buildHtml(opts);
-  const text = buildText(opts);
-  const logoBuffer = getLogoBuffer();
-
-  const base64Attachments = [
-    {
-      filename: input.pdfFilename,
-      content: input.pdfBuffer.toString("base64"),
-      contentType: "application/pdf",
-    },
-    ...(logoBuffer
-      ? [
-          {
-            filename: "asn-logo.png",
-            content: logoBuffer.toString("base64"),
-            contentType: "image/png",
-            content_id: LOGO_CID,
-          },
-        ]
-      : []),
-  ];
-
-  try {
-    const from = fromAddress();
-
-    // SMTP
-    const smtpHost = process.env.SMTP_HOST;
-    const smtpUser = process.env.SMTP_USER;
-    const smtpPass = process.env.SMTP_PASS;
-    if (smtpHost && smtpUser && smtpPass) {
-      const port = Number(process.env.SMTP_PORT ?? "465");
-      const nodemailer = (await import("nodemailer")).default;
-      const transporter = nodemailer.createTransport({
-        host: smtpHost,
-        port,
-        secure: port === 465,
-        auth: { user: smtpUser, pass: smtpPass },
-      });
-      await transporter.sendMail(
-        applyEmailSandbox({
-          from,
-          to: input.to,
-          replyTo: SUPPORT_EMAIL,
-          subject,
-          html,
-          text,
-          attachments: [
-            {
-              filename: input.pdfFilename,
-              content: input.pdfBuffer,
-              contentType: "application/pdf",
-            },
-            ...(logoBuffer
-              ? [
-                  {
-                    filename: "asn-logo.png",
-                    content: logoBuffer,
-                    contentType: "image/png",
-                    cid: LOGO_CID,
-                  },
-                ]
-              : []),
-          ],
-        }),
-      );
-      console.info(`[join-confirm:${input.role}] sent via SMTP`, { to: input.to });
-      return true;
-    }
-
-    // Resend fallback
-    const resendKey = process.env.RESEND_API_KEY;
-    if (resendKey) {
-      const res = await fetch("https://api.resend.com/emails", {
-        method: "POST",
-        headers: {
-          Authorization: `Bearer ${resendKey}`,
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(
-          applyEmailSandbox({
-            from,
-            to: [input.to],
-            reply_to: SUPPORT_EMAIL,
-            subject,
-            html,
-            text,
-            attachments: base64Attachments,
-          }),
-        ),
-      });
-      if (!res.ok) {
-        console.error(
-          `[join-confirm:${input.role}] Resend failed`,
-          await res.text().catch(() => ""),
-        );
-        return false;
-      }
-      console.info(`[join-confirm:${input.role}] sent via Resend`, { to: input.to });
-      return true;
-    }
-
-    console.info(
-      `[join-confirm:${input.role}] (no transport) welcome PDF for ${input.to} skipped`,
-    );
-    return false;
-  } catch (err) {
-    console.error(`[join-confirm:${input.role}] send failed`, err);
-    return false;
-  }
-}
-
-type BuiltOpts = JoinConfirmationInput & {
-  roleLabel: string;
-  firstName: string;
-  preheader: string;
-};
-
-const DAY_MS = 24 * 60 * 60 * 1000;
-
-/**
- * Expert-side billing in plain calendar dates. $0 through the day before
- * the free period ends, then $39/month for good (experts never step up).
- * Founding invites: 12 months free; website experts: 6 months free.
- */
-function expertBillingLines(opts: BuiltOpts): string[] {
-  const signedAt = opts.signedAt ?? new Date();
-  const freeMonths = opts.founding ? 12 : 6;
-  const iso = opts.expertTrialEndsAt ?? opts.trialEndsAt;
-  const trialEnd = iso ? new Date(iso) : addMonths(signedAt, freeMonths);
-  const freeThrough = formatDate(new Date(trialEnd.getTime() - DAY_MS));
-  const sideLabel = opts.role === "both" ? " for your expert access" : "";
-  return [
-    `Today through ${freeThrough}: $0${sideLabel} (your ${freeMonths} founding months)`,
-    `First $39 charge on ${formatDate(trialEnd)}: $39/month${sideLabel} from then on, with no increase`,
-  ];
-}
-
-/**
- * Company-side billing in plain calendar dates. Every company pays from
- * today; there is no free period.
- *   Founding (invite): $39/month from today for 12 months, then $149/month
- *     (ladder) or $39 for good (flat_49).
- *   Website: $39/month from today for 12 months, then $149/month.
- */
-function companyBillingLines(opts: BuiltOpts): string[] {
-  const signedAt = opts.signedAt ?? new Date();
-  const sideLabel = opts.role === "both" ? " for your company listing" : "";
-  if (opts.founding && opts.pricing === "flat_49") {
-    return [`Today: first $39 charge${sideLabel}, then $39/month with no increase`];
-  }
-  const standardStart = opts.partnerStandardStartsAt
-    ? new Date(opts.partnerStandardStartsAt)
-    : addMonths(signedAt, 12);
-  const growthThrough = formatDate(new Date(standardStart.getTime() - DAY_MS));
-  const standardLabel = opts.founding ? "founding standard rate" : "standard rate";
-  return [
-    `Today through ${growthThrough}: $39/month${sideLabel} (your first 12 months, first charge today)`,
-    `From ${formatDate(standardStart)}: $149/month${sideLabel} ${standardLabel}`,
-  ];
-}
-
-function billingLines(opts: BuiltOpts): string[] {
-  const lines: string[] = [];
-  if (hasExpertRole(opts.role)) lines.push(...expertBillingLines(opts));
-  if (hasPartnerRole(opts.role)) lines.push(...companyBillingLines(opts));
-  // Only experts have a free period. Companies pay from today.
-  const hasFreePeriod = hasExpertRole(opts.role);
-  lines.push(
-    hasFreePeriod
-      ? `Cancel anytime with 30 days' written notice. We'll remind you 7 days before your free period ends.`
-      : `Cancel anytime with 30 days' written notice.`,
-  );
-  return lines;
-}
-
-function billingSubject(opts: BuiltOpts): string {
-  if (opts.role === "both") {
-    const companyDisplay = opts.companyName?.trim() || opts.contactName;
-    return `${companyDisplay}'s partner listing and your expert access`;
-  }
-  return hasPartnerRole(opts.role) ? "your partner listing" : "your expert access";
-}
-
-function welcomeLines(opts: BuiltOpts): string[] {
-  const billingActive = opts.cardCaptured === true;
-  const lines: string[] = [];
-  // Every company (founding invite or website signup) is charged $39 the
-  // day the card is saved.
-  const companyChargedToday = billingActive;
-  if (opts.role === "both") {
-    lines.push(`Welcome to the Aesthetic Success Network as a Founding Expert and Partner.`);
-    lines.push(
-      billingActive
-        ? companyChargedToday
-          ? `Your card is safely saved with Stripe. Your first $39 company charge was made today; your expert access is free for 12 months. The billing below covers ${billingSubject(opts)} under one provider account.`
-          : `Your card is safely saved with Stripe and nothing was charged today. The billing below covers ${billingSubject(opts)} under one provider account.`
-        : `Your application is confirmed, and no payment details were taken today. We'll be in touch once it's reviewed.`,
-    );
-  } else if (opts.role === "partner") {
-    lines.push(
-      billingActive
-        ? companyChargedToday
-          ? `Welcome to the Aesthetic Success Network as a Founding Partner. Your card is safely saved with Stripe and your first $39 charge was made today.`
-          : `Welcome to the Aesthetic Success Network as a Founding Partner. Your card is safely saved with Stripe. Nothing was charged today.`
-        : `Welcome to the Aesthetic Success Network as a Founding Partner. Your application is confirmed, and no payment details were taken today. We'll be in touch once it's reviewed.`,
-    );
-  } else {
-    lines.push(
-      billingActive
-        ? `Welcome to the Aesthetic Success Network as a Founding Expert. Your card is safely saved with Stripe. Nothing was charged today.`
-        : `Welcome to the Aesthetic Success Network as a Founding Expert. Your application is confirmed, and no payment details were taken today. We'll be in touch once it's reviewed.`,
-    );
-  }
-  return lines;
-}
-
-function agreementSentence(opts: BuiltOpts): string {
-  const acceptedOn = formatDateTime(opts.signedAt ?? new Date());
-  return `A copy of your Aesthetic Success Network ${opts.roleLabel} Agreement (${opts.agreementVersion}) is attached to this email, and you can download it anytime from your portal. Accepted by ${opts.contactName} on ${acceptedOn}.`;
-}
-
-function whatsNextItems(opts: BuiltOpts): string[] {
-  const partner = hasPartnerRole(opts.role);
-  const expert = hasExpertRole(opts.role);
+function billingSection(input: JoinConfirmationInput): EmailSection {
+  const freeEnd = input.freePeriodEndsAt ?? input.expertTrialEndsAt ?? input.trialEndsAt ?? null;
+  const until = formatLongDate(freeEnd);
   const items: string[] = [];
-  if (expert) items.push("Your profile and first kit go live at launch");
-  if (partner) items.push("Your listing, member offer, and resources go live at launch");
-  items.push("We'll email you when members start reaching out");
-  return items;
+  items.push(`Your ${PROVIDER_FREE_MONTHS} founding months are free, and they start the day we open to members.`);
+  if (until) items.push(`Free through: ${until}`);
+  if (hasExpert(input.role)) {
+    const side = input.role === "both" ? " for your expert access" : "";
+    items.push(
+      until
+        ? `First charge: ${EXPERT_RATE_LABEL} on ${until}${side}, then ${EXPERT_RATE_LABEL} a month with no increase.`
+        : `First charge: ${EXPERT_RATE_LABEL}${side} when your free months end, then ${EXPERT_RATE_LABEL} a month with no increase.`,
+    );
+  }
+  if (hasPartner(input.role)) {
+    const r = rateLabel(input.rate);
+    const side = input.role === "both" ? " for your company listing" : "";
+    items.push(
+      until
+        ? `First charge: ${r} on ${until}${side}, then ${r} a month with no increase.`
+        : `First charge: ${r}${side} when your free months end, then ${r} a month with no increase.`,
+    );
+  }
+  items.push(
+    `Cancel any time before your first charge and you won't be charged. After that, cancel with ${CANCEL_NOTICE_DAYS} days' written notice. We'll remind you ${FIRST_CHARGE_REMINDER_DAYS} days before your first charge.`,
+  );
+  return { title: "Your billing, in plain dates", items, tone: "gold" };
 }
 
-function buildHtml(opts: BuiltOpts): string {
-  const partnerRole = hasPartnerRole(opts.role);
-  const billingActive = opts.cardCaptured === true;
-
-  const logoHtml = getLogoBuffer()
-    ? `${emailBrandHeader({ center: true })}`
-    : `${emailBrandHeader({ center: true })}`;
-
-  let billingHtml = "";
-  if (billingActive) {
-    billingHtml = `
-  <h2 style="font-size:14px;font-weight:800;letter-spacing:1px;color:#5C6770;margin:24px 0 10px 0;">
-    YOUR BILLING, IN PLAIN DATES
-  </h2>
-  <ul style="padding-left:18px;line-height:1.6;color:#3B4A55;font-size:14px;margin:0 0 4px 0;">
-    ${billingLines(opts)
-      .map((line) => `<li>${escapeHtml(line)}</li>`)
-      .join("\n    ")}
-  </ul>`;
+function offerSection(input: JoinConfirmationInput): EmailSection | null {
+  if (!hasPartner(input.role)) return null;
+  const companies = (input.companies ?? [])
+    .map((c) => ({ name: (c.name ?? "").trim(), category: c.category?.trim() || null, offer: c.member_offer?.trim() || null }))
+    .filter((c) => c.name);
+  if (companies.length > 0 && !companies[0].offer && input.memberOffer?.trim()) companies[0].offer = input.memberOffer.trim();
+  if (companies.length > 1) {
+    return {
+      title: "Your companies and member offers on file",
+      items: companies.map((c) => `${c.name}${c.category ? ` (${c.category})` : ""}: ${c.offer ?? "offer to be confirmed before this listing goes live"}`),
+      paragraphs: ["One founding fee covers all of the above. This is what members will see. Reply if anything needs correcting before it goes live."],
+      tone: "gold",
+    };
   }
-
-  let memberOfferHtml = "";
-  const emailCompanies = companiesWithOffers(opts);
-  const offer = opts.memberOffer?.trim();
-  if (partnerRole && emailCompanies.length > 1) {
-    // Multi-company agreement: one block listing each company's own offer.
-    const rows = emailCompanies
-      .map(
-        (c) => `
-      <div style="margin-bottom:10px;">
-        <div style="font-size:13.5px;font-weight:700;color:#0A1A2F;">${escapeHtml(c.name)}${
-          c.category ? ` <span style="font-weight:400;color:#7A8590;">&middot; ${escapeHtml(c.category)}</span>` : ""
-        }</div>
-        <div style="font-size:13.5px;color:#3B4A55;line-height:1.5;">${
-          c.member_offer ? escapeHtml(c.member_offer) : "Offer to be confirmed before this listing goes live."
-        }</div>
-      </div>`,
-      )
-      .join("");
-    memberOfferHtml = `
-  <div style="background:#F7EED9;border:1px solid #D9A84B;border-radius:8px;padding:16px;margin:20px 0;">
-    <div style="font-size:11px;font-weight:800;letter-spacing:2px;color:#A07823;margin-bottom:10px;">
-      YOUR COMPANIES &amp; MEMBER OFFERS ON FILE
-    </div>
-    ${rows}
-    <p style="margin:6px 0 0;font-size:13px;color:#5C6770;line-height:1.5;">
-      One founding fee covers all of the above. This is what members will see. Reply if anything needs correcting before it goes live.
-    </p>
-  </div>`;
-  } else if (partnerRole && offer) {
-    memberOfferHtml = `
-  <div style="background:#F7EED9;border:1px solid #D9A84B;border-radius:8px;padding:16px;margin:20px 0;">
-    <div style="font-size:11px;font-weight:800;letter-spacing:2px;color:#A07823;margin-bottom:8px;">
-      YOUR MEMBER OFFER ON FILE
-    </div>
-    <p style="margin:0;font-size:14px;color:#0A1A2F;line-height:1.55;">
-      ${escapeHtml(offer)}. This is what members will see. Reply if anything needs correcting before it goes live.
-    </p>
-  </div>`;
-  }
-
-  const whatsNextHtml = whatsNextItems(opts)
-    .map((item) => `<li>${escapeHtml(item)}</li>`)
-    .join("\n    ");
-
-  return `<!doctype html>
-<html><body style="font-family:system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif;background:#F7F5F0;padding:24px;color:#0A1A2F;">
-<div style="display:none;max-height:0;overflow:hidden;">${escapeHtml(opts.preheader)}</div>
-<div style="max-width:560px;margin:0 auto;background:#FFFFFF;border-radius:12px;padding:32px;border:1px solid #E0DACE;">
-  <div style="text-align:center;margin-bottom:24px;">
-    ${logoHtml}
-  </div>
-  <h1 style="font-family:Georgia,'Times New Roman',serif;font-size:24px;font-weight:500;margin:0 0 8px 0;color:#0A1A2F;">
-    You&#39;re in, ${escapeHtml(opts.firstName)}.
-  </h1>
-  ${welcomeLines(opts)
-    .map((line) => `<p style="color:#3B4A55;line-height:1.55;margin:0 0 8px 0;font-size:15px;">${escapeHtml(line)}</p>`)
-    .join("\n  ")}
-  ${billingHtml}
-  ${memberOfferHtml}
-  <div style="background:#F7EED9;border:1px solid #D9A84B;border-radius:8px;padding:16px;margin:20px 0;">
-    <div style="font-size:11px;font-weight:800;letter-spacing:2px;color:#A07823;margin-bottom:8px;">
-      YOUR AGREEMENT
-    </div>
-    <p style="margin:0;font-size:14px;color:#0A1A2F;line-height:1.55;">
-      ${escapeHtml(agreementSentence(opts))}
-    </p>
-  </div>
-  <h2 style="font-size:14px;font-weight:800;letter-spacing:1px;color:#5C6770;margin:24px 0 10px 0;">
-    WHAT&#39;S NEXT
-  </h2>
-  <ul style="padding-left:18px;line-height:1.6;color:#3B4A55;font-size:14px;margin:0 0 20px 0;">
-    ${whatsNextHtml}
-  </ul>
-  <p style="color:#3B4A55;line-height:1.55;margin:0 0 8px 0;font-size:14px;">
-    Sign in at your portal with this email: <strong>${escapeHtml(opts.to)}</strong>. Enter it there and we&#39;ll send you a 6-digit sign-in code.
-  </p>
-  <div style="text-align:center;margin:20px 0 8px 0;">
-    <a href="${escapeHtml(opts.portalUrl)}" style="display:inline-block;background:#0E2A3D;color:#FFFFFF;padding:12px 24px;border-radius:999px;text-decoration:none;font-weight:600;font-size:14px;">
-      Open your portal
-    </a>
-  </div>
-  <p style="color:#7A8590;font-size:12px;line-height:1.5;margin:24px 0 0 0;text-align:center;">
-    Questions? Reply to this email or write to us at ${escapeHtml(SUPPORT_EMAIL)}.<br/>
-    Cancel anytime with 30 days&#39; written notice.<br/>
-    ${escapeHtml(LEGAL_LINE)} &middot; Powered by Business of Aesthetics
-  </p>
-</div>
-</body></html>`;
+  const offer = input.memberOffer?.trim() || companies[0]?.offer;
+  if (!offer) return null;
+  return {
+    title: "Your member offer on file",
+    paragraphs: [`${offer}. This is what members will see. Reply if anything needs correcting before it goes live.`],
+    tone: "gold",
+  };
 }
 
-function buildText(opts: BuiltOpts): string {
-  const partnerRole = hasPartnerRole(opts.role);
-  const billingActive = opts.cardCaptured === true;
+function agreementSection(input: JoinConfirmationInput): EmailSection {
+  const acceptedOn = formatDateTime(input.signedAt ?? new Date());
+  return {
+    title: "Your agreement",
+    paragraphs: [
+      `A copy of your Aesthetic Success Network ${roleLabelFor(input.role)} Agreement (${input.agreementVersion}) is attached, and you can download it anytime from your portal. Accepted by ${input.contactName} on ${acceptedOn}.`,
+    ],
+  };
+}
 
-  let billingText = "";
-  if (billingActive) {
-    billingText = `
-Your billing, in plain dates:
-${billingLines(opts)
-  .map((line) => `  - ${line}`)
-  .join("\n")}
-`;
+const PARTNER_WHAT_WE_DO = [
+  "A Verified Partner badge for your site and emails.",
+  "Your page in our partner directory, with your logo, description, member offer and a way to book you.",
+  "Founding partners are featured first when we open to members.",
+  "We build material from one recording, in your company's name. You approve every piece, and it's yours to keep, even if you leave.",
+  "A ready-made launch kit, and we promote you through our email list, social channels and a blog post from your session.",
+  "A seat on the ASN podcast and first call to speak at our events.",
+  "The Expert Hotline recommends you by fit. Referrals are never pay-to-play.",
+  "Your courses and products in front of members. Members buy on your own site and you keep the full price. The one condition: a member-only offer on each.",
+  "A network of vetted experts and companies to connect with for collaborations, co-marketing and referrals.",
+  "A place in the Business of Aesthetics community (about 15,000 aesthetic professionals). Team members listed as experts get the Group Expert badge.",
+  "The job board, and the expert side is included at no extra cost.",
+];
+
+const PARTNER_SEND_US = [
+  "Your logo (PNG, transparent background if you have it)",
+  "A one-paragraph company description",
+  "The contact email members should use",
+  "Your website and booking or demo link",
+  "One recording: a webinar, demo or talk you've already done",
+];
+
+function partnerDraft(input: JoinConfirmationInput, name: string): EmailDraft {
+  const accountEmail = input.accountEmail ?? input.to;
+  const sections: EmailSection[] = [];
+  const cardLine =
+    input.cardCaptured === true
+      ? "Your card is safely saved with Stripe. Nothing was charged today."
+      : "No payment details were taken today.";
+  if (input.cardCaptured) sections.push(billingSection(input));
+  const offer = offerSection(input);
+  if (offer) sections.push(offer);
+  sections.push(agreementSection(input));
+  sections.push({ title: "What we do for you", items: PARTNER_WHAT_WE_DO });
+  sections.push({
+    title: "What we ask of you",
+    paragraphs: [
+      "Your best deal for members, replies to member leads within one business day, a booking or demo link, and 30 days' notice before changing your offer.",
+      "We can't promise a number of members, leads or sales, and we don't offer category exclusivity. What we promise is the work above, and that we put you in front of every member we bring in.",
+    ],
+  });
+  sections.push({
+    title: "What's next",
+    paragraphs: ["Send us whatever you have on hand, and we'll chase down the rest:"],
+    items: PARTNER_SEND_US,
+  });
+  sections.push({
+    title: "Your portal",
+    paragraphs: [
+      "Your listing, member offer and material go live when we open to members, and we'll email you when members start reaching out.",
+      `Sign in to your portal with this email: ${accountEmail}. Enter it there and we'll send you a 6-digit sign-in code.`,
+    ],
+  });
+  return {
+    subject: `You're in, ${name}. Welcome to the Aesthetic Success Network.`,
+    preview: "Your Founding Partner agreement is confirmed. A copy is attached for your records.",
+    eyebrow: "Founding partner",
+    headline: `You're in, ${name}.`,
+    intro: [`Welcome to the Aesthetic Success Network as a Founding Partner. ${cardLine}`],
+    sections,
+    ctas: [{ label: "Open your portal", url: input.portalUrl }],
+    closing: "Questions? Reply to this email and our partnerships team will get back to you within one business day.",
+    signoff: TEAM_SIGNOFF,
+    footerNote: "Founding partner agreement accepted",
+    footerLines: [
+      "This is an automated confirmation that your Aesthetic Success Network partner agreement was accepted.",
+      `Aesthetic Success Network · ${PARTNERSHIPS_EMAIL} · ${SITE_HOST}`,
+    ],
+    accent: ACCENT.partner,
+  };
+}
+
+function expertDraft(input: JoinConfirmationInput, name: string): EmailDraft {
+  const accountEmail = input.accountEmail ?? input.to;
+  const both = input.role === "both";
+  const sections: EmailSection[] = [];
+  if (ONBOARDING_CALL_URL) {
+    sections.push({
+      title: "Your next step: book your onboarding call",
+      paragraphs: ["Pick a time for a 30-minute conversation with our team. We'll set up your expert profile, plan your first playbook, and answer any questions."],
+      tone: "green",
+    });
+  } else {
+    sections.push({
+      title: "Your next step: your onboarding call",
+      paragraphs: ["Our team will email you to book a 30-minute onboarding conversation. We'll set up your expert profile, plan your first playbook, and answer any questions."],
+      tone: "green",
+    });
   }
-
-  let memberOfferText = "";
-  const emailCompanies = companiesWithOffers(opts);
-  const offer = opts.memberOffer?.trim();
-  if (partnerRole && emailCompanies.length > 1) {
-    const rows = emailCompanies
-      .map(
-        (c) =>
-          `  - ${c.name}${c.category ? ` (${c.category})` : ""}: ${
-            c.member_offer ?? "offer to be confirmed before this listing goes live"
-          }`,
-      )
-      .join("\n");
-    memberOfferText = `
-Your companies & member offers on file (one founding fee covers all):
-${rows}
-This is what members will see. Reply if anything needs correcting before it goes live.
-`;
-  } else if (partnerRole && offer) {
-    memberOfferText = `
-Your member offer on file:
-${offer}. This is what members will see. Reply if anything needs correcting before it goes live.
-`;
+  sections.push({
+    title: "What you can do inside the portal",
+    items: [
+      "Share your first recording. One recording of you teaching your topic is all we need. Our team turns it into a full playbook, published by ASN with your name and expertise front and center.",
+      "Upload extra resources. SOPs, templates, slide decks, recordings and PDFs. We review them, format them in the ASN style, and add them to the member library.",
+      "Complete your profile. This is what members see when the Expert Hotline recommends you.",
+    ],
+    paragraphs: ["The member side opens soon. Until then, use this time to get your profile and first playbook ready so members find you on day one."],
+  });
+  if (input.cardCaptured) sections.push(billingSection(input));
+  if (both) {
+    const offer = offerSection(input);
+    if (offer) sections.push(offer);
+    sections.push({ title: "What we do for your company", items: PARTNER_WHAT_WE_DO });
   }
+  sections.push({
+    title: "A few things to know",
+    items: [
+      "Expert Hotline referrals are routed by fit, never pay-to-play.",
+      both
+        ? "Your expert access and your company listing sit on one account, with one card and one sign-in."
+        : "Have a company with a product or service for practice owners? It can join as a partner on the same account.",
+    ],
+  });
+  sections.push(agreementSection(input));
+  sections.push({
+    title: "Sign in",
+    paragraphs: [`Sign in to your portal with this email: ${accountEmail}. Enter it there and we'll send you a 6-digit sign-in code. No password needed.`],
+  });
+  const ctas = ONBOARDING_CALL_URL
+    ? [
+        { label: "Book your onboarding call", url: ONBOARDING_CALL_URL },
+        { label: "Sign in to your portal", url: input.portalUrl, secondary: true },
+      ]
+    : [{ label: "Sign in to your portal", url: input.portalUrl }];
+  return {
+    subject: both
+      ? `You're in, ${name}. Welcome to the Aesthetic Success Network.`
+      : "Welcome to the bench: your Aesthetic Success Network expert portal is live",
+    preview: "Your expert portal is live. Book your onboarding call and sign in with a 6-digit code.",
+    eyebrow: both ? "Founding expert and partner" : "Expert portal live",
+    headline: "Welcome to the bench.",
+    intro: [
+      `Hi ${name},`,
+      both
+        ? `Your Founding Expert and Partner agreement is accepted. Your expert portal and your company listing are live and ready for you. ${
+            input.cardCaptured ? "Your card is safely saved with Stripe. Nothing was charged today." : ""
+          }`.trim()
+        : `Great news: your agreement is accepted, and you're now a founding expert with the Aesthetic Success Network. Your expert portal is live and ready for you. ${
+            input.cardCaptured ? "Your card is safely saved with Stripe. Nothing was charged today." : ""
+          }`.trim(),
+    ],
+    sections,
+    ctas,
+    closing: "Questions? Reply to this email and we'll get back to you within one business day.",
+    signoff: ["Welcome to the bench.", ...TEAM_SIGNOFF],
+    footerNote: "Expert portal active",
+    footerLines: [
+      "This is an automated confirmation that your Aesthetic Success Network expert portal is active.",
+      `Aesthetic Success Network · ${EXPERTS_EMAIL} · ${SITE_HOST}`,
+    ],
+    accent: ACCENT.expert,
+  };
+}
 
-  const whatsNextText = whatsNextItems(opts)
-    .map((item) => `  - ${item}`)
-    .join("\n");
-
-  return `You're in, ${opts.firstName}.
-
-${welcomeLines(opts).join("\n")}
-${billingText}${memberOfferText}
-Your agreement:
-${agreementSentence(opts)}
-
-What's next:
-${whatsNextText}
-
-Sign in at your portal with this email: ${opts.to}. Enter it there and we'll send you a 6-digit sign-in code.
-
-Open your portal: ${opts.portalUrl}
-
-Questions? Reply to this email or write to us at ${SUPPORT_EMAIL}.
-Cancel anytime with 30 days' written notice.
-${LEGAL_LINE} Powered by Business of Aesthetics.
-`;
+export async function sendJoinConfirmationEmail(input: JoinConfirmationInput): Promise<boolean> {
+  const name = firstNameOf(input.contactName);
+  const draft = input.role === "partner" ? partnerDraft(input, name) : expertDraft(input, name);
+  const attachments: EmailAttachment[] = [
+    { filename: input.pdfFilename, content: input.pdfBuffer, contentType: "application/pdf" },
+  ];
+  return sendEmailDraft({
+    to: input.to,
+    audience: input.role,
+    draft,
+    attachments,
+    tag: `join-confirm:${input.role}`,
+  });
 }

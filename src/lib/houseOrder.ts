@@ -3,14 +3,14 @@ import "server-only";
 /**
  * House-first ordering for the expert / partner rosters.
  *
- * The operating entity (Ekwa Marketing Inc.) anchors the partner roster;
- * ASN has no named house experts at launch (the founding-expert cohort is
- * internal-only per ASN-SWAP-CANON §3), so the expert list is plain A to Z.
+ * The operating entity (Ekwa Marketing Inc.) anchors the partner roster and
+ * its founder (Naren Arulrajah) anchors the expert roster; everyone else
+ * is A to Z. Rows are seeded by supabase/seed/house-profiles.sql.
  * Matched by display name so no schema change is needed; update here if a
  * display name ever changes.
  */
 
-const HOUSE_EXPERTS: string[] = [];
+const HOUSE_EXPERTS: string[] = ["Naren Arulrajah"];
 const HOUSE_PARTNERS = ["Ekwa Marketing Inc."];
 
 function priority(name: string | null | undefined, list: string[]): number {

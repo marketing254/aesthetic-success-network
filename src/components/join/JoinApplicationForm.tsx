@@ -80,8 +80,8 @@ const CONFIG_BY_ROLE: Record<JoinRole, Config> = {
     endpoint: "/api/join/expert/apply",
     bullets: [
       "Cancel anytime, 30-day written notice",
-      "Featured expert listing free for 6 months once approved",
-      "Keep 70% of course revenue, ASN takes 30%",
+      "First 6 months free from the member launch, then $39 a month with no increase",
+      "Sell your own courses and products to members and keep the full price",
     ],
   },
 };

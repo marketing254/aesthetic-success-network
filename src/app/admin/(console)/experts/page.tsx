@@ -129,7 +129,7 @@ function Inner() {
   const grantFree = async (email: string, name: string) => {
     if (
       !confirm(
-        `Make ${name} billing-exempt (manual override)?\n\nThey will never be charged and never asked for a card. This cannot be undone.\n\nThis is not the founding expert offer (12 months free, then $39 a month); use a founding invite for that.\n\nIf they also list a company, that company keeps paying normally.`,
+        `Make ${name} billing-exempt (manual override)?\n\nThey will never be charged and never asked for a card. This cannot be undone.\n\nThis is not the founding expert offer (first 6 months free from the member launch, then $39 a month); use a founding invite for that.\n\nIf they also list a company, that company keeps paying normally.`,
       )
     ) {
       return;
@@ -172,7 +172,7 @@ function Inner() {
           : action === "decline"
             ? "declined"
             : action === "mark_onboarded"
-              ? "onboarded, portal activated and welcome email sent"
+              ? "approved: approval email and agreement sent. The portal opens once they accept."
               : "reset";
       setToast(`Application ${verb}.`);
       await load();
@@ -230,9 +230,9 @@ function Inner() {
             want. Onboarding activates the portal and sends the welcome email.
           </Typography>
           {/* Billing-exemption slots (INTERNAL ONLY, manual override, max
-              20). Founding invites do not use these: a founding expert is
-              12 months free, then $39 a month. Website experts are $0 for
-              months 1 to 6, then $39 a month with no increase. */}
+              20). Founding invites do not use these: every expert, founding
+              invite or website signup, gets the first 6 months free from the
+              member launch, then $39 a month with no increase. */}
           {slots && (
             <Stack direction="row" spacing={1} sx={{ alignItems: "center", mt: 1.5 }}>
               <WorkspacePremiumOutlinedIcon fontSize="small" sx={{ color: slots.remaining > 0 ? "#A07823" : "text.disabled" }} />
@@ -242,11 +242,11 @@ function Inner() {
                     <Box component="strong" sx={{ color: "text.primary" }}>
                       {slots.remaining} of {slots.cap}
                     </Box>{" "}
-                    billing-exemption overrides left ({slots.used} granted). Founding invites: 12 months free, then $39 a month. Website experts: $0 months 1 to 6, then $39 a month.
+                    billing-exemption overrides left ({slots.used} granted). Every other expert: first 6 months free from the member launch, then $39 a month with no increase.
                   </>
                 ) : (
                   <>
-                    All {slots.cap} billing-exemption overrides used. Founding invites: 12 months free, then $39 a month. Website experts: $0 months 1 to 6, then $39 a month.
+                    All {slots.cap} billing-exemption overrides used. Every other expert: first 6 months free from the member launch, then $39 a month with no increase.
                   </>
                 )}
               </Typography>
@@ -981,7 +981,7 @@ function RowActions({
   if (status === "reviewing" || status === "invited") {
     return (
       <>
-        <Tooltip title="Mark onboarded, activates the expert portal and sends the welcome email with the sign-in link.">
+        <Tooltip title="Approve: sends the approval email and the agreement (card saved on acceptance). The portal opens once they accept.">
           <IconButton size="small" sx={{ color: "success.dark" }} onClick={() => onAction("mark_onboarded")}>
             <SchoolOutlinedIcon fontSize="small" />
           </IconButton>
@@ -1000,8 +1000,8 @@ function RowActions({
       {/* Billing exemption (manual admin override). Only offered once
           they're onboarded, because the flag lives on the provisioned
           `experts` row, not on the application. Hidden when the 20 slots
-          are gone. Not the founding offer (that is 12 months free, then
-          $39, via a founding invite). */}
+          are gone. Not the founding offer (that is the first 6 months free
+          from the member launch, then $39, via a founding invite). */}
       {status === "onboarded" &&
         (isExempt ? (
           <Tooltip title="Billing-exempt (manual override). Never charged, never asked for a card. (Their company, if any, still pays.)">

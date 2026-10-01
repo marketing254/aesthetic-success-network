@@ -1,11 +1,11 @@
 <!doctype html><html><head><meta charset='utf-8'><style>{{FONT_FACE_CSS}}
 *{margin:0;box-sizing:border-box;-webkit-print-color-adjust:exact;print-color-adjust:exact;}
 body{font-family:'Inter',sans-serif;color:#243140;font-size:10.8pt;line-height:1.5;}
-.wrap{padding:2px 0.85in 0.3in;}
+.wrap{padding:0 0.85in;}
 h1{font-family:'Fraunces',serif;color:#1B3A5C;font-size:23pt;margin:0 0 1px;}
 .sub{color:#7a8794;font-size:9.5pt;margin-bottom:14px;}
 h2{font-family:'Fraunces',serif;color:#1B3A5C;font-size:12.5pt;margin:15px 0 4px;break-after:avoid;}
-.sec{break-inside:avoid;margin-bottom:5px;}
+.sec{margin-bottom:5px;} .sec p,.sec li{orphans:3;widows:3;}
 .parties{background:#F5ECD7;border-radius:9px;padding:12px 16px;margin:6px 0 6px;font-size:10.2pt;}
 .parties b{color:#1B3A5C;}
 .roles{display:flex;gap:12px;margin:12px 0 2px;}
@@ -18,8 +18,8 @@ ul{margin:3px 0 0;padding-left:17px;} li{margin-bottom:3px;}
 .rstep .l{font-size:8.3pt;color:#5C6B7A;margin-top:1px;}
 .free{background:#eef6f1;border:1px solid #cfe6d9;border-radius:9px;padding:9px 14px;margin:7px 0 4px;font-size:10pt;color:#2c7a52;}
 .free b{color:#1B3A5C;}
-.sched{background:#F7F9FB;border:1px solid #E6EBF1;border-radius:9px;padding:11px 15px;margin:7px 0;break-inside:avoid;}
-.sign{break-inside:avoid;margin-top:14px;border-top:2px solid #C8993D;padding-top:12px;}
+.sched{background:#F7F9FB;border:1px solid #E6EBF1;border-radius:9px;padding:11px 15px;margin:7px 0;}
+.sign{margin-top:14px;border-top:2px solid #C8993D;padding-top:12px;} .ramp,.roles,.parties,.callout,.grid2,.rstep{break-inside:avoid;} h2{break-after:avoid;break-inside:avoid;} ul{break-inside:auto;}
 .grid2{display:grid;grid-template-columns:1fr 1fr;gap:8px 26px;}
 .fld{margin:9px 0;} .fld .q{font-size:9pt;color:#5C6B7A;margin-bottom:4px;}
 .line{border-bottom:1px solid #9aa6b2;min-height:15px;padding-bottom:1px;font-size:10pt;color:#1B3A5C;}
@@ -48,7 +48,7 @@ ul{margin:3px 0 0;padding-left:17px;} li{margin-bottom:3px;}
       <li>Pre-qualified lead routing with a dashboard and conversion data.</li>
       <li>The Verified Partner badge for your marketing (the license to use it ends when this agreement ends).</li>
       <li>Podcast, webinar, and co-marketing features across the Business of Aesthetics network.</li></ul></div>
-    <div class="sec"><h2>3. What it costs</h2><p style="margin:6px 0 2px;">Your company listing, billed monthly through Stripe from the day you accept:</p>{{RAMP_BLOCK}}</div>
+    <div class="sec"><h2>3. What it costs</h2><p style="margin:6px 0 2px;">Your company listing, billed monthly through Stripe once your free founding months end:</p>{{RAMP_BLOCK}}</div>
 
     <div class="sec"><h2>3a. Expert terms</h2><p>Applies to the Expert capability. It becomes effective for you if you add an expert profile to this provider account.</p></div>
 
@@ -68,8 +68,8 @@ ul{margin:3px 0 0;padding-left:17px;} li{margin-bottom:3px;}
       <li>If a change materially reduces your benefits or increases your fees, you may terminate within the notice window with no further obligation.</li></ul></div>
     <div class="sec"><h2>8. Term, renewal, and termination</h2><ul>
       <li>The initial term is 12 months from signup, renewing automatically for successive 12-month terms unless either party gives 30 days&#39; non-renewal notice.</li>
-      <li>Either party may terminate for convenience with 30 days&#39; written notice. Either party may terminate immediately for a material breach that remains uncured 15 days after written notice, for insolvency, or for conduct that materially harms the network.</li>
-      <li>On termination: the profile is removed, the badge license ends, and unpaid fees become due. Expert kits are unpublished from the member library; purchasers of paid courses retain access, and final course payouts are processed within 30 days. (Copies members already downloaded cannot be recalled.)</li></ul></div>
+      <li>You may cancel at any time before your first charge with immediate effect and no charge. After the first charge, either party may terminate for convenience with 30 days&#39; written notice. Either party may terminate immediately for a material breach that remains uncured 15 days after written notice, for insolvency, or for conduct that materially harms the network.</li>
+      <li>On termination: the profile is removed, the badge license ends, and unpaid fees become due. Expert kits are unpublished from the member library; purchasers of paid courses retain access. (Copies members already downloaded cannot be recalled.)</li></ul></div>
     <div class="sec"><h2>9. Disclaimers and liability</h2><ul>
       <li>We do not guarantee any specific number of leads, conversion rate, or revenue outcome. The platform is provided as is.</li>
       <li>Neither party is liable for indirect or consequential damages or lost profits. Our cumulative liability is capped at the total fees you paid in the preceding 12 months.</li>

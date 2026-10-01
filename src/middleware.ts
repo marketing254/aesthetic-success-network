@@ -1,10 +1,13 @@
 import { NextResponse, type NextRequest } from "next/server";
+import { MEMBER_LAUNCH_ENABLED } from "@/lib/launch";
 import { createMiddlewareSupabase } from "@/lib/supabase/middleware-ssr";
 
 /**
  * Auth gates for the portal surfaces + security headers on every response.
  *
- *   /vendor/*  → requires a Supabase session OR the legacy test/test cookie.
+ *   /vendor/*  → requires a Supabase session that resolves to a vendors row.
+ *                (The legacy test/test preview cookie is honoured only in a
+ *                non-production build with ASN_DEV_PREVIEW_BYPASS=1.)
  *                Public exceptions: /vendor/login, /vendor/applied.
  *                (Partner applications now live inline on /companies#apply —
  *                the standalone /vendor/signup wizard has been removed.)
@@ -24,6 +27,17 @@ import { createMiddlewareSupabase } from "@/lib/supabase/middleware-ssr";
  */
 
 const VENDOR_LEGACY_COOKIE = "vendor_session";
+
+/**
+ * Local-only preview shortcuts (the legacy `vendor_session=test-preview`
+ * cookie for /vendor/* and `/upgrade?preview=1`). Both require TWO
+ * conditions: a non-production build AND the explicit opt-in
+ * ASN_DEV_PREVIEW_BYPASS=1 in the environment. NODE_ENV alone is not
+ * enough — a preview deployment or a misconfigured host must never be
+ * able to reach a portal shell without a real session.
+ */
+const DEV_PREVIEW_BYPASS =
+  process.env.NODE_ENV !== "production" && process.env.ASN_DEV_PREVIEW_BYPASS === "1";
 
 // Cookie names. Duplicated from src/lib/auth/guards.ts (SIGNUP_CHECKOUT_COOKIE,
 // REFERRAL_COOKIE) because the middleware runs on the Edge runtime and cannot
@@ -162,6 +176,12 @@ function isUpgradePath(pathname: string) {
 export async function middleware(req: NextRequest) {
   const { pathname, search } = req.nextUrl;
   const res = NextResponse.next({ request: req });
+
+  // Member launch pause: the member portal and the plan/checkout page are
+  // closed until MEMBER_LAUNCH_ENABLED=true. Visitors land on the waitlist.
+  if (!MEMBER_LAUNCH_ENABLED && (pathname === "/dashboard" || pathname.startsWith("/dashboard/") || isUpgradePath(pathname))) {
+    return NextResponse.redirect(new URL("/join/member", req.url));
+  }
 
   // Supabase Auth fallback — when a magic-link redirect URL isn't in
   // Supabase's allowlist, Supabase falls back to the Site URL (the
@@ -312,10 +332,11 @@ export async function middleware(req: NextRequest) {
   // ─────────────────────────────────────────────────────────────────
   if (isVendor) {
     // Dev-only preview shortcut (the test/test stand-in). NEVER honored in
-    // production — the old code allowed ANY `vendor_session` cookie value,
-    // which let a forged cookie reach the partner portal shell.
+    // production, and only when ASN_DEV_PREVIEW_BYPASS=1 is set locally —
+    // the old code allowed ANY `vendor_session` cookie value, which let a
+    // forged cookie reach the partner portal shell.
     if (
-      process.env.NODE_ENV !== "production" &&
+      DEV_PREVIEW_BYPASS &&
       req.cookies.get(VENDOR_LEGACY_COOKIE)?.value === "test-preview"
     ) {
       return applySecurityHeaders(res);
@@ -456,11 +477,12 @@ export async function middleware(req: NextRequest) {
       }
 
       // DEV ONLY: /upgrade?preview=1 renders the payment card with a fake
-      // context so the team can eyeball it without a signup. NODE_ENV is
-      // "production" on Vercel, so this branch cannot exist live.
+      // context so the team can eyeball it without a signup. Requires a
+      // non-production build AND ASN_DEV_PREVIEW_BYPASS=1, so this branch
+      // cannot exist live.
       if (
         isUpgrade &&
-        process.env.NODE_ENV !== "production" &&
+        DEV_PREVIEW_BYPASS &&
         req.nextUrl.searchParams.get("preview") === "1"
       ) {
         return applySecurityHeaders(res);

@@ -1,8 +1,11 @@
 import type { WaitlistPayload, WaitlistRole } from "@/lib/waitlist/validate";
+import { senderFor } from "@/lib/email/senders";
 import { emailBrandHeader } from "@/lib/email/brandHeader";
 import type { ExpertApplicationPayload } from "@/lib/expert/validate";
 import { escapeHtml } from "@/lib/email/escapeHtml";
 import { applyEmailSandbox } from "@/lib/email/sandbox";
+import { ACCENT, firstNameOf, sendEmailDraft, type EmailDraft as LayoutDraft } from "@/lib/email/layout";
+import { FIRST_CHARGE_REMINDER_DAYS, providerTermsSentence, rateLabel } from "@/lib/providerBilling";
 
 type ConfirmationInput = {
   signup: WaitlistPayload;
@@ -132,8 +135,11 @@ function normalizeUrl(path: string): string {
 // DRAFTS. Copy mirrors the ASN launch-phase email set (July 2026) and the
 // ASN canon: $29/month founding (first 100), $290/year, $99/month
 // standard, 30-day money-back, hotline written reply in 2 to 3 business
-// days, expert ramp $0 → $39 (stays $39), company ramp $39 x 12 → $149
-// (no free period), courses 70/30. No em-dashes.
+// days. Providers (experts and companies, owner decision 2026-10-01): card
+// saved on acceptance, first 6 months free from the member launch, then $39
+// a month with no increase (company large rate is admin-set, never public);
+// courses and products sold on the provider's own site at full price with a
+// member-only offer. No em-dashes.
 // ─────────────────────────────────────────────────────────────────────────
 
 function memberDraft(input: ConfirmationInput): EmailDraft {
@@ -554,7 +560,7 @@ export async function sendWaitlistConfirmationEmail(
   const mail = buildWaitlistConfirmationEmail(input);
   const result = await dispatchMail({
     to: input.signup.email,
-    from: FROM_EMAIL,
+    from: senderFor("member"),
     mail,
     tag: "waitlist:email",
   });
@@ -604,72 +610,97 @@ function buildVendorMagicEmail({ link }: VendorMagicInput): { subject: string; h
 }
 
 // ─────────────────────────────────────────────────────────────────────────
-// VENDOR APPROVAL NOTIFICATION
-// Sent by /api/admin/vendors when the team marks a partner
-// approved+verified. Reuses the same transport stack.
+// COMPANY APPROVED ("You're verified")
+// Sent by /api/admin/vendors when the team approves a company. The
+// agreement (with the card step) arrives in a separate email right after;
+// the portal opens once it is accepted. Rendered through the shared
+// layout so it matches the expert emails.
 // ─────────────────────────────────────────────────────────────────────────
 
 type VendorApprovalInput = {
   email: string;
   contactName: string;
   companyName: string;
-  portalUrl: string;
+  /** Company rate set at approval: "standard" ($39) or "large" ($149). */
+  rate?: string | null;
+  /** Kept for older callers; the email no longer links to the portal. */
+  portalUrl?: string;
 };
 
-function buildVendorApprovalEmail({
-  contactName,
-  companyName,
-  portalUrl,
-}: VendorApprovalInput): { subject: string; html: string; text: string; replyTo: string } {
-  const subject = `You're verified: ${companyName} is live on the network`;
-  const safePortal = escapeHtml(portalUrl);
-  const safeName = escapeHtml(contactName);
-  const safeCompany = escapeHtml(companyName);
-  const html = `<!doctype html>
-<html><head><meta charset="utf-8" /><meta name="viewport" content="width=device-width,initial-scale=1" />
-<title>${escapeHtml(subject)}</title></head>
-<body style="margin:0;padding:0;background:${BRAND.creamSoft};font-family:${FONT_BODY};color:${BRAND.ink};">
-<div style="max-width:580px;margin:0 auto;padding:44px 24px;">
-  <div style="font-family:${FONT_UI};font-size:11px;letter-spacing:0.22em;text-transform:uppercase;color:#1F5C40;font-weight:700;margin-bottom:18px;">PARTNER VERIFIED</div>
-  <h1 style="font-family:${FONT_DISPLAY};font-size:30px;line-height:1.18;font-weight:500;color:${BRAND.ink};margin:0 0 18px;letter-spacing:-.02em;">You're in, ${safeName}.</h1>
-  <p style="font-size:16px;line-height:1.7;color:${BRAND.inkSoft};margin:0 0 14px;">
-    Our team reviewed <strong>${safeCompany}</strong> and we're delighted to confirm your partner account is now approved and verified.
-  </p>
-  <p style="font-size:16px;line-height:1.7;color:${BRAND.inkSoft};margin:0 0 28px;">
-    Your Verified Partner badge is live, and you can now publish services, products, courses, and member offers in the Partner directory. Submissions still go through team review, but the publish gate is open.
-  </p>
-  <a href="${safePortal}" style="display:inline-block;background:${BRAND.ink};color:#FFFFFF;text-decoration:none;padding:14px 28px;border-radius:999px;font-weight:600;font-size:15px;">Open your portal &rarr;</a>
-  <hr style="border:0;border-top:1px solid ${BRAND.line};margin:36px 0 24px;" />
-  <h2 style="font-family:${FONT_UI};font-size:14px;font-weight:700;color:${BRAND.ink};letter-spacing:.005em;margin:0 0 10px;text-transform:uppercase;">What's next</h2>
-  <ul style="font-size:14.5px;line-height:1.75;color:${BRAND.inkSoft};margin:0;padding-left:20px;">
-    <li>Add your first catalog items: services, products, or courses.</li>
-    <li>Attach member offers (discounts, bonuses) to each item.</li>
-    <li>Upload your logo, spec sheets, and any supporting documents.</li>
-    <li>Add a card in your portal to start your listing: $39/month for months 1 to 12, charged from the day you add it, then $149/month from month 13.</li>
-  </ul>
-  <p style="font-size:13px;line-height:1.65;color:${BRAND.inkMute};margin:32px 0 0;">
-    Questions? Reply to this email and our partnerships team will get back to you.<br/>
-    ${BRAND_NAME} &middot; Powered by Business of Aesthetics
-  </p>
-</div>
-</body></html>`;
-  const text = `You're in, ${contactName}.
+const PARTNER_WHAT_WE_DO = [
+  "A Verified Partner badge for your site and emails.",
+  "Your page in our partner directory, with your logo, your description, your member offer and a way to book you.",
+  "Founding partners are featured first when we open to members.",
+  "We build material from one recording (a webinar, demo or talk you've already done), in your company's name. You approve every piece before it goes live, and it's yours to keep, even if you leave.",
+  "A ready-made launch kit. Posts with the words written, quote cards, a QR code and an email banner.",
+  "We promote you, not just list you. Our email list, our social channels, and a blog post from your session.",
+  "A seat on the ASN podcast, exclusive to members.",
+  "First call to speak at our events.",
+  "The Expert Hotline recommends you by fit. When a member's question matches what you offer, we name you. Referrals are never pay-to-play.",
+  "Your courses and products in front of members. Members buy on your own site and you keep the full price, with no cut to us. The one condition: a member-only offer on each.",
+  "A network of vetted experts and companies. Connect directly with the other experts and partners serving aesthetic practices, for collaborations, co-marketing and referrals.",
+  "A place in the Business of Aesthetics community (about 15,000 aesthetic professionals) to share what you know. Team members listed as experts get the Group Expert badge.",
+  "The job board. Post roles and send candidates there.",
+  "The expert side is included. Your team can also be listed as experts at no extra cost.",
+];
 
-Our team reviewed ${companyName} and your partner account is now approved and verified.
-
-You can now publish services, products, courses, and member offers in the Partner directory.
-
-Open your portal: ${portalUrl}
-
-What's next:
-- Add your first catalog items (services, products, courses)
-- Attach member offers to each item
-- Upload your logo and supporting documents
-- Add a card in your portal to start your listing: $39/month for months 1 to 12, charged from the day you add it, then $149/month from month 13.
-
-Questions? Reply to this email.
-${BRAND_NAME}. Powered by Business of Aesthetics.`;
-  return { subject, html, text, replyTo: PARTNERSHIPS_EMAIL };
+function vendorApprovalDraft(input: VendorApprovalInput): LayoutDraft {
+  const name = firstNameOf(input.contactName);
+  const r = rateLabel(input.rate);
+  return {
+    subject: `You're verified: ${input.companyName} is approved for the Aesthetic Success Network`,
+    preview: `${input.companyName} is approved and verified. Your founding partner agreement arrives in a separate email.`,
+    eyebrow: "Partner verified",
+    headline: `You're in, ${name}.`,
+    intro: [
+      `Our team reviewed ${input.companyName}, and we're delighted to confirm your partner account is approved and verified. Your founding partner agreement will arrive in a separate email. Once you've accepted it, your portal opens.`,
+    ],
+    sections: [
+      { title: "What we do for you", items: PARTNER_WHAT_WE_DO },
+      {
+        title: "What we ask of every partner",
+        items: [
+          "One exclusive offer for members, your best deal",
+          "Respond to member leads within one business day",
+          "A booking or demo link",
+          "30 days' notice before changing your offer",
+          "Your membership fee once your free months end",
+        ],
+      },
+      {
+        title: "Your founding terms",
+        paragraphs: [
+          `${providerTermsSentence(input.rate)} Nothing is charged until your free months end, and we'll remind you ${FIRST_CHARGE_REMINDER_DAYS} days before your first charge. Cancel any time before then and you won't be charged.`,
+        ],
+        tone: "gold",
+      },
+      {
+        title: "What to send us",
+        paragraphs: ["Reply with whatever you have on hand, and we'll chase down the rest:"],
+        items: [
+          "Your logo (PNG, transparent background if you have it)",
+          "A one-paragraph company description",
+          "Your member offer",
+          "The contact email members should use",
+          "Your website and booking or demo link",
+        ],
+      },
+      {
+        title: "What we promise",
+        paragraphs: [
+          `We can't promise a number of members, leads or sales, and we don't offer category exclusivity. What we promise is the work above, and that we put you in front of every member we bring in. Your rate after the free months is ${r} a month, with no increase.`,
+        ],
+      },
+    ],
+    closing: "Questions? Reply to this email and our partnerships team will get back to you within one business day.",
+    signoff: TEAM_SIGNOFF,
+    footerNote: "Partner verified",
+    footerLines: [
+      `This is an automated confirmation that ${input.companyName} is approved and verified on the Aesthetic Success Network.`,
+      `Aesthetic Success Network · ${PARTNERSHIPS_EMAIL} · ${SITE_HOST}`,
+    ],
+    accent: ACCENT.partner,
+  };
 }
 
 // ─────────────────────────────────────────────────────────────────────────
@@ -750,7 +781,7 @@ export async function sendMemberWelcomeEmail(input: MemberWelcomeInput): Promise
   const mail = buildMemberWelcomeEmail(input);
   const result = await dispatchMail({
     to: input.email,
-    from: FROM_EMAIL,
+    from: senderFor("member"),
     mail,
     tag: "member:welcome",
   });
@@ -764,18 +795,13 @@ export async function sendVendorApprovalEmail(input: VendorApprovalInput): Promi
   if (process.env.WAITLIST_EMAIL_DISABLED === "true") {
     return { sent: false, reason: "disabled" };
   }
-
-  const mail = buildVendorApprovalEmail(input);
-  const result = await dispatchMail({
+  const ok = await sendEmailDraft({
     to: input.email,
-    from: FROM_EMAIL,
-    mail,
+    audience: "partner",
+    draft: vendorApprovalDraft(input),
     tag: "vendor:approval",
   });
-  if (result.transport === "log") {
-    return { sent: false, reason: "missing_api_key" };
-  }
-  return { sent: true, id: result.id };
+  return ok ? { sent: true } : { sent: false, reason: "missing_api_key" };
 }
 
 export async function sendVendorMagicLinkEmail(input: VendorMagicInput): Promise<SendResult> {
@@ -786,7 +812,7 @@ export async function sendVendorMagicLinkEmail(input: VendorMagicInput): Promise
   const mail = buildVendorMagicEmail(input);
   const result = await dispatchMail({
     to: input.email,
-    from: FROM_EMAIL,
+    from: senderFor("partner"),
     mail,
     tag: "vendor:magic-link",
   });
@@ -797,38 +823,21 @@ export async function sendVendorMagicLinkEmail(input: VendorMagicInput): Promise
 }
 
 // ─────────────────────────────────────────────────────────────────────────
-// EXPERT APPLICATION CONFIRMATION
+// EXPERT APPLICATION RECEIVED
 // Sent by /api/expert/signup when a coach / consultant / educator
-// submits the application form. Tells them the team reviews every
-// applicant and will be in touch. Same brand framework as the member
-// welcome email but a green accent (expert tier color).
+// submits the application form.
 // ─────────────────────────────────────────────────────────────────────────
 
-const EXPERT_ACCENT = "#2C7A52";
-const EXPERT_ACCENT_LIGHT = "#5DA585";
-
-// Expert pricing (case C): a free period, then $39/month for good. Experts
-// never see a month-13 step. (Company approval copy above uses the
-// company ramp: $39 months 1 to 12, then $149 from month 13, no free period.)
-const EXPERT_RAMP_LINE =
-  "Months 1 to 6 are free, then $39/month from month 7, and it stays $39 with no increase.";
-const COURSE_SPLIT_LINE =
-  "Paid courses: you keep 70% of net course revenue; the network retains 30%. You set your own course prices; the network handles the platform, payment processing, and member promotion.";
 const HOTLINE_FIT_LINE = "Expert Hotline referrals are routed by fit, never pay-to-play.";
 
-function expertDraft(input: ExpertConfirmationInput): EmailDraft {
+function expertApplicationDraft(input: ExpertConfirmationInput): LayoutDraft {
   const submitted = formatDate(input.submittedAt);
   const name = firstName(input.application.fullName);
   return {
-    role: "member", // schema reused; expert isn't in WaitlistRole enum
     subject: "Your Aesthetic Success Network expert application: what happens next",
-    preview:
-      "We've received your application and it's now in review. Our team will respond within 5 business days.",
-    eyebrow: "Expert Application",
+    preview: "We've received your application and it's now in review. Our team will respond within 5 business days.",
+    eyebrow: "Expert application",
     headline: "Application in review.",
-    accent: EXPERT_ACCENT,
-    accentLight: EXPERT_ACCENT_LIGHT,
-    replyTo: EXPERTS_EMAIL,
     intro: [
       `Hi ${name},`,
       "Thank you for applying to join the Aesthetic Success Network as a founding expert. We've received your application and it's now in review.",
@@ -836,166 +845,134 @@ function expertDraft(input: ExpertConfirmationInput): EmailDraft {
     sections: [
       {
         title: "Here's what to expect",
-        body:
-          "Within the next 5 business days, our team will review your application against our founding expert criteria: primarily your track record serving aesthetic practice owners, the distinctiveness of your coaching or consulting approach, and the fit with our member base. We review carefully because protecting member trust is the whole point of curation.",
+        paragraphs: [
+          "Within the next 5 business days, our team will review your application. We look at your track record with aesthetic practice owners, what you teach and how it helps them, and how well it fits our members. We review carefully because protecting member trust is the whole point of curation.",
+        ],
       },
       {
         title: "If your application is approved",
         items: [
-          "You'll receive an approval email with a link to schedule a 30-minute onboarding conversation with our team.",
-          "During onboarding, we'll set up your expert profile and walk you through how it works: you share one recording of you teaching your topic, we produce your full content kit in your branding, and interested members book straight onto your calendar.",
-          `Your founding terms lock in. ${EXPERT_RAMP_LINE}`,
+          "You'll receive an approval email with a link to book a 30-minute onboarding conversation with our team.",
+          "During onboarding, we'll set up your expert profile and walk you through how it works. You share one recording of you teaching your topic, and we turn it into a full playbook for our members, published by ASN with your name and expertise front and center. Members who want more help can book time straight onto your calendar.",
+          `Your founding terms lock in. ${providerTermsSentence(null, { expert: true })} You pay nothing while we build.`,
         ],
       },
       {
         title: "If we have follow-up questions",
-        body: `We may reach out by email to clarify aspects of your application or request additional information about your coaching approach. Watch for a message from ${EXPERTS_EMAIL}.`,
+        paragraphs: [
+          `We may email you to clarify parts of your application or ask for more detail about your work. Watch for a message from ${EXPERTS_EMAIL}.`,
+        ],
       },
       {
         title: "A few things worth knowing while you wait",
         items: [
-          "Founding expert spots are limited. We're curating launch experts deliberately to cover the full range of practice growth specialties without overlapping too heavily in any one area.",
-          COURSE_SPLIT_LINE,
+          "Founding expert spots are limited. We're choosing launch experts carefully so they cover the full range of practice growth topics without too much overlap in any one area.",
           HOTLINE_FIT_LINE,
+          "Have a company with a product or service for practice owners? It can join as a partner, and a partner account includes the expert side. One account covers both.",
         ],
       },
     ],
-    closing:
-      "If you have questions in the meantime, reply to this email and we'll get back to you within one business day.",
+    closing: "If you have questions in the meantime, reply to this email and we'll get back to you within one business day.",
     signoff: ["Thanks for your interest in helping us build the network.", ...TEAM_SIGNOFF],
     footerNote: "Expert application received",
     footerLines: [
-      `This is an automated confirmation email for your ${BRAND_NAME} expert application.`,
+      "This is an automated confirmation of your Aesthetic Success Network expert application.",
       `Application reference: ${input.referenceId} · Submitted: ${submitted}`,
-      `${BRAND_NAME} · ${EXPERTS_EMAIL} · ${SITE_HOST}`,
+      `Aesthetic Success Network · ${EXPERTS_EMAIL} · ${SITE_HOST}`,
     ],
+    accent: ACCENT.expert,
   };
 }
 
-function buildExpertConfirmationEmail(input: ExpertConfirmationInput): BuiltEmail {
-  const draft = expertDraft(input);
-  return {
-    subject: draft.subject,
-    html: renderHtml(draft),
-    text: renderText(draft),
-    replyTo: draft.replyTo,
-  };
-}
-
-export async function sendExpertConfirmationEmail(
-  input: ExpertConfirmationInput,
-): Promise<SendResult> {
+export async function sendExpertConfirmationEmail(input: ExpertConfirmationInput): Promise<SendResult> {
   if (process.env.WAITLIST_EMAIL_DISABLED === "true") {
     return { sent: false, reason: "disabled" };
   }
-
-  const mail = buildExpertConfirmationEmail(input);
-  const result = await dispatchMail({
+  const ok = await sendEmailDraft({
     to: input.application.email,
-    from: FROM_EMAIL,
-    mail,
+    audience: "expert",
+    draft: expertApplicationDraft(input),
     tag: "expert:application",
   });
-  if (result.transport === "log") {
-    return { sent: false, reason: "missing_api_key" };
-  }
-  return { sent: true, id: result.id };
+  return ok ? { sent: true } : { sent: false, reason: "missing_api_key" };
 }
 
 // ─────────────────────────────────────────────────────────────────────────
-// EXPERT ONBOARDED EMAIL
-// Sent by /api/admin/experts when the team clicks "Mark onboarded". By
-// then the onboarding call has already happened, so this is the welcome
-// packet that hands them the portal. Carries a one-click Supabase magic
-// link to /expert/(portal).
+// EXPERT APPROVED
+// Sent by /api/admin/experts when the team approves an application. The
+// agreement (with the card step) arrives in a separate email right
+// after; the portal opens once it is accepted (see joinConfirmation.ts
+// for that welcome).
 // ─────────────────────────────────────────────────────────────────────────
 
 type ExpertApprovalInput = {
   email: string;
   firstName: string;
   expertId: string;
-  portalLink: string;        // pre-generated Supabase magic link, one-click sign-in
-  portalLoginUrl: string;    // fallback page (e.g. https://.../expert/login)
+  /** Kept for older callers; the approval email no longer carries a sign-in link. */
+  portalLink?: string;
+  portalLoginUrl?: string;
   activatedAt?: string;
 };
 
-function expertApprovalDraft(input: ExpertApprovalInput): EmailDraft {
-  const activated = formatDate(input.activatedAt ?? new Date().toISOString());
+function expertApprovalDraft(input: ExpertApprovalInput): LayoutDraft {
+  const approved = formatDate(input.activatedAt ?? new Date().toISOString());
   const name = (input.firstName ?? "").trim() || "there";
   return {
-    role: "member", // reusing schema; expert isn't in WaitlistRole enum
-    subject: "You're onboarded: your Aesthetic Success Network expert portal is live",
-    preview:
-      "Your portal is live. Sign in with the one-click link below, no password needed.",
-    eyebrow: "Expert Portal · Live",
+    subject: "You're approved: welcome to the Aesthetic Success Network bench",
+    preview: "Your application is approved. Your founding expert agreement arrives in a separate email.",
+    eyebrow: "Expert approved",
     headline: "Welcome to the bench.",
-    accent: EXPERT_ACCENT,
-    accentLight: EXPERT_ACCENT_LIGHT,
-    replyTo: EXPERTS_EMAIL,
     intro: [
       `Hi ${name},`,
-      "Great to have you on the bench. Now that we've finished the onboarding conversation, your expert portal is live and ready for you.",
-      "Use the sign-in link below to set up your profile, upload your first resources, and see members and partners engaging with your work.",
+      "Great news: your application is approved, and you're invited to join the Aesthetic Success Network as a founding expert.",
     ],
     sections: [
       {
-        title: "Here's what you can do inside the portal",
-        items: [
-          "Upload resources: SOPs, templates, slide decks, recordings, PDFs. Our team will review, brand them in the Aesthetic Success Network style, and publish them to the member library as kits.",
-          "See who's engaging: view which members open your resources and which ones inquire about working with you.",
-          "Post updates: write short status updates that appear in the member and partner feeds. Members can comment and react.",
+        title: "Your next step: your agreement",
+        paragraphs: [
+          "Your founding expert agreement will arrive in a separate email shortly. Review it and accept it online. It takes a few minutes. Once you've accepted, your expert portal opens and we start building your first playbook.",
         ],
+        tone: "green",
       },
       {
-        title: "A few things to know",
+        title: "Your founding terms",
+        paragraphs: [providerTermsSentence(null, { expert: true })],
+        tone: "gold",
+      },
+      {
+        title: "Get a head start",
+        paragraphs: ["While you wait, gather these. You'll send them to us once you've accepted:"],
         items: [
-          `Your founding terms are locked in. ${EXPERT_RAMP_LINE}`,
-          COURSE_SPLIT_LINE,
-          HOTLINE_FIT_LINE,
+          "A headshot, the highest resolution you have",
+          "A short bio, or we'll draft one for your approval",
+          "Your booking link (Calendly or similar)",
+          "Your title and credentials as you want them shown",
+          "One recording of you teaching your topic: a webinar, talk or podcast you've already done",
         ],
       },
     ],
-    cta: {
-      label: "Sign in to your portal",
-      url: input.portalLink,
-    },
-    closing: `This link signs you in directly, no password needed. If you need a new link later, request one at ${input.portalLoginUrl}.`,
+    closing: "Questions? Reply to this email and we'll get back to you within one business day.",
     signoff: ["Welcome to the bench.", ...TEAM_SIGNOFF],
-    footerNote: "Expert portal active",
+    footerNote: "Expert approved",
     footerLines: [
-      `This is an automated confirmation that your ${BRAND_NAME} expert portal is active.`,
-      `Account reference: ${input.expertId} · Activated: ${activated}`,
-      `${BRAND_NAME} · ${EXPERTS_EMAIL} · ${SITE_HOST}`,
+      "This is an automated confirmation that your Aesthetic Success Network expert application is approved.",
+      `Account reference: ${input.expertId} · Approved: ${approved}`,
+      `Aesthetic Success Network · ${EXPERTS_EMAIL} · ${SITE_HOST}`,
     ],
+    accent: ACCENT.expert,
   };
 }
 
-function buildExpertApprovalEmail(input: ExpertApprovalInput): BuiltEmail {
-  const draft = expertApprovalDraft(input);
-  return {
-    subject: draft.subject,
-    html: renderHtml(draft),
-    text: renderText(draft),
-    replyTo: draft.replyTo,
-  };
-}
-
-export async function sendExpertApprovalEmail(
-  input: ExpertApprovalInput,
-): Promise<SendResult> {
+export async function sendExpertApprovalEmail(input: ExpertApprovalInput): Promise<SendResult> {
   if (process.env.WAITLIST_EMAIL_DISABLED === "true") {
     return { sent: false, reason: "disabled" };
   }
-
-  const mail = buildExpertApprovalEmail(input);
-  const result = await dispatchMail({
+  const ok = await sendEmailDraft({
     to: input.email,
-    from: FROM_EMAIL,
-    mail,
+    audience: "expert",
+    draft: expertApprovalDraft(input),
     tag: "expert:approved",
   });
-  if (result.transport === "log") {
-    return { sent: false, reason: "missing_api_key" };
-  }
-  return { sent: true, id: result.id };
+  return ok ? { sent: true } : { sent: false, reason: "missing_api_key" };
 }

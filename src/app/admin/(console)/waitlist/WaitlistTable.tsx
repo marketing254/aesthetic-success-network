@@ -35,7 +35,10 @@ export type WaitlistRow = {
   source: string | null;
   status: "new" | "contacted" | "converted" | "declined";
   created_at: string;
+  launch_email_sent_at?: string | null;
 };
+
+const LAUNCH_ON = process.env.NEXT_PUBLIC_MEMBER_LAUNCH_ENABLED === "true";
 
 export type Counts = { total: number; members: number; vendors: number; last_24h: number };
 
@@ -166,6 +169,35 @@ export default function WaitlistTable({
     }
   };
 
+  // Launch email: the ONE email members get, only after the launch switch
+  // is on. Per person or everyone still waiting.
+  const [launching, setLaunching] = useState<string | null>(null);
+  const sendLaunch = async (row: WaitlistRow | null) => {
+    const label = row ? `${row.full_name ?? row.email}` : "everyone still waiting (members not yet emailed)";
+    if (!window.confirm(`Send the "doors are open" launch email to ${label}?`)) return;
+    setLaunching(row ? row.id : "all");
+    try {
+      const res = await fetch("/api/admin/waitlist/launch-email", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(row ? { id: row.id, resend: !!row.launch_email_sent_at } : { all: true }),
+      });
+      const body = (await res.json().catch(() => ({}))) as { ok?: boolean; error?: string; sent?: string[]; failed?: string[] };
+      if (!res.ok || body.error) {
+        setNotice(body.error ?? `Send failed (${res.status})`);
+        return;
+      }
+      const now = new Date().toISOString();
+      const sentSet = new Set(body.sent ?? []);
+      setRows((r) => r.map((x) => (sentSet.has(x.email) ? { ...x, status: x.status === "new" ? "contacted" : x.status, launch_email_sent_at: now } : x)));
+      setNotice(`Launch email sent to ${body.sent?.length ?? 0}${body.failed?.length ? `, failed for ${body.failed.length}` : ""}.`);
+    } catch {
+      setNotice("Network error. Please try again.");
+    } finally {
+      setLaunching(null);
+    }
+  };
+
   const refresh = () => {
     startTransition(() => {
       fetch(`/api/admin/waitlist`, { method: "GET", cache: "no-store" })
@@ -211,8 +243,27 @@ export default function WaitlistTable({
           >
             Export CSV
           </Button>
+          <Tooltip title={LAUNCH_ON ? "Emails everyone on the member waitlist who has not been emailed yet" : "Member launch is off (MEMBER_LAUNCH_ENABLED). Nothing can be sent."}>
+            <span>
+              <Button
+                variant="contained"
+                color="primary"
+                startIcon={<EmailOutlinedIcon />}
+                onClick={() => void sendLaunch(null)}
+                disabled={!LAUNCH_ON || launching !== null}
+              >
+                {launching === "all" ? "Sending..." : "Send launch email to all"}
+              </Button>
+            </span>
+          </Tooltip>
         </Stack>
       </Stack>
+      {!LAUNCH_ON && (
+        <Typography variant="body2" sx={{ color: "text.secondary", mt: -2 }}>
+          Members are on hold: they received no email when they signed up, cannot sign in and cannot pay. When the portal is
+          ready, set MEMBER_LAUNCH_ENABLED and NEXT_PUBLIC_MEMBER_LAUNCH_ENABLED to true, redeploy, then use the launch buttons here.
+        </Typography>
+      )}
 
       {/* Counter cards */}
       <Grid container spacing={2}>
@@ -420,16 +471,35 @@ export default function WaitlistTable({
                         </Typography>
                       </Box>
                       <Box component="td">
+                        {row.status !== "converted" && row.role === "member" && (
+                          <Tooltip title={LAUNCH_ON ? (row.launch_email_sent_at ? `Launch email sent ${formatDate(row.launch_email_sent_at)}. Click to resend.` : "Send the launch email with a prefilled signup link") : "Member launch is off; nothing can be sent"}>
+                            <span>
+                              <Button
+                                size="small"
+                                variant={row.launch_email_sent_at ? "outlined" : "contained"}
+                                disabled={!LAUNCH_ON || launching !== null}
+                                onClick={() => void sendLaunch(row)}
+                                sx={{ mr: 1, whiteSpace: "nowrap" }}
+                              >
+                                {launching === row.id ? "Sending..." : row.launch_email_sent_at ? "Resend launch email" : "Send launch email"}
+                              </Button>
+                            </span>
+                          </Tooltip>
+                        )}
                         {row.status !== "converted" && (
-                          <Button
-                            size="small"
-                            variant="contained"
-                            disabled={activating === row.id}
-                            onClick={() => void activate(row)}
-                            sx={{ mr: 1, whiteSpace: "nowrap" }}
-                          >
-                            {activating === row.id ? "Activating..." : "Activate member"}
-                          </Button>
+                          <Tooltip title="Creates the member without payment and emails the portal welcome (only once launch is on). Use for team or comped accounts.">
+                            <span>
+                              <Button
+                                size="small"
+                                variant="text"
+                                disabled={activating === row.id || !LAUNCH_ON}
+                                onClick={() => void activate(row)}
+                                sx={{ mr: 1, whiteSpace: "nowrap" }}
+                              >
+                                {activating === row.id ? "Activating..." : "Activate without payment"}
+                              </Button>
+                            </span>
+                          </Tooltip>
                         )}
                         <Tooltip title={`Email ${row.email}`}>
                           <IconButton component="a" href={`mailto:${row.email}`} size="small">

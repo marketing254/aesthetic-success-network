@@ -53,7 +53,7 @@ export default function VendorAppliedPage() {
     {
       icon: CalendarTodayOutlinedIcon,
       title: "Launch pricing locks in",
-      body: "$39/month for months 1 to 12 from the day you add a card, then $149/month from month 13. Your portal lets you set up your catalog and offers right away; they go live to members the day your application is approved.",
+      body: "Your first 6 months are free, starting the day we open to members. After that it's $39 a month, and it stays $39 with no increase. Your portal lets you set up your catalog and offers right away; they go live to members the day your application is approved.",
     },
   ];
 

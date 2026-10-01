@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { getSupabaseAdmin } from "@/lib/supabase/server";
 import { apiError, serverError } from "@/lib/api/errorResponse";
 import { clientIp, hashIp } from "@/lib/security/hashIp";
+import { checkRateLimit } from "@/lib/waitlist/rateLimit";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -29,6 +30,10 @@ export async function POST(_req: Request, ctx: { params: Promise<{ code: string 
   const { code } = await ctx.params;
   const route = "POST /api/invite/[code]/accept";
   if (!code) return apiError.badRequest("Missing code.", route);
+
+  // The code is the only credential: cap guesses per IP before the lookup.
+  const rl = await checkRateLimit(`invite-accept:${clientIp(_req)}`, { maxHits: 20, windowMs: 10 * 60 * 1000 });
+  if (!rl.allowed) return apiError.rateLimited(route);
 
   try {
     const sb = getSupabaseAdmin();

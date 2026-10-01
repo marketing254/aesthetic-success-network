@@ -2,6 +2,13 @@ import "server-only";
 import { readFile } from "node:fs/promises";
 import puppeteer from "puppeteer-core";
 import type { Browser } from "puppeteer-core";
+import {
+  EXPERT_RATE_LABEL,
+  PROVIDER_FREE_MONTHS,
+  formatLongDate,
+  normalizeProviderRate,
+  rateLabel,
+} from "@/lib/providerBilling";
 
 /**
  * Personalized founding agreement renderer (ASN).
@@ -69,12 +76,13 @@ function loadTemplate(role: FoundingAgreementPdfInput["role"]): Promise<string> 
 export type FoundingAgreementPdfInput = {
   role: "partner" | "expert" | "both";
   /**
-   * Company price plan (0066). "ladder" (the default) prints $39/mo for
-   * months 1 to 12 then $149/mo; "flat_49" prints $39/mo with no increase.
-   * The expert side always prints 12 months free then $39/mo. Every
-   * template carries a {{RAMP_BLOCK}}; "both" prints both schedules.
+   * Company rate after the free founding months: "standard" ($39) or
+   * "large" ($149). Experts are always $39. Every template carries a
+   * {{RAMP_BLOCK}}; "both" prints both schedules.
    */
-  pricing?: "ladder" | "flat_49" | null;
+  pricing?: string | null;
+  /** ISO date the free founding months end, when known (accepted copies). */
+  freePeriodEndsAt?: string | null;
   signer: {
     name: string;
     email: string;
@@ -91,31 +99,35 @@ export type FoundingAgreementPdfInput = {
 };
 
 /**
- * Fee ramp for "3. What it costs". Static HTML, no user input, so it is
- * injected raw like {{COMPANIES_LIST}}.
- *   expert:  $0 months 1 to 12, $39/mo month 13 onward (no increase).
- *   partner: ladder = $39/mo months 1 to 12, $149/mo month 13 onward;
- *            flat_49 = $39/mo from acceptance, no increase.
+ * Fee schedule for "3. What it costs". Static HTML, no user input, so it
+ * is injected raw like {{COMPANIES_LIST}}.
+ *   expert:  free founding months, then $39/mo with no increase.
+ *   partner: free founding months, then $39/mo (standard) or $149/mo
+ *            (large) with no increase.
  *   both:    both schedules, labelled.
  */
 function rampBlockHtml(
   role: FoundingAgreementPdfInput["role"],
   pricing: FoundingAgreementPdfInput["pricing"],
+  freePeriodEndsAt?: string | null,
 ): string {
   const step = (amount: string, label: string) =>
     `<div class="rstep"><div class="n">${amount}</div><div class="l">${label}</div></div>`;
   const mo = `<span style="font-size:9pt;color:#5C6B7A;">/mo</span>`;
   const heading = (text: string) =>
     `<div style="font-size:9pt;color:#5C6B7A;margin:6px 0 0;font-weight:600;">${text}</div>`;
+  const until = formatLongDate(freePeriodEndsAt ?? null);
+  const freeLabel = until ? `Free until ${until}` : `First ${PROVIDER_FREE_MONTHS} months free`;
+  const freeSentence = until
+    ? `Your first ${PROVIDER_FREE_MONTHS} months are free, through ${until}.`
+    : `Your first ${PROVIDER_FREE_MONTHS} months are free, starting the day the network opens to members.`;
+  const rate = rateLabel(normalizeProviderRate(pricing));
   const expertBlock =
-    `<div class="ramp">${step("$0", "Months 1 to 12")}${step(`$39${mo}`, "Month 13 onward")}</div>` +
-    `<p style="font-size:9pt;color:#5C6B7A;">Your expert access is free for your first 12 months. From month 13 it is $39 a month, and it stays at $39 for as long as your membership stays continuously active. A card is saved at acceptance; nothing is charged for 12 months.</p>`;
+    `<div class="ramp">${step("$0", freeLabel)}${step(`${EXPERT_RATE_LABEL}${mo}`, "After that &middot; no increase")}</div>` +
+    `<p style="font-size:9pt;color:#5C6B7A;">${freeSentence} After that your expert access is ${EXPERT_RATE_LABEL} a month, and it stays ${EXPERT_RATE_LABEL} for as long as it stays continuously active. A card is saved at acceptance; nothing is charged until your free months end, and we remind you 7 days before the first charge.</p>`;
   const companyBlock =
-    pricing === "flat_49"
-      ? `<div class="ramp">${step(`$39${mo}`, "From acceptance &middot; no increase")}</div>` +
-        `<p style="font-size:9pt;color:#5C6B7A;">Your company listing is $39 a month from acceptance, with the first charge made on acceptance, and stays at $39 for as long as your listing stays continuously active.</p>`
-      : `<div class="ramp">${step(`$39${mo}`, "Months 1 to 12")}${step(`$149${mo}`, "Month 13 onward &middot; founding standard")}</div>` +
-        `<p style="font-size:9pt;color:#5C6B7A;">Your company listing is $39 a month for your first 12 months, with the first charge made on acceptance, then $149 a month from month 13. You&#39;ll see this on the acceptance page before you save your card.</p>`;
+    `<div class="ramp">${step("$0", freeLabel)}${step(`${rate}${mo}`, "After that &middot; no increase")}</div>` +
+    `<p style="font-size:9pt;color:#5C6B7A;">${freeSentence} After that your company listing is ${rate} a month, and it stays ${rate} for as long as it stays continuously active. A card is saved at acceptance; nothing is charged until your free months end, and we remind you 7 days before the first charge.</p>`;
   if (role === "expert") return expertBlock;
   if (role === "partner") return companyBlock;
   return heading("Expert access") + expertBlock + heading("Company listing") + companyBlock;
@@ -226,7 +238,7 @@ async function renderAgreementHtml(input: FoundingAgreementPdfInput): Promise<st
   );
   return withTokens
     .replaceAll("{{COMPANIES_LIST}}", companiesListHtml)
-    .replaceAll("{{RAMP_BLOCK}}", rampBlockHtml(input.role, input.pricing));
+    .replaceAll("{{RAMP_BLOCK}}", rampBlockHtml(input.role, input.pricing, input.freePeriodEndsAt));
 }
 
 async function launchBrowser(): Promise<Browser> {
@@ -261,6 +273,11 @@ async function printHtmlToPdf(html: string): Promise<Buffer> {
     const pdf = await page.pdf({
       format: "letter",
       printBackground: true,
+      // Real page margins on EVERY page. The templates used to carry the
+      // whole margin inside the body, so page 2 onward printed flush
+      // against the paper edge and large "keep together" blocks left
+      // half-empty pages. Side margins stay in the template (.wrap).
+      margin: { top: "0.7in", bottom: "0.7in", left: "0", right: "0" },
       timeout: 30_000,
     });
     return Buffer.from(pdf);

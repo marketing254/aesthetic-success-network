@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { MEMBER_LAUNCH_ENABLED, MEMBER_LAUNCH_MESSAGE } from "@/lib/launch";
 import { getSupabaseAdmin } from "@/lib/supabase/server";
 import { resolveCheckoutMember } from "@/lib/auth/guards";
 import { apiError, serverError } from "@/lib/api/errorResponse";
@@ -38,6 +39,9 @@ function isValidPlan(p: unknown): p is SubscriptionPlanKey {
 }
 
 export async function POST(req: Request) {
+  if (!MEMBER_LAUNCH_ENABLED) {
+    return NextResponse.json({ error: MEMBER_LAUNCH_MESSAGE }, { status: 403 });
+  }
   // Session OR the short-lived signup cookie — a just-signed-up member can
   // pay before logging in (pay-first flow). The portal stays OTP-gated.
   const guard = await resolveCheckoutMember();

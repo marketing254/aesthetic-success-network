@@ -364,7 +364,7 @@ export default function OtpLoginForm({ config, band }: { config: OtpLoginConfig;
           </Box>
 
           {/* White form panel */}
-          <Box sx={{ p: { xs: 3, sm: 4 } }}>
+          <Box sx={{ p: { xs: 2.5, sm: 4 }, minWidth: 0 }}>
           <Typography
             component="h1"
             sx={{
@@ -477,7 +477,10 @@ export default function OtpLoginForm({ config, band }: { config: OtpLoginConfig;
               >
                 {busy ? "Verifying..." : "Verify and sign in"}
               </Button>
-              <Stack direction="row" spacing={1} sx={{ justifyContent: "space-between", alignItems: "center" }}>
+              <Stack
+                direction="row"
+                sx={{ justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 1 }}
+              >
                 <Button
                   type="button"
                   onClick={() => {

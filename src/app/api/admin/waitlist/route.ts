@@ -16,7 +16,7 @@ export async function GET() {
     const { data, error } = await supabase
       .from("waitlist_signups")
       .select(
-        "id, role, email, full_name, practice_name, phone, city_state, message, source, status, created_at",
+        "id, role, email, full_name, practice_name, phone, city_state, message, source, status, created_at, launch_email_sent_at",
       )
       .order("created_at", { ascending: false })
       .limit(500);

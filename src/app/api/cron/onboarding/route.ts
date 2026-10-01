@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { MEMBER_LAUNCH_ENABLED, MEMBER_LAUNCH_MESSAGE } from "@/lib/launch";
 import { processOnboardingQueue, processTrialReminders } from "@/lib/onboarding";
 import { processAbandonedQueue } from "@/lib/abandoned";
 
@@ -20,6 +21,9 @@ export const maxDuration = 120;
  * REQUIRED; locally (no secret set) the route runs open for testing.
  */
 export async function GET(req: Request) {
+  if (!MEMBER_LAUNCH_ENABLED) {
+    return NextResponse.json({ ok: true, paused: "MEMBER_LAUNCH_ENABLED is not true; member sequences are paused" });
+  }
   const secret = process.env.CRON_SECRET;
   if (process.env.NODE_ENV === "production") {
     if (!secret) {

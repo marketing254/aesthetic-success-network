@@ -54,9 +54,12 @@ export default function VendorAgreementPage() {
 
   const signedAt = vendor?.agreement_signed_at?.slice(0, 10) ?? "Not signed yet";
   const version = vendor?.agreement_version ?? "v1.0";
-  // Schedule A comes from the company's own plan (vendors.billing_plan):
-  // website ladder, founding ladder ($39 then $149) or founding flat ($39).
-  const ramp = vendorRamp(normalizeVendorPlan(vendor?.billing_plan));
+  // Schedule A comes from the company's own rate (vendors.billing_plan):
+  // free founding months, then $39 (standard) or $149 (large).
+  const ramp = vendorRamp(
+    normalizeVendorPlan(vendor?.billing_plan),
+    vendor?.subscription_status === "trialing" ? vendor?.current_period_end : null,
+  );
   const feeSchedule = ramp.rows.map((r) => ({ period: r.label, fee: r.price, note: r.note }));
   // The price tiles in the key terms band follow the same ramp; the
   // non-price tiles (commitment, notice) come from vendorData unchanged.
@@ -165,6 +168,10 @@ export default function VendorAgreementPage() {
 
       {/* Fee schedule */}
       <SectionCard title="Fee schedule" subtitle={`Schedule A: ${ramp.summary}`} padding="none">
+        {/* Three fixed columns: scroll inside the card on narrow screens
+            rather than squeezing the cells or widening the page. */}
+        <Box sx={{ overflowX: "auto" }}>
+        <Box sx={{ minWidth: 480 }}>
         <Box
           sx={{
             ...(listHeadSx as object),
@@ -214,6 +221,8 @@ export default function VendorAgreementPage() {
             </Box>
           </Box>
         ))}
+        </Box>
+        </Box>
       </SectionCard>
 
       {/* Full operational + legal sections */}

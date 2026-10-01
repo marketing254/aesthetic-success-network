@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { MEMBER_LAUNCH_ENABLED, MEMBER_LAUNCH_MESSAGE } from "@/lib/launch";
 import { getSupabaseAdmin } from "@/lib/supabase/server";
 import { requireAdmin } from "@/lib/auth/guards";
 import { sendMemberWelcomeEmail } from "@/lib/waitlist/confirmationEmail";
@@ -208,7 +209,9 @@ export async function POST(req: Request) {
 
   let emailSent = false;
   try {
-    const result = await sendMemberWelcomeEmail({
+    const result = !MEMBER_LAUNCH_ENABLED
+      ? { sent: false as const, reason: "member launch paused" }
+      : await sendMemberWelcomeEmail({
       email,
       firstName,
       portalUrl,

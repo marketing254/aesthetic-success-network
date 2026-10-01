@@ -117,6 +117,44 @@
   box-shadow: 0 10px 24px -16px rgba(10, 19, 32, 0.55);
   transition: transform 0.2s ease, box-shadow 0.2s ease;
 }
+.asn-site .brand {
+  gap: 12px;
+  text-decoration: none;
+  min-width: 0;
+}
+.asn-site .brand-name {
+  display: flex;
+  flex-direction: column;
+  line-height: 1.15;
+  min-width: 0;
+}
+.asn-site .brand-name-main {
+  font-family: var(--font-display), "Fraunces", Georgia, serif;
+  font-size: 1.05rem;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  color: #0a1320;
+  white-space: nowrap;
+}
+.asn-site .brand-name-sub {
+  font-size: 0.62rem;
+  font-weight: 600;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: #8a6528;
+  margin-top: 3px;
+  white-space: nowrap;
+}
+@media (max-width: 1024px) {
+  .asn-site .brand-name-sub { display: none; }
+  .asn-site .brand-name-main { font-size: 0.98rem; }
+}
+@media (max-width: 480px) {
+  .asn-site .brand-name-main { font-size: 0.9rem; white-space: normal; max-width: 150px; }
+}
+@media (max-width: 360px) {
+  .asn-site .brand-name { display: none; }
+}
 .asn-site .brand:hover .brand-logo {
   transform: translateY(-1px);
   box-shadow: 0 14px 28px -18px rgba(10, 19, 32, 0.55);
@@ -2179,6 +2217,11 @@
 .asn-site {
   min-height: 100vh;
 }
+/* A wrapper that only holds the nav (founding accept, applied pages,
+   thanks pages, /join) must not reserve a whole screen above the content. */
+.asn-site:not(:has(main)):not(:has(section)):not(:has(.legal-body)) {
+  min-height: 0;
+}
 
 /* Dark form autofill: DMN's globals.css paints autofilled inputs white
    with an !important inset shadow; on the espresso forms that reads as
@@ -3154,4 +3197,556 @@
   .asn-site .netform.signup {
     padding: 22px 18px;
   }
+}
+
+/* ============================================================
+   Mobile responsiveness (320px to 1024px)
+   Unlayered on purpose: these must win over the layered base
+   rules above at the same specificity. No colours, fonts or
+   layout intent change; only sizes, wrapping and spacing.
+   ============================================================ */
+
+/* The plain-CSS public routes no longer load MUI's CssBaseline, which
+   used to paint the <body>. Same colour (theme COLORS.surface) so the
+   overscroll area looks identical. */
+body:has(> .asn-site) {
+  background-color: #f6f1e7;
+}
+
+/* Safety net against horizontal page scroll. `clip` (not `hidden`) so the
+   sticky nav keeps working: clip never creates a scroll container. */
+.asn-site {
+  overflow-x: clip;
+}
+
+/* Flex/grid children default to min-width:auto, which lets long text push
+   a column wider than its track. Zero it where columns hold free text. */
+.asn-site .hero .wrap > div,
+.asn-site .hotline .wrap > div,
+.asn-site .calc > div,
+.asn-site .kitrow > div:first-child,
+.asn-site .locked-list .row > :first-child,
+.asn-site .stepr > div:last-child,
+.asn-site .foot-grid > div,
+.asn-site .profile-head > div {
+  min-width: 0;
+}
+
+/* Long unbroken strings (emails, URLs) wrap instead of overflowing. */
+.asn-site .foot-contact a,
+.asn-site .legal-doc,
+.asn-site .thanks p,
+.asn-site .formerror,
+.asn-site .dcard p,
+.asn-site .kitrow .t,
+.asn-site .kitrow .m {
+  overflow-wrap: anywhere;
+}
+
+/* Buttons never exceed their container; long labels wrap on two lines. */
+.asn-site .btn {
+  max-width: 100%;
+  white-space: normal;
+  text-align: center;
+}
+
+/* Media scales down with its container. */
+.asn-site svg,
+.asn-site video,
+.asn-site iframe {
+  max-width: 100%;
+}
+.asn-site .boa-logo {
+  width: auto;
+}
+.asn-site .legal-doc img {
+  height: auto;
+}
+.asn-site .legal-doc table {
+  display: block;
+  max-width: 100%;
+  overflow-x: auto;
+}
+
+/* Portal preview: the address bar truncates instead of widening the shell. */
+.asn-site .portal .bar .addr {
+  min-width: 0;
+  flex: 1 1 auto;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* Calculator labels: the live value drops below the label when tight. */
+.asn-site .ctl label {
+  flex-wrap: wrap;
+  gap: 4px 12px;
+}
+
+/* Auto-fit grids never demand a column wider than the viewport. */
+.asn-site .feature-grid--joined {
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 240px), 1fr));
+}
+.asn-site .feature-grid--cards,
+.asn-site .tool-grid {
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 260px), 1fr));
+}
+.asn-site .directory-grid {
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 240px), 1fr));
+}
+.asn-site .commitgrid {
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 200px), 1fr));
+}
+.asn-site .facts {
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 160px), 1fr));
+}
+.asn-site .legal-doc .keyterms {
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 120px), 1fr));
+}
+
+/* Pricing interval toggle, countdown cells and signup actions wrap. */
+.asn-site .toggle {
+  max-width: 100%;
+  flex-wrap: wrap;
+  justify-content: center;
+}
+.asn-site .countdown {
+  max-width: 100%;
+}
+.asn-site .countdown .cd-cells {
+  flex-wrap: wrap;
+  justify-content: center;
+}
+.asn-site .netform.signup .signup-actions {
+  flex-wrap: wrap;
+}
+
+/* Mobile menu: dynamic viewport height so the panel never hides behind the
+   browser chrome on iOS. Browsers without dvh keep the earlier vh value. */
+.asn-site .site-nav.open .nav-mobile {
+  max-height: calc(100dvh - 76px);
+}
+
+@media (max-width: 1024px) {
+  .asn-site nav.site-nav .row {
+    gap: 20px;
+  }
+}
+
+@media (max-width: 768px) {
+  /* iOS Safari zooms the page into any field under 16px. Keeping the
+     field font at 16px on touch widths stops that jump. */
+  .asn-site .netform input,
+  .asn-site .netform select,
+  .asn-site .netform textarea {
+    font-size: 16px;
+  }
+  /* Tap targets: footer links, the legal back link, filter chips and the
+     pricing toggle all reach 40px tall. */
+  .asn-site .fcol a {
+    padding: 8px 0;
+  }
+  .asn-site .legal-topbar a.back {
+    display: inline-block;
+    padding: 8px 0;
+  }
+  .asn-site .filter-row button,
+  .asn-site .toggle button {
+    min-height: 40px;
+  }
+  /* Hero art no longer reserves a desktop-height slot once stacked. */
+  .asn-site .hero-art,
+  .asn-site .hero--home .hero-art {
+    min-height: 340px;
+  }
+  .asn-site .hero-art svg,
+  .asn-site .hero--home .hero-art svg,
+  .asn-site .hero--partners .hero-art svg {
+    max-width: 300px;
+  }
+  /* Card padding scales with the narrower column. */
+  .asn-site .pfound,
+  .asn-site .pstd {
+    padding: 30px 24px;
+  }
+  .asn-site .pc {
+    padding: 30px 22px;
+  }
+  .asn-site .stepc,
+  .asn-site .feature-grid--joined .feat {
+    padding: 28px 22px;
+  }
+  .asn-site .fitcol,
+  .asn-site .door,
+  .asn-site .invite-box,
+  .asn-site .status-box {
+    padding: 26px 22px;
+  }
+  .asn-site .calc .result {
+    padding: 26px 20px;
+  }
+  .asn-site .portal .main {
+    padding: 22px 18px;
+  }
+  .asn-site .legal-doc {
+    padding: 30px 20px 56px;
+  }
+}
+
+@media (max-width: 480px) {
+  .asn-site .wrap {
+    padding-left: 20px;
+    padding-right: 20px;
+  }
+  .asn-site .hero .wrap,
+  .asn-site .hero--home .wrap {
+    padding: 44px 20px 52px;
+  }
+  .asn-site .powered .wrap {
+    padding: 16px 20px;
+  }
+  .asn-site .site-nav.open .nav-mobile {
+    padding: 6px 20px 24px;
+  }
+  .asn-site .legal-topbar .in {
+    padding: 12px 16px;
+  }
+  .asn-site .hero h1 {
+    font-size: 30px;
+  }
+  .asn-site .hero--home h1 {
+    font-size: 32px;
+  }
+  .asn-site .hero--experts h1 {
+    font-size: 30px;
+  }
+  .asn-site .hero .sub,
+  .asn-site .hero--home .sub {
+    font-size: 16px;
+  }
+  .asn-site h2.title,
+  .asn-site .hotline h2 {
+    font-size: 26px;
+  }
+  .asn-site .final h2 {
+    font-size: 28px;
+  }
+  .asn-site .pfound .price {
+    font-size: 56px;
+  }
+  .asn-site .pstd .price {
+    font-size: 36px;
+  }
+  .asn-site .pc .price {
+    font-size: 40px;
+  }
+  .asn-site .calc .result .big {
+    font-size: 40px;
+  }
+  .asn-site .legal-doc h1 {
+    font-size: 26px;
+  }
+  .asn-site .netform.signup .signup-title {
+    font-size: 26px;
+  }
+  .asn-site .faq details {
+    padding: 4px 16px;
+  }
+  .asn-site .thanks {
+    padding: 24px 18px;
+  }
+  .asn-site .example {
+    padding: 20px 18px;
+  }
+  .asn-site .countdown {
+    padding: 14px 12px 16px;
+  }
+  .asn-site .countdown .cd-cell {
+    min-width: 56px;
+    padding: 10px 6px 9px;
+  }
+  .asn-site .netform.signup .signup-actions .btn.bronze {
+    flex: 1 1 180px;
+  }
+}
+
+@media (max-width: 360px) {
+  .asn-site .wrap {
+    padding-left: 16px;
+    padding-right: 16px;
+  }
+  .asn-site .hero .wrap,
+  .asn-site .hero--home .wrap {
+    padding: 40px 16px 48px;
+  }
+  .asn-site .site-nav.open .nav-mobile {
+    padding: 6px 16px 20px;
+  }
+  .asn-site .hero h1 {
+    font-size: 27px;
+  }
+  .asn-site .hero--home h1 {
+    font-size: 29px;
+  }
+  .asn-site .hero--experts h1 {
+    font-size: 27px;
+  }
+  .asn-site h2.title,
+  .asn-site .hotline h2 {
+    font-size: 24px;
+  }
+  .asn-site .final h2 {
+    font-size: 26px;
+  }
+  .asn-site .btn {
+    padding: 12px 20px;
+    font-size: 14px;
+  }
+  .asn-site .hero--home .micro span {
+    padding: 6px 12px;
+    font-size: 12.5px;
+  }
+  .asn-site .artgrid {
+    gap: 10px;
+  }
+  .asn-site .atile {
+    padding: 20px 10px;
+  }
+  .asn-site .pfound,
+  .asn-site .pstd,
+  .asn-site .pc,
+  .asn-site .fitcol,
+  .asn-site .door {
+    padding-left: 18px;
+    padding-right: 18px;
+  }
+  .asn-site .countdown .cd-cells {
+    gap: 6px;
+  }
+  .asn-site .countdown .cd-cell {
+    min-width: 50px;
+  }
+  .asn-site .countdown .cd-num {
+    font-size: 24px;
+  }
+  .asn-site .toggle button {
+    padding: 8px 12px;
+  }
+  .asn-site .netform.signup {
+    padding: 18px 14px;
+  }
+}
+
+/* ── Company directory cards (/companies) ───────────────────────────── */
+.asn-site .company-grid {
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 320px), 1fr));
+  gap: 20px;
+}
+.asn-site .ccard {
+  display: flex;
+  flex-direction: column;
+  background: var(--card);
+  border: 1px solid var(--clay);
+  border-radius: 18px;
+  overflow: hidden;
+  text-align: left;
+  transition: transform 0.25s ease, box-shadow 0.3s ease, border-color 0.2s ease;
+}
+.asn-site .ccard:hover {
+  transform: translateY(-3px);
+  border-color: rgba(217, 168, 75, 0.55);
+  box-shadow: 0 22px 44px -32px rgba(10, 19, 32, 0.4);
+}
+.asn-site .ccard-skeleton {
+  min-height: 300px;
+  background: linear-gradient(90deg, var(--bg2) 25%, #fff 50%, var(--bg2) 75%);
+  background-size: 200% 100%;
+  animation: ccard-shimmer 1.4s ease-in-out infinite;
+}
+@keyframes ccard-shimmer {
+  from { background-position: 200% 0; }
+  to { background-position: -200% 0; }
+}
+.asn-site .cc-logo {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 120px;
+  padding: 22px 28px;
+  background: #ffffff;
+  border-bottom: 1px solid var(--clay);
+  text-decoration: none;
+}
+.asn-site .cc-logo img {
+  max-width: 100%;
+  max-height: 100%;
+  width: auto;
+  height: auto;
+  object-fit: contain;
+}
+.asn-site .cc-initials {
+  width: 56px;
+  height: 56px;
+  border-radius: 14px;
+  background: var(--bg2);
+  border: 1px solid var(--clay);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: var(--font-display), "Fraunces", serif;
+  font-size: 20px;
+  color: var(--bronze-d);
+}
+.asn-site .cc-body {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  padding: 20px 24px 22px;
+  min-width: 0;
+}
+.asn-site .cc-top {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 10px;
+}
+.asn-site .ccard h3 {
+  font-family: var(--font-display), "Fraunces", serif;
+  font-size: 19px;
+  font-weight: 500;
+  line-height: 1.25;
+  margin: 0;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+.asn-site .ccard h3 a {
+  color: inherit;
+  text-decoration: none;
+}
+.asn-site .ccard h3 a:hover {
+  color: var(--bronze-d);
+}
+.asn-site .cc-verified {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: #1f5c40;
+  background: rgba(34, 108, 78, 0.1);
+  border-radius: 999px;
+  padding: 4px 9px;
+  margin-top: 2px;
+}
+.asn-site .cc-cat {
+  align-self: flex-start;
+  margin-top: 10px;
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--bronze-d);
+  background: rgba(217, 168, 75, 0.12);
+  border-radius: 999px;
+  padding: 4px 10px;
+}
+.asn-site .ccard p {
+  font-size: 14px;
+  color: var(--muted);
+  line-height: 1.6;
+  margin: 14px 0 0;
+  display: -webkit-box;
+  -webkit-line-clamp: 4;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  overflow-wrap: anywhere;
+}
+.asn-site .cc-actions {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-top: auto;
+  padding-top: 18px;
+}
+.asn-site .cc-link {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--ink);
+  text-decoration: none;
+  border-bottom: 1px solid rgba(10, 19, 32, 0.25);
+  padding-bottom: 1px;
+}
+.asn-site .cc-link:hover {
+  color: var(--bronze-d);
+  border-color: var(--bronze-d);
+}
+.asn-site .cc-site {
+  font-size: 13px;
+  color: var(--muted);
+  text-decoration: none;
+}
+.asn-site .cc-site:hover {
+  color: var(--ink);
+  text-decoration: underline;
+}
+@media (max-width: 480px) {
+  .asn-site .cc-logo { height: 104px; padding: 18px 22px; }
+  .asn-site .cc-body { padding: 18px 20px 20px; }
+  .asn-site .ccard h3 { font-size: 17px; }
+}
+
+/* ── Expert directory cards (/experts), same family as the company cards ── */
+.asn-site .company-grid {
+  max-width: 1040px;
+  margin-left: auto;
+  margin-right: auto;
+}
+.asn-site .company-grid > * {
+  max-width: 520px;
+  width: 100%;
+  justify-self: center;
+}
+.asn-site .ec-head {
+  display: flex;
+  gap: 16px;
+  align-items: center;
+}
+.asn-site .ec-photo {
+  flex: none;
+  width: 76px;
+  height: 76px;
+  border-radius: 50%;
+  overflow: hidden;
+  border: 1px solid var(--clay);
+  background: var(--bg2);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.asn-site .ec-photo img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+.asn-site .ec-id {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 4px;
+}
+.asn-site .ec-company {
+  font-size: 13.5px;
+  color: var(--muted);
+}
+.asn-site .ecard .cc-cat {
+  margin-top: 4px;
+}
+.asn-site .ecard p {
+  -webkit-line-clamp: 5;
 }

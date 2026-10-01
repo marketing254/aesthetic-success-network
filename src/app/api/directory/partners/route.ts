@@ -7,6 +7,21 @@ export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
 /**
+ * Internal accounts never reach the public site: preview/bypass logins
+ * (BILLING_BYPASS_EMAILS) and test addresses (TEST_MEMBER_EMAILS).
+ */
+function isInternalEmail(email: string | null | undefined): boolean {
+  if (!email) return false;
+  const e = email.trim().toLowerCase();
+  const list = [process.env.BILLING_BYPASS_EMAILS ?? "", process.env.TEST_MEMBER_EMAILS ?? ""]
+    .join(",")
+    .split(",")
+    .map((s) => s.trim().toLowerCase())
+    .filter(Boolean);
+  return list.includes(e);
+}
+
+/**
  * GET /api/directory/partners?page=1&pageSize=6
  *
  * PUBLIC — powers the founding-partners directory on the marketing site.
@@ -28,7 +43,7 @@ export async function GET(req: Request) {
     // Internal test vendors (no profile assets) never reach the public site.
     const { data, error } = await sb
       .from("vendors")
-      .select("id, company_name, display_name, category, description, logo_url, avatar_url, website, billing_parent_id")
+      .select("id, company_name, display_name, category, description, logo_url, avatar_url, website, billing_parent_id, contact_email")
       .eq("status", "approved")
       .eq("verified", true)
       .not("logo_url", "is", null)
@@ -38,7 +53,7 @@ export async function GET(req: Request) {
 
     const liveIds = new Set((data ?? []).map((v) => v.id));
     const visible = sortPartnersHouseFirst(
-      (data ?? []).filter((v) => !v.billing_parent_id || liveIds.has(v.billing_parent_id)),
+      (data ?? []).filter((v) => !isInternalEmail(v.contact_email) && (!v.billing_parent_id || liveIds.has(v.billing_parent_id))),
       (v) => v.display_name || v.company_name,
     );
 

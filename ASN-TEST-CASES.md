@@ -109,7 +109,7 @@ Local safety: while `EMAIL_SANDBOX=true` (default outside production) every outb
 | 5.6 | Onboarding sequence | Backdate `day0_welcome` sent_at and hit GET /api/cron/onboarding locally. | Day 3 (kit match or Slack no-match log only), Day 7 hotline, Day 14 check-in; From "Lester De Alwis <founding@aestheticsuccessnetwork.com>"; no partner names; no em dashes. |
 | 5.7 | Abandoned sequence | Start /start checkout, abandon; advance `pending_registrations` timestamps; run the cron. | Emails 1, 2, 3 in sandbox; email 3 carries a single-use code; unsubscribe link renders the ASN page. |
 | 5.8 | Trial reminder amounts | Members with tier founding/standard/early and month/year within 7 days of period end; run cron. | Founding $49/mo or $441/yr; standard and early $199/mo or $1,990/yr. |
-| 5.9 | Expert / partner approval emails | Admin onboard an expert; verify a partner. | Ramp copy, no $99, "A S N" wordmark, Reply-To experts@ / partners@. |
+| 5.9 | Expert / company approval emails | See section 9 (approval now sends the agreement too). | Reply-To experts@ / partners@; shared layout. |
 | 5.10 | Beacon pack | Escalate a Beacon question as a paid member. | Email "Your Aesthetic Success Network pack" with `ASN-member-pack.pdf`, phone (855) 567-5323; Slack silent unless `SLACK_ENABLED=true`. |
 | 5.11 | Slack gate | Set `SLACK_ENABLED=true` with a test webhook; repeat 5.10. | Post with context "Beacon · Aesthetic Success Network · Member portal" and support@ reply line. |
 | 5.12 | Kit no-op | `KIT_API_KEY` unset; POST /api/waitlist. | Log "[kit] not configured"; no ConvertKit request; signup succeeds. |
@@ -164,13 +164,32 @@ Local safety: while `EMAIL_SANDBOX=true` (default outside production) every outb
 | 8.6 | Summit APIs | Flag off: /api/events/summit/status?session_id=x; /api/admin/summit. | 404; `{enabled:false, event:null}`. |
 | 8.7 | Sweep | `grep -rniE "dental|dentist|dmn|thriving|633-4707" src public tools-html` | Only provenance comments (none user-facing). |
 
+## 9. Provider pricing and emails (owner decision 2026-10-01)
+
+Run `0071_provider_free_period.sql` first. Set `MEMBER_LAUNCH_DATE=2027-01-15` (any future date) in `.env.local` for these tests; with it unset the free period is a provisional 12 months from today and the previews say so.
+
+| # | Case | Steps | Expected |
+|---|---|---|---|
+| 9.1 | Email drafts | /admin/email-previews, send to `rushdhaakbar82@gmail.com, lester@ekwa.com`. | 13 results, no member emails. Experts: application received, approved, agreement (PDF), welcome to the bench (signed PDF), 7-day reminder. Companies: verified, agreement (PDF), welcome (signed PDF), 7-day reminder. Sign-in code, two team alerts. Every email: same fonts (Fraunces heading, serif body), ASN monogram + name header, footer "Aesthetic Success Network, operated by Ekwa Marketing Inc. · Powered by Business of Aesthetics". Only `rushdhaakbar82@gmail.com` appears inside the bodies as the sign-in email; lester@ receives copies. |
+| 9.2 | Terms wording | Read every email and both PDFs from 9.1. | "Your first 6 months are free, starting the day we open to members. After that it's $39 a month, and it stays $39 with no increase." Never "trial", never "12 months", never "$149" for a standard company, never "70%". Free-through date = MEMBER_LAUNCH_DATE + 6 months. |
+| 9.3 | PDF pages | Open the three attached PDFs (expert agreement, signed expert, signed company). | Every page has top and bottom margins; no heading stranded at a page bottom; no half-empty page; fee box reads $0 "Free until <date>" then $39 "After that · no increase"; no 70/30 line; Section 8 has the "cancel before your first charge" sentence. |
+| 9.4 | Website expert flow | Apply at /experts → admin /admin/experts → start review → approve (graduation-cap icon). | Applicant gets "application received", then "You're approved" and "agreement is ready to sign" (PDF attached, private link). /admin/founding shows the invite with source "Website expert application"; team alert lists every field and the source. No expert row or login until acceptance. |
+| 9.5 | Website company flow | Apply at /companies → admin /admin/vendors → approve → pick "$39 (standard)" or "$149 (large company)". | "You're verified" email (no portal button), then the agreement email. Vendor row `billing_plan` = chosen rate. Bulk approve uses $39. |
+| 9.6 | Acceptance | Open /founding/<code> from 9.4 or 9.5, accept with card 4242. | Page shows "Due today $0.00", terms "First 6 months, from member launch $0/mo, After that $39/mo (or $149)". Stripe subscription `trialing`, trial_end = MEMBER_LAUNCH_DATE + 6 months, no schedule, nothing charged. ONE welcome email with the signed PDF (expert: "Welcome to the bench" with Book onboarding call when `ONBOARDING_CALL_URL` is set; company: "You're in"). Team alert "Card on file, nothing charged" with all invite details. Portal sign-in works with the 6-digit code. |
+| 9.7 | Founding invite (admin) | /admin/founding → new invite, role partner, rate large → send → accept. | Dialog options "Standard … $39" / "Large company … $149"; chip "6 mo free, then $149"; agreement, acceptance page, welcome email and Stripe all show $149 after the free months. |
+| 9.8 | Portals | Sign in as the accepted company and expert. | Company account page: "Free until <date>, then $39 a month with no increase", no progress bar, cancellation text with the before-first-charge rule. Expert billing: "Your terms" card, "Free founding months" status chip, no "Course revenue split" box. |
+| 9.9 | 7-day reminder | In Stripe test clock or by editing `current_period_end` on the row to 5 days ahead, GET /api/cron/provider-reminders (locally no secret needed). | One email "Your free founding months end in 5 days" with Update payment method and Cancel my membership buttons, grace period "7 days"; row `free_period_reminder_sent_at` stamped; second run sends nothing. |
+| 9.10 | Reminder safety net | Fire `customer.subscription.trial_will_end` with the Stripe CLI for a row never reminded, then again. | First event sends the reminder and stamps the row; second sends nothing. |
+| 9.11 | Launch date sync | Set `MEMBER_LAUNCH_DATE`, run `node scripts/stripe-sync-free-period.mjs` then `--apply`. | Dry run lists every trialing provider subscription; apply moves trial_end to launch + 6 months; webhook mirrors the new `current_period_end` to the rows. |
+| 9.12 | Public pages | /experts, /companies, /pricing, home cards. | Provider pricing reads "first 6 months free from the member launch, then $39 a month, no increase"; no $149, no month 13, no 70%. |
+
 ## Owner decisions surfaced by the port (not test failures)
 
 - D1. ASN's private founding agreement text does not exist yet; the founding PDFs carry the ASN Provider Agreement terms until legal supplies it.
 - D2. The exit-intent dialog promises "1 month free" via promo `DIRECT`; either create that 30-day code in /admin/promo-codes or disable the dialog in `Header.tsx`.
 - D3. Governing law: "Province of Ontario, Canada" in PDFs; "to be confirmed at legal review" on the draft legal pages.
 - D4. The home hero keeps DMN's pay-first flow (Start your membership → /join/member) rather than the old ASN waitlist-first flow.
-- D5. Founding schedule anchors default to DMN's dates unless `FOUNDING_TRIAL_END_ISO` / `FOUNDING_STANDARD_START_ISO` are set.
+- D5. Provider free periods end 6 months after `MEMBER_LAUNCH_DATE`; until it is set they are provisional (12 months) and `scripts/stripe-sync-free-period.mjs` moves them.
 - D6. "Beacon" kept as the assistant name; `member_inquiries.source` default stays `pearl`.
 - D7. /experts co-marketing card keeps the approved experts.html wording that mentions podcast and webinar features of the Business of Aesthetics network.
 - D8. Lester De Alwis remains the signer of onboarding and abandoned-registration emails (sender founding@).

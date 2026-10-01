@@ -36,7 +36,7 @@ The old launch-phase tables use the same names as the new schema with different 
 2. Dashboard → Storage → open the `agreements` bucket and delete any files in it.
 3. Dashboard → Authentication → Users → delete every old TEST member, expert and partner user. Keep the admin users.
 4. SQL editor → paste and run `supabase/reset/reset-existing-project.sql` once. Check with `select table_name from information_schema.tables where table_schema = 'public';` → 0 rows.
-5. Continue with section 2 below: run `0001_waitlist.sql` through `0070_vendor_billing_plan.sql` in order.
+5. Continue with section 2 below: run `0001_waitlist.sql` through `0073_waitlist_launch_email.sql` in order.
 6. Authentication → Users → add any admin listed in `0005_admin_seed.sql` that does not exist yet (auto-confirm, no password), e.g. `fathimarushdhaakbar28@gmail.com`.
 7. Because the same Magic Link template now serves members, experts and partners as well as admins, paste the role-neutral `supabase/templates/admin-otp-email.html` over the old admin-only one (optional but recommended).
 
@@ -116,7 +116,10 @@ Run these files, in this order. There is no `0009` and no `0035`. That is normal
 | 65 | `0067_asn_security_hardening.sql` | **New for ASN.** Security fixes: locks Stripe event log, protects member/partner/expert billing columns, tidies resource access, creates bucket `avatars`, adds the rate limiter. |
 | 66 | `0068_notifications_reconcile.sql` | **New for ASN.** Lets the app send in-app notifications to experts and members, not only partners and admins. |
 | 67 | `0069_asn_application_fields.sql` | **New for ASN.** Adds the ASN form fields (waitlist name/role/locations/challenge/agreement, expert bio/sample/courses/ownership, partner contact role). |
-| 68 | `0070_vendor_billing_plan.sql` | **New for ASN.** Adds `vendors.billing_plan` (website, founding_ladder, founding_flat) so the company portal shows the right price ramp, and pins it client-side. |
+| 68 | `0070_vendor_billing_plan.sql` | **New for ASN.** Adds `vendors.billing_plan` and pins it client-side. |
+| 69 | `0071_provider_free_period.sql` | **New for ASN.** Provider pricing change (2026-10-01): `founding_invites.pricing_plan` and `vendors.billing_plan` become `standard` ($39) / `large` ($149), both after 6 free months from the member launch; adds `free_period_reminder_sent_at` to experts and vendors for the single 7-day reminder. |
+| 70 | `0072_security_followups.sql` | **New for ASN.** Locks down anon/authenticated access to vendors, offers, catalog, vendor_applications and waitlist_signups; adds `is_paid_member()`. |
+| 71 | `0073_waitlist_launch_email.sql` | **New for ASN.** Adds `waitlist_signups.launch_email_sent_at` for the admin "doors are open" email. |
 
 When all 67 files have run, go to step 3.
 

@@ -9,10 +9,10 @@ import ExpertDirectory from "@/components/site/ExpertDirectory";
 // Copy source: the previous ASN site / _asn-source-copy/experts.html
 // (approved ASN copy). The application form posts to DMN's
 // /api/expert/signup; the bench reads DMN's /api/directory/experts.
-// Website expert pricing (case C): $0 months 1 to 6, then $39/month, and
-// it stays $39 (no month-13 step). Experts keep 70% of course revenue.
-// Founding-invite terms (12 months free, then $39) are internal only and
-// never mentioned here.
+// Expert pricing per the ASN canon (owner decision 2026-10-01): a card is
+// saved on acceptance, the first 6 months are free from the member launch,
+// then $39 a month with no increase. Experts sell courses on their own
+// site and keep the full price (the one condition is a member-only offer).
 
 export const metadata: Metadata = {
   title: "Become an Expert",
@@ -191,8 +191,8 @@ export default function ExpertsPage() {
             <div className="feat">
               <h3>Sell your own courses</h3>
               <p>
-                List your own paid, on-demand courses to members and keep 70% (the network takes
-                30%).
+                Sell your own courses and products to members and keep the full price. Members
+                buy on your site; the one condition is a member-only offer on each.
               </p>
             </div>
             <div className="feat">
@@ -213,17 +213,17 @@ export default function ExpertsPage() {
             Build first. Pay only as the value <em>compounds</em>.
           </h2>
           <p className="lead">
-            Get set up, build your library and start getting leads before you pay a cent.
+            Your first 6 months are free, starting the day we open to members. After that it&rsquo;s $39 a month, and it stays $39 with no increase.
           </p>
           <div className="pgrid">
             <div className="pc hot">
               <div className="badge">Start here</div>
-              <div className="tier">Months 1 to 6</div>
+              <div className="tier">First 6 months</div>
               <div className="price">$0</div>
-              <div className="desc">Get set up and build your library first.</div>
+              <div className="desc">Free from the day we open to members. Get set up and build your library first.</div>
             </div>
             <div className="pc">
-              <div className="tier">Month 7 onward</div>
+              <div className="tier">After that</div>
               <div className="price">
                 $39<span>/mo</span>
               </div>
@@ -233,7 +233,7 @@ export default function ExpertsPage() {
             </div>
           </div>
           <p className="guarantee">
-            <b>Paid courses:</b> you keep 70% &middot; <b>Cancel anytime</b>
+            <b>Paid courses:</b> sell on your own site and keep the full price &middot; <b>Cancel any time before your first charge</b> and you won&rsquo;t be charged; after that, 30 days&rsquo; written notice
           </p>
         </div>
       </section>

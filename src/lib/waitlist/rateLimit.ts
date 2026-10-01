@@ -30,16 +30,16 @@ let rpcUnavailable = false;
 
 export type RateLimitResult = { allowed: boolean; retryAfterSec?: number };
 
-function checkInMemory(key: string): RateLimitResult {
+function checkInMemory(key: string, maxHits = RATE_LIMIT_MAX_HITS, windowMs = RATE_LIMIT_WINDOW_MS): RateLimitResult {
   const now = Date.now();
   const existing = store.get(key);
 
   if (!existing || existing.resetAt < now) {
-    store.set(key, { count: 1, resetAt: now + RATE_LIMIT_WINDOW_MS });
+    store.set(key, { count: 1, resetAt: now + windowMs });
     return { allowed: true };
   }
 
-  if (existing.count >= RATE_LIMIT_MAX_HITS) {
+  if (existing.count >= maxHits) {
     return { allowed: false, retryAfterSec: Math.ceil((existing.resetAt - now) / 1000) };
   }
 
@@ -61,7 +61,7 @@ type LooseRpc = {
   ) => PromiseLike<{ data: unknown; error: { code?: string; message?: string } | null }>;
 };
 
-async function checkViaRpc(key: string): Promise<RateLimitResult | null> {
+async function checkViaRpc(key: string, maxHits = RATE_LIMIT_MAX_HITS, windowSeconds = WINDOW_SECONDS): Promise<RateLimitResult | null> {
   if (rpcUnavailable) return null;
   try {
     // The RPC is typed loosely on purpose: the generated Database types are
@@ -69,8 +69,8 @@ async function checkViaRpc(key: string): Promise<RateLimitResult | null> {
     const sb = getSupabaseAdmin() as unknown as LooseRpc;
     const { data, error } = await sb.rpc("check_rate_limit", {
       p_key: key,
-      p_limit: RATE_LIMIT_MAX_HITS,
-      p_window_seconds: WINDOW_SECONDS,
+      p_limit: maxHits,
+      p_window_seconds: windowSeconds,
     });
     if (error) {
       if (isMissingFunction(error)) {
@@ -85,7 +85,7 @@ async function checkViaRpc(key: string): Promise<RateLimitResult | null> {
     // The RPC only answers allowed / not allowed. Retry-After is
     // approximated with the full window so the client contract (a
     // positive number of seconds) still holds.
-    return data ? { allowed: true } : { allowed: false, retryAfterSec: WINDOW_SECONDS };
+    return data ? { allowed: true } : { allowed: false, retryAfterSec: windowSeconds };
   } catch (err) {
     console.warn("[rate-limit] RPC unavailable; using in-memory limiter.", err);
     return null;
@@ -97,10 +97,12 @@ async function checkViaRpc(key: string): Promise<RateLimitResult | null> {
  * the in-memory fallback resolves immediately so nothing observable
  * changes for callers.
  */
-export async function checkRateLimit(key: string): Promise<RateLimitResult> {
-  const viaRpc = await checkViaRpc(key);
+export async function checkRateLimit(key: string, opts?: { maxHits?: number; windowMs?: number }): Promise<RateLimitResult> {
+  const maxHits = opts?.maxHits ?? RATE_LIMIT_MAX_HITS;
+  const windowMs = opts?.windowMs ?? RATE_LIMIT_WINDOW_MS;
+  const viaRpc = await checkViaRpc(key, maxHits, Math.floor(windowMs / 1000));
   if (viaRpc) return viaRpc;
-  return checkInMemory(key);
+  return checkInMemory(key, maxHits, windowMs);
 }
 
 /** Synchronous, memory-only variant for callers that cannot await. */

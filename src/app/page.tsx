@@ -531,7 +531,7 @@ export default function HomePage() {
               <ul>
                 <li>A library built for you, in your branding</li>
                 <li>Featured profile plus warm leads to your calendar</li>
-                <li>Sell your own courses and keep 70%</li>
+                <li>Sell your own courses and products to members and keep the full price</li>
               </ul>
               <Link className="btn solid" href="/experts">
                 Apply as an expert &rarr;
@@ -543,7 +543,7 @@ export default function HomePage() {
               </h3>
               <p>
                 Get in front of aesthetics&rsquo; most engaged buyers through a trusted shortlist
-                instead of a cold ad. $39 a month, then $149 after your first year.
+                instead of a cold ad. Your first 6 months are free from the member launch, then $39 a month with no increase.
               </p>
               <ul>
                 <li>Profile plus placement in your category</li>

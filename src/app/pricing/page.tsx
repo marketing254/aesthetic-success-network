@@ -15,11 +15,11 @@ import {
 
 // /pricing in the ASN design. Member tiers: Founding ($29/mo or $290/yr,
 // first 100, open/closed from /api/stripe/availability) then Standard
-// ($99/mo or $990/yr). There is NO "early" tier. Experts: $0
-// months 1 to 6, then $39/month for good (no month-13 step). Companies:
-// $39 months 1 to 12 from the day the card is added, then $149 from
-// month 13 (no free period). Every member CTA starts the DMN signup at
-// /join/member.
+// ($99/mo or $990/yr). There is NO "early" tier. Experts and companies
+// (owner decision 2026-10-01): a card is saved on acceptance, the first
+// 6 months are free from the member launch, then $39 a month with no
+// increase. The company large rate is admin-set and never shown publicly.
+// Every member CTA starts the DMN signup at /join/member.
 
 const SITE = "https://www.aestheticsuccessnetwork.com";
 
@@ -84,13 +84,13 @@ const PRICING_JSONLD = {
       "@type": "Product",
       name: "Aesthetic Success Network: Expert Bench",
       description:
-        "Featured spot on the ASN expert bench for coaches, consultants and educators serving aesthetic practices. We produce your content kits, surface them in the member library, and route warm leads to your calendar. Sell your own courses and keep 70%.",
+        "Featured spot on the ASN expert bench for coaches, consultants and educators serving aesthetic practices. We produce your content kits, surface them in the member library, and route warm leads to your calendar. Sell your own courses and products to members and keep the full price.",
       brand: { "@type": "Brand", name: "Aesthetic Success Network" },
       image: `${SITE}/asn-logo-full-dark.png`,
       url: `${SITE}/pricing`,
       offers: [
-        { "@type": "Offer", name: "Expert Launch: months 1 to 6", price: "0.00", priceCurrency: "USD", url: `${SITE}/experts` },
-        { "@type": "Offer", name: "Expert: month 7 onward", price: "39.00", priceCurrency: "USD", url: `${SITE}/experts` },
+        { "@type": "Offer", name: "Expert: first 6 months free (from member launch)", price: "0.00", priceCurrency: "USD", url: `${SITE}/experts` },
+        { "@type": "Offer", name: "Expert, after the free months", price: "39.00", priceCurrency: "USD", url: `${SITE}/experts` },
       ],
     },
     {
@@ -102,8 +102,8 @@ const PRICING_JSONLD = {
       image: `${SITE}/asn-logo-full-dark.png`,
       url: `${SITE}/pricing`,
       offers: [
-        { "@type": "Offer", name: "Company Launch: months 1 to 12", price: "39.00", priceCurrency: "USD", url: `${SITE}/companies` },
-        { "@type": "Offer", name: "Company Standard: month 13 onward", price: "149.00", priceCurrency: "USD", url: `${SITE}/companies` },
+        { "@type": "Offer", name: "Company: first 6 months free (from member launch)", price: "0.00", priceCurrency: "USD", url: `${SITE}/companies` },
+        { "@type": "Offer", name: "Company, after the free months", price: "39.00", priceCurrency: "USD", url: `${SITE}/companies` },
       ],
     },
   ],
@@ -157,17 +157,17 @@ export default function PricingPage() {
             Build first. Pay only as the value <em>compounds</em>.
           </h2>
           <p className="lead">
-            Get set up, build your library and start getting leads before you pay a cent.
+            Your first 6 months are free, starting the day we open to members. After that it&rsquo;s $39 a month, and it stays $39 with no increase.
           </p>
           <div className="pgrid">
             <div className="pc hot">
               <div className="badge">Start here</div>
-              <div className="tier">Months 1 to 6</div>
+              <div className="tier">First 6 months</div>
               <div className="price">$0</div>
-              <div className="desc">Get set up and build your library first.</div>
+              <div className="desc">Free from the day we open to members. Get set up and build your library first.</div>
             </div>
             <div className="pc">
-              <div className="tier">Month 7 onward</div>
+              <div className="tier">After that</div>
               <div className="price">
                 ${EXPERT_PLAN_DISPLAY.expert_growth_monthly.amount}
                 <span>/mo</span>
@@ -176,7 +176,7 @@ export default function PricingPage() {
             </div>
           </div>
           <p className="guarantee">
-            <b>Paid courses:</b> you keep 70% &middot; Hotline referrals are routed by fit, never by
+            <b>Paid courses:</b> sell on your own site and keep the full price &middot; Hotline referrals are routed by fit, never by
             payment
           </p>
           <div className="cta-row" style={{ display: "flex", justifyContent: "center", marginTop: 28 }}>
@@ -191,28 +191,25 @@ export default function PricingPage() {
         <div className="wrap center">
           <span className="kicker">Companies</span>
           <h2 className="title">
-            $39 a month for your first year. It pays for itself as <em>deals close</em>.
+            Your first 6 months are free. It pays for itself as <em>deals close</em>.
           </h2>
           <p className="lead">
-            A locked launch rate for 12 months from the day you add a card, then the standard rate as the leads keep coming in.
+            Your first 6 months are free, starting the day we open to members. After that it&rsquo;s $39 a month, and it stays $39 with no increase.
           </p>
           <div className="pgrid">
             <div className="pc hot">
-              <div className="badge">Launch</div>
-              <div className="tier">Months 1 to 12</div>
+              <div className="badge">Start here</div>
+              <div className="tier">First 6 months</div>
+              <div className="price">$0</div>
+              <div className="desc">Free from the day we open to members. Get listed and start receiving leads before you pay a cent.</div>
+            </div>
+            <div className="pc">
+              <div className="tier">After that</div>
               <div className="price">
                 ${PARTNER_PLAN_DISPLAY.partner_growth_monthly.amount}
                 <span>/mo</span>
               </div>
-              <div className="desc">Get listed and start receiving leads. Your first $39 charge is the day you add a card.</div>
-            </div>
-            <div className="pc">
-              <div className="tier">Month 13 onward</div>
-              <div className="price">
-                ${PARTNER_PLAN_DISPLAY.partner_founding_standard_monthly.amount}
-                <span>/mo</span>
-              </div>
-              <div className="desc">Standard rate.</div>
+              <div className="desc">Locked rate as the leads keep coming in. It stays $39, with no increase.</div>
             </div>
           </div>
           <p className="guarantee">
@@ -258,12 +255,12 @@ export default function PricingPage() {
               </p>
             </details>
             <details>
-              <summary>Is there a free period for experts and companies?</summary>
+              <summary>Do experts and companies get free months?</summary>
               <p>
-                Experts pay nothing for months 1 to 6 from the day they&rsquo;re approved, then
-                $39/mo, and it stays $39. Companies have no free period: they pay the $39/mo
-                launch rate for months 1 to 12 from the day they add a card, then the standard
-                rate of $149/mo from month 13.
+                Yes. For both experts and companies, your first 6 months are free, starting the
+                day we open to members. After that it&rsquo;s $39 a month, and it stays $39 with
+                no increase. Cancel any time before your first charge and you won&rsquo;t be
+                charged; after that, cancel with 30 days&rsquo; written notice.
               </p>
             </details>
           </div>
