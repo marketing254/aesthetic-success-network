@@ -22,7 +22,7 @@ import RuleFolderOutlinedIcon from "@mui/icons-material/RuleFolderOutlined";
 import PolicyOutlinedIcon from "@mui/icons-material/PolicyOutlined";
 import OpenInNewOutlinedIcon from "@mui/icons-material/OpenInNewOutlined";
 import { useCurrentMember, type CurrentMember } from "@/lib/hooks/useCurrentMember";
-import { memberRoles } from "@/lib/content";
+import { memberRoles, isOtherOption, resolveOtherOption, splitOtherOption } from "@/lib/content";
 import { BillingSection } from "@/components/member/BillingSection";
 import {
   EditorialHeader,
@@ -34,6 +34,10 @@ import {
 
 // Same list as the signup form (canon section 4); never duplicate it here.
 const PRACTICE_ROLES = memberRoles;
+/** The saved role is free text when "Other" was chosen; split it for the dropdown. */
+function roleParts(stored: string | null | undefined) {
+  return splitOtherOption(stored, PRACTICE_ROLES);
+}
 
 function initials(first?: string | null, last?: string | null): string {
   const a = (first ?? "").trim().charAt(0);
@@ -64,6 +68,7 @@ export default function MemberProfilePage() {
     () => ({ ...(member ?? {}), ...draft }),
     [member, draft],
   );
+  const [roleOther, setRoleOther] = useState("");
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
   const [toast, setToast] = useState<string | null>(null);
@@ -85,7 +90,7 @@ export default function MemberProfilePage() {
           credential: (form.credential ?? "").trim(),
           phone: (form.phone ?? "").trim(),
           practice_name: (form.practice_name ?? "").trim(),
-          practice_role: (form.practice_role ?? "").trim(),
+          practice_role: resolveOtherOption(roleParts(form.practice_role).value, roleOther || roleParts(form.practice_role).other),
           city: (form.city ?? "").trim(),
         }),
       });
@@ -379,8 +384,11 @@ export default function MemberProfilePage() {
                 <Grid size={{ xs: 12, sm: 6 }}>
                   <FormField
                     label="Your role"
-                    value={form.practice_role ?? ""}
-                    onChange={(v) => set("practice_role", v)}
+                    value={roleParts(form.practice_role).value}
+                    onChange={(v) => {
+                      set("practice_role", v);
+                      if (!isOtherOption(v)) setRoleOther("");
+                    }}
                     select
                   >
                     <MenuItem value="" sx={{ fontSize: "0.84rem" }}>
@@ -393,6 +401,16 @@ export default function MemberProfilePage() {
                     ))}
                   </FormField>
                 </Grid>
+                {isOtherOption(roleParts(form.practice_role).value) && (
+                  <Grid size={{ xs: 12, sm: 6 }}>
+                    <FormField
+                      label="Tell us your role"
+                      value={roleOther || roleParts(form.practice_role).other}
+                      onChange={(v) => setRoleOther(v)}
+                      placeholder="e.g. Director of Operations"
+                    />
+                  </Grid>
+                )}
                 <Grid size={{ xs: 12 }}>
                   <FormField
                     label="City / state"

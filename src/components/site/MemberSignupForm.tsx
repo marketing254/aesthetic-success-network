@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
-import { challengeOptions, heardAboutOptions, locationOptions, memberRoles } from "@/lib/content";
+import { challengeOptions, heardAboutOptions, isOtherOption, locationOptions, memberRoles } from "@/lib/content";
 import type { RefContext } from "@/lib/referralContext";
 import { trackEvent } from "@/lib/analytics";
 
@@ -27,7 +27,6 @@ export type SignupPrefill = {
   practiceName: string | null;
 };
 
-const OTHER = "Other";
 
 // Persisted verbatim server-side as the TCPA/CASL audit trail.
 const SMS_CONSENT_TEXT =
@@ -74,10 +73,10 @@ export default function MemberSignupForm({
     step === 0
       ? firstName.trim() !== "" && lastName.trim() !== "" && emailOk
       : step === 1
-        ? practiceName.trim() !== "" && (roleLabel !== OTHER || roleLabelOther.trim() !== "")
+        ? practiceName.trim() !== "" && (!isOtherOption(roleLabel) || roleLabelOther.trim() !== "")
         : agreed &&
-          (challenge !== OTHER || challengeOther.trim() !== "") &&
-          (heardAbout !== OTHER || heardAboutOther.trim() !== "");
+          (!isOtherOption(challenge) || challengeOther.trim() !== "") &&
+          (!isOtherOption(heardAbout) || heardAboutOther.trim() !== "");
 
   // Abandoned-registration capture (the server enforces the 30-day
   // one-sequence rule and skips paying members).
@@ -98,7 +97,7 @@ export default function MemberSignupForm({
           firstName: firstName.trim() || null,
           lastName: lastName.trim() || null,
           practiceName: practiceName.trim() || null,
-          role: roleLabel === OTHER ? roleLabelOther.trim() || null : roleLabel || null,
+          role: isOtherOption(roleLabel) ? roleLabelOther.trim() || null : roleLabel || null,
           plan: params.get("interval") === "annual" ? "founding_annual" : "founding_monthly",
           utm: { ref: params.get("ref") ?? null, promo: params.get("promo") ?? null, source: "landing-join" },
         }),
@@ -133,7 +132,7 @@ export default function MemberSignupForm({
     setSubmitting(true);
     setError(null);
     const fullName = [firstName.trim(), lastName.trim()].filter(Boolean).join(" ");
-    const resolveOther = (v: string, other: string) => (v === OTHER ? other.trim() : v || undefined);
+    const resolveOther = (v: string, other: string) => (isOtherOption(v) ? other.trim() : v || undefined);
     try {
       const res = await fetch(launchOn ? "/api/member/signup" : "/api/waitlist", {
         method: "POST",
@@ -252,10 +251,9 @@ export default function MemberSignupForm({
               {memberRoles.map((r) => (
                 <option key={r}>{r}</option>
               ))}
-              <option>{OTHER}</option>
             </select>
           </div>
-          {roleLabel === OTHER && (
+          {isOtherOption(roleLabel) && (
             <div className="field">
               <label htmlFor="ms-role-other">Tell us your role</label>
               <input id="ms-role-other" value={roleLabelOther} onChange={(e) => setRoleLabelOther(e.target.value)} placeholder="e.g. Director of Operations" required />
@@ -294,7 +292,7 @@ export default function MemberSignupForm({
               ))}
             </select>
           </div>
-          {challenge === OTHER && (
+          {isOtherOption(challenge) && (
             <div className="field">
               <label htmlFor="ms-chal-other">Describe your biggest challenge</label>
               <textarea id="ms-chal-other" value={challengeOther} onChange={(e) => setChallengeOther(e.target.value)} placeholder="e.g. Hiring and retaining injectors" required />
@@ -309,7 +307,7 @@ export default function MemberSignupForm({
               ))}
             </select>
           </div>
-          {heardAbout === OTHER && (
+          {isOtherOption(heardAbout) && (
             <div className="field">
               <label htmlFor="ms-heard-other">Tell us where you heard about us</label>
               <input id="ms-heard-other" value={heardAboutOther} onChange={(e) => setHeardAboutOther(e.target.value)} required />

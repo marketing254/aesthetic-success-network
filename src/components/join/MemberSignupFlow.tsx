@@ -18,7 +18,7 @@ import {
 } from "@mui/material";
 import { ArrowLeft, ArrowRight, Check, ExternalLink } from "lucide-react";
 import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
-import { challengeOptions, heardAboutOptions, locationOptions, memberRoles } from "@/lib/content";
+import { challengeOptions, heardAboutOptions, isOtherOption, locationOptions, memberRoles } from "@/lib/content";
 
 const MotionBox = motion.create(Box);
 
@@ -51,7 +51,6 @@ function shortNameOf(ctx: RefContext): string {
   return parts[0] ?? base;
 }
 
-const OTHER = "Other";
 
 // Must match WaitlistSection verbatim — this exact copy is persisted
 // server-side as the TCPA/CASL audit trail when the box is checked.
@@ -127,12 +126,12 @@ export default function MemberSignupFlow({
     if (step === 1)
       return (
         practiceName.trim() !== "" &&
-        (roleLabel !== OTHER || roleLabelOther.trim() !== "")
+        (!isOtherOption(roleLabel) || roleLabelOther.trim() !== "")
       );
     return (
       agreed &&
-      (challenge !== OTHER || challengeOther.trim() !== "") &&
-      (heardAbout !== OTHER || heardAboutOther.trim() !== "")
+      (!isOtherOption(challenge) || challengeOther.trim() !== "") &&
+      (!isOtherOption(heardAbout) || heardAboutOther.trim() !== "")
     );
   }, [step, firstName, lastName, emailOk, practiceName, roleLabel, roleLabelOther, agreed, challenge, challengeOther, heardAbout, heardAboutOther]);
 
@@ -159,7 +158,7 @@ export default function MemberSignupFlow({
           firstName: firstName.trim() || null,
           lastName: lastName.trim() || null,
           practiceName: practiceName.trim() || null,
-          role: roleLabel === OTHER ? roleLabelOther.trim() || null : roleLabel || null,
+          role: isOtherOption(roleLabel) ? roleLabelOther.trim() || null : roleLabel || null,
           plan: params.get("interval") === "annual" ? "founding_annual" : "founding_monthly",
           utm: {
             ref: params.get("ref") ?? null,
@@ -192,7 +191,7 @@ export default function MemberSignupFlow({
     setSubmitting(true);
     setError(null);
     const fullName = [firstName.trim(), lastName.trim()].filter(Boolean).join(" ");
-    const resolveOther = (v: string, other: string) => (v === OTHER ? other.trim() : v || null);
+    const resolveOther = (v: string, other: string) => (isOtherOption(v) ? other.trim() : v || null);
     try {
       const res = await fetch("/api/member/signup", {
         method: "POST",
@@ -349,7 +348,7 @@ export default function MemberSignupFlow({
                 <MenuItem key={r} value={r}>{r}</MenuItem>
               ))}
             </TextField>
-            {roleLabel === OTHER && (
+            {isOtherOption(roleLabel) && (
               <TextField label="Tell us your role" value={roleLabelOther} onChange={(e) => setRoleLabelOther(e.target.value)} placeholder="e.g. Director of Operations" fullWidth required sx={fieldSx} />
             )}
             <TextField label="Practice name" value={practiceName} onChange={(e) => setPracticeName(e.target.value)} autoComplete="organization" fullWidth required sx={fieldSx} />
@@ -371,7 +370,7 @@ export default function MemberSignupFlow({
                 <MenuItem key={c} value={c}>{c}</MenuItem>
               ))}
             </TextField>
-            {challenge === OTHER && (
+            {isOtherOption(challenge) && (
               <TextField label="Describe your biggest challenge" value={challengeOther} onChange={(e) => setChallengeOther(e.target.value)} placeholder="e.g. Hiring & retaining injectors" multiline minRows={2} fullWidth required sx={fieldSx} />
             )}
             <TextField select label="How did you hear about us?" value={heardAbout} onChange={(e) => setHeardAbout(e.target.value)} fullWidth sx={fieldSx}>
@@ -379,7 +378,7 @@ export default function MemberSignupFlow({
                 <MenuItem key={o} value={o}>{o}</MenuItem>
               ))}
             </TextField>
-            {heardAbout === OTHER && (
+            {isOtherOption(heardAbout) && (
               <TextField label="Tell us where you heard about us" value={heardAboutOther} onChange={(e) => setHeardAboutOther(e.target.value)} placeholder="e.g. A study club, a Facebook group…" fullWidth required sx={fieldSx} />
             )}
             <FormControlLabel

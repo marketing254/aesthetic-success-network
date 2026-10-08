@@ -15,6 +15,7 @@ import {
   Typography,
 } from "@mui/material";
 import { vendorCategories } from "@/lib/vendorData";
+import { isOtherOption, resolveOtherOption, splitOtherOption } from "@/lib/content";
 
 export type FoundingInviteRoleValue = "partner" | "expert" | "both";
 
@@ -22,6 +23,8 @@ export type FoundingInviteRoleValue = "partner" | "expert" | "both";
 export type AdditionalCompany = {
   name: string;
   category: string;
+  /** Free text when category is "Other". */
+  category_other?: string;
   member_offer: string;
   contact_email: string;
 };
@@ -44,6 +47,8 @@ export type FoundingInviteFormValues = {
   member_offer: string;
   website: string;
   category: string;
+  /** Free text when category is "Other". */
+  category_other?: string;
   calendar_link: string;
   description: string;
   phone: string;
@@ -102,7 +107,16 @@ export default function FoundingInviteDialog({
 
   useEffect(() => {
     if (open) {
-      setV({ ...EMPTY, ...(initial ?? {}) });
+      const merged = { ...EMPTY, ...(initial ?? {}) };
+      // Stored "Other: text" categories come back as the dropdown "Other" plus the text.
+      const prim = splitOtherOption(merged.category, vendorCategories);
+      merged.category = prim.value;
+      merged.category_other = prim.other;
+      merged.additionalCompanies = (merged.additionalCompanies ?? []).map((c) => {
+        const sp = splitOtherOption(c.category, vendorCategories);
+        return { ...c, category: sp.value, category_other: sp.other };
+      });
+      setV(merged);
       setFormError(null);
     }
   }, [open, initial]);
@@ -159,7 +173,7 @@ export default function FoundingInviteDialog({
         ? [
             {
               name: v.company_name.trim(),
-              category: v.category.trim() || null,
+              category: resolveOtherOption(v.category, v.category_other) || null,
               website: v.website.trim() || null,
               description: v.description.trim() || null,
               member_offer: v.member_offer.trim() || null,
@@ -171,7 +185,7 @@ export default function FoundingInviteDialog({
               .filter((c) => c.name.trim())
               .map((c) => ({
                 name: c.name.trim(),
-                category: c.category.trim() || null,
+                category: resolveOtherOption(c.category, c.category_other) || null,
                 member_offer: c.member_offer.trim() || null,
                 contact_email: c.contact_email.trim().toLowerCase() || null,
               })),
@@ -186,7 +200,7 @@ export default function FoundingInviteDialog({
         company_name: v.company_name.trim(),
         member_offer: v.member_offer.trim(),
         website: v.website.trim(),
-        category: v.category.trim(),
+        category: resolveOtherOption(v.category, v.category_other),
         calendar_link: v.calendar_link.trim(),
         description: v.description.trim(),
         phone: v.phone.trim(),
@@ -299,6 +313,19 @@ export default function FoundingInviteDialog({
               ))}
             </TextField>
           </Grid>
+          {isOtherOption(v.category) && (
+            <Grid size={{ xs: 12, sm: 6 }}>
+              <TextField
+                label="Which category?"
+                value={v.category_other ?? ""}
+                onChange={set("category_other")}
+                fullWidth
+                required
+                placeholder="e.g. Medical waste disposal"
+                helperText="Saved as the company's category."
+              />
+            </Grid>
+          )}
           <Grid size={{ xs: 12, sm: 6 }}>
             <TextField
               label="Booking / calendar link"
@@ -365,6 +392,19 @@ export default function FoundingInviteDialog({
                           ))}
                         </TextField>
                       </Grid>
+                      {isOtherOption(c.category) && (
+                        <Grid size={{ xs: 12, sm: 6 }}>
+                          <TextField
+                            label="Which category?"
+                            value={c.category_other ?? ""}
+                            onChange={(e) => updateCompany(i, "category_other", e.target.value)}
+                            fullWidth
+                            size="small"
+                            required
+                            placeholder="e.g. Medical waste disposal"
+                          />
+                        </Grid>
+                      )}
                       <Grid size={{ xs: 12, sm: 6 }}>
                         <TextField
                           label="Contact email (distinct)"

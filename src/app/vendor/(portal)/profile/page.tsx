@@ -17,6 +17,7 @@ import CloudUploadOutlinedIcon from "@mui/icons-material/CloudUploadOutlined";
 import CheckCircleOutlinedIcon from "@mui/icons-material/CheckCircleOutlined";
 import VerifiedRoundedIcon from "@mui/icons-material/VerifiedRounded";
 import { vendorCategories } from "@/lib/vendorData";
+import { isOtherOption, resolveOtherOption, splitOtherOption } from "@/lib/content";
 import { PageHeader, SectionCard, StatusPill, TagPill, portalText } from "@/components/vendor/PortalUI";
 import { CP } from "@/components/shared/CommunityPortalShell";
 import { createBrowserSupabase } from "@/lib/supabase/browser";
@@ -49,6 +50,7 @@ export default function VendorProfilePage() {
   const [displayName, setDisplayName] = useState("");
   const [website, setWebsite] = useState("");
   const [category, setCategory] = useState<string>("");
+  const [categoryOther, setCategoryOther] = useState("");
   const [description, setDescription] = useState("");
   const [contactName, setContactName] = useState("");
   const [contactEmail, setContactEmail] = useState("");
@@ -67,7 +69,9 @@ export default function VendorProfilePage() {
         setCompanyName(v.company_name ?? "");
         setDisplayName(v.display_name ?? "");
         setWebsite(v.website ?? "");
-        setCategory(v.category ?? "");
+        const sp = splitOtherOption(v.category, vendorCategories);
+        setCategory(sp.value);
+        setCategoryOther(sp.other);
         setDescription(v.description ?? "");
         setContactName(v.contact_name ?? "");
         setContactEmail(v.contact_email ?? "");
@@ -141,7 +145,7 @@ export default function VendorProfilePage() {
       company_name: companyName.trim(),
       display_name: displayName.trim() || companyName.trim(),
       website: withScheme(website),
-      category: category || null,
+      category: resolveOtherOption(category, categoryOther) || null,
       description: description.trim() || null,
       contact_name: contactName.trim(),
       contact_email: contactEmail.trim(),
@@ -365,6 +369,16 @@ export default function VendorProfilePage() {
                     ))}
                   </FormField>
                 </Grid>
+                {isOtherOption(category) && (
+                  <Grid size={{ xs: 12, md: 6 }}>
+                    <FormField
+                      label="Which category?"
+                      value={categoryOther}
+                      onChange={setCategoryOther}
+                      placeholder="e.g. Medical waste disposal"
+                    />
+                  </Grid>
+                )}
                 <Grid size={{ xs: 12 }}>
                   <FormField
                     label="Description"
