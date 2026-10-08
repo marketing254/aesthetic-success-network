@@ -14,6 +14,7 @@ import {
   Typography,
 } from "@mui/material";
 import { vendorCategories } from "@/lib/vendorData";
+import { isOtherOption, resolveOtherOption } from "@/lib/content";
 
 export type PayerOption = { id: string; company_name: string };
 
@@ -39,6 +40,7 @@ export default function AddCompanyDialog({
   const [parentId, setParentId] = useState("");
   const [companyName, setCompanyName] = useState("");
   const [category, setCategory] = useState("");
+  const [categoryOther, setCategoryOther] = useState("");
   const [website, setWebsite] = useState("");
   const [description, setDescription] = useState("");
   const [memberOffer, setMemberOffer] = useState("");
@@ -57,6 +59,7 @@ export default function AddCompanyDialog({
       setWebsite("");
       setDescription("");
       setMemberOffer("");
+      setCategoryOther("");
       setContactName("");
       setContactEmail("");
       setContactPhone("");
@@ -86,7 +89,7 @@ export default function AddCompanyDialog({
           contact_name: contactName.trim(),
           contact_email: contactEmail.trim(),
           contact_phone: contactPhone.trim() || undefined,
-          category: category.trim() || undefined,
+          category: resolveOtherOption(category, categoryOther) || undefined,
           website: website.trim() || undefined,
           description: description.trim() || undefined,
           member_offer: memberOffer.trim() || undefined,
@@ -161,6 +164,18 @@ export default function AddCompanyDialog({
               ))}
             </TextField>
           </Grid>
+          {isOtherOption(category) && (
+            <Grid size={{ xs: 12, sm: 6 }}>
+              <TextField
+                label="Which category?"
+                value={categoryOther}
+                onChange={(e) => setCategoryOther(e.target.value)}
+                fullWidth
+                required
+                placeholder="e.g. Medical waste disposal"
+              />
+            </Grid>
+          )}
           <Grid size={{ xs: 12, sm: 6 }}>
             <TextField label="Website" value={website} onChange={(e) => setWebsite(e.target.value)} fullWidth placeholder="https://…" />
           </Grid>

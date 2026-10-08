@@ -28,6 +28,7 @@ import {
   challengeOptions,
   locationOptions,
   memberRoles,
+  isOtherOption,
 } from "@/lib/content";
 import { vendorCategories } from "@/lib/vendorData";
 
@@ -167,7 +168,7 @@ export default function WaitlistSection({ lockedRole, sectionId }: WaitlistSecti
     // the literal "Other" so the saved value is the real answer.
     const resolveOther = (selected: FormDataEntryValue | null, otherText: FormDataEntryValue | null) => {
       const value = String(selected ?? "");
-      if (value !== OTHER) return value;
+      if (!isOtherOption(value)) return value;
       const typed = String(otherText ?? "").trim();
       return typed || OTHER;
     };
@@ -488,7 +489,7 @@ export default function WaitlistSection({ lockedRole, sectionId }: WaitlistSecti
                             ))}
                           </CompactField>
                         </Grid>
-                        {vendorCategory === OTHER && (
+                        {isOtherOption(vendorCategory) && (
                           <Grid size={{ xs: 12 }}>
                             <CompactField
                               name="categoryOther"
@@ -842,7 +843,7 @@ export default function WaitlistSection({ lockedRole, sectionId }: WaitlistSecti
                           ))}
                         </CompactField>
                       </Grid>
-                      {memberRoleValue === OTHER && (
+                      {isOtherOption(memberRoleValue) && (
                         <Grid size={{ xs: 12 }}>
                           <CompactField
                             name="roleLabelOther"
@@ -880,7 +881,7 @@ export default function WaitlistSection({ lockedRole, sectionId }: WaitlistSecti
                           ))}
                         </CompactField>
                       </Grid>
-                      {memberChallenge === OTHER && (
+                      {isOtherOption(memberChallenge) && (
                         <Grid size={{ xs: 12 }}>
                           <CompactField
                             name="challengeOther"

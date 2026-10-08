@@ -263,6 +263,33 @@ export const memberRoles = [
   "Other aesthetic practice",
 ];
 
+/**
+ * True for any "Other" choice in a dropdown ("Other", "Other aesthetic
+ * practice", "Other: ..."). Forms reveal a free-text field when this is
+ * true and save the typed text instead of the literal option.
+ */
+export function isOtherOption(value: string | null | undefined): boolean {
+  return /^other\b/i.test((value ?? "").trim());
+}
+
+/** The saved value for a dropdown: the typed text when "Other" was picked. */
+export function resolveOtherOption(selected: string | null | undefined, typed: string | null | undefined): string {
+  const v = (selected ?? "").trim();
+  if (!isOtherOption(v)) return v;
+  const t = (typed ?? "").trim();
+  return t ? `Other: ${t}`.slice(0, 120) : v;
+}
+
+/** Splits a stored "Other: text" back into the dropdown value and the text. */
+export function splitOtherOption(stored: string | null | undefined, options: readonly string[]): { value: string; other: string } {
+  const v = (stored ?? "").trim();
+  if (!v) return { value: "", other: "" };
+  if (options.includes(v)) return { value: v, other: "" };
+  const m = /^other\s*:\s*(.*)$/i.exec(v);
+  const otherOpt = options.find((o) => isOtherOption(o)) ?? "Other";
+  return m ? { value: otherOpt, other: m[1] } : { value: otherOpt, other: v };
+}
+
 export const locationOptions = ["1", "2–3", "4–9", "10+"];
 
 export const challengeOptions = [
@@ -279,7 +306,7 @@ export const heardAboutOptions = [
   "Business of Aesthetics",
   "Ekwa Marketing",
   "An expert",
-  "A company company",
+  "A partner company",
   "Google",
   "Instagram or social media",
   "A friend or colleague",
