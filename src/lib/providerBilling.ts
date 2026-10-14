@@ -73,12 +73,33 @@ export function companyStandardStartsAt(freePeriodEnd: Date): Date {
   return addMonthsUtc(freePeriodEnd, COMPANY_LAUNCH_MONTHS);
 }
 
+/**
+ * The member launch date (owner, 2026-10-09): November 1, 2026. Every free
+ * founding period starts here. MEMBER_LAUNCH_DATE (server) or
+ * NEXT_PUBLIC_MEMBER_LAUNCH_DATE (browser) overrides it.
+ */
+export const DEFAULT_MEMBER_LAUNCH_DATE = "2026-11-01";
+
 export function memberLaunchDate(): Date | null {
-  const raw = (process.env.MEMBER_LAUNCH_DATE ?? "").trim();
-  if (!raw) return null;
+  const raw = (process.env.MEMBER_LAUNCH_DATE ?? process.env.NEXT_PUBLIC_MEMBER_LAUNCH_DATE ?? "").trim() || DEFAULT_MEMBER_LAUNCH_DATE;
   const d = new Date(raw.length === 10 ? `${raw}T00:00:00Z` : raw);
   return Number.isNaN(d.getTime()) ? null : d;
 }
+
+/** "November 1, 2026": the launch date as shown in every email, page and PDF. */
+export function memberLaunchLabel(): string {
+  return formatLongDate(memberLaunchDate()) ?? "the member launch";
+}
+
+/** "November 1": the launch date without the year, for short page copy. */
+export function memberLaunchShortLabel(): string {
+  const d = memberLaunchDate();
+  if (!d) return "launch day";
+  return new Intl.DateTimeFormat("en-US", { month: "long", day: "numeric", timeZone: "UTC" }).format(d);
+}
+
+/** Module-level copy of memberLaunchLabel() for JSX and string concatenation. */
+export const LAUNCH_LABEL = memberLaunchLabel();
 
 export function addMonthsUtc(date: Date, months: number): Date {
   const d = new Date(date.getTime());
@@ -126,7 +147,7 @@ export type TermsOpts = { expert?: boolean; founding?: boolean };
  */
 export function providerTermsSentence(rate: ProviderRate | string | null | undefined, opts: TermsOpts = {}): string {
   const months = opts.expert ? freeMonthsFor({ audience: "expert", founding: opts.founding }) : PROVIDER_FREE_MONTHS;
-  const lead = `Your first ${months} months are free, starting the day we open to members.`;
+  const lead = `Your first ${months} months are free, starting ${memberLaunchLabel()}.`;
   if (opts.expert || normalizeProviderRate(rate) === "flat") {
     return `${lead} After that it's ${COMPANY_LAUNCH_LABEL} a month, and it stays ${COMPANY_LAUNCH_LABEL} with no increase.`;
   }
@@ -141,5 +162,5 @@ export function providerTermsShort(rate: ProviderRate | string | null | undefine
     opts.expert || normalizeProviderRate(rate) === "flat"
       ? `${COMPANY_LAUNCH_LABEL} a month with no increase`
       : `${COMPANY_LAUNCH_LABEL} a month for ${COMPANY_LAUNCH_MONTHS} months, then ${COMPANY_STANDARD_LABEL}`;
-  return until ? `Free until ${until}, then ${after}` : `${months} months free from the member launch, then ${after}`;
+  return until ? `Free until ${until}, then ${after}` : `${months} months free from ${memberLaunchLabel()}, then ${after}`;
 }

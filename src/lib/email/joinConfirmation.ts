@@ -23,6 +23,7 @@ import {
   formatLongDate,
   freeMonthsFor,
   normalizeProviderRate,
+  LAUNCH_LABEL,
 } from "@/lib/providerBilling";
 
 /**
@@ -113,7 +114,7 @@ function billingSection(input: JoinConfirmationInput): EmailSection {
     const months = freeMonthsFor({ audience: "expert", founding: input.founding });
     const until = formatLongDate(expertFreeEnd);
     const side = input.role === "both" ? " for your expert access" : "";
-    items.push(`Your ${months} founding months${side} are free, and they start the day we open to members.${until ? ` Free through: ${until}.` : ""}`);
+    items.push(`Your ${months} founding months${side} are free, and they start ${LAUNCH_LABEL}.${until ? ` Free through: ${until}.` : ""}`);
     items.push(
       until
         ? `First charge: ${EXPERT_RATE_LABEL} on ${until}${side}, then ${EXPERT_RATE_LABEL} a month with no increase.`
@@ -123,7 +124,7 @@ function billingSection(input: JoinConfirmationInput): EmailSection {
   if (hasPartner(input.role)) {
     const until = formatLongDate(companyFreeEnd);
     const side = input.role === "both" ? " for your company listing" : "";
-    items.push(`Your ${PROVIDER_FREE_MONTHS} founding months${side} are free, and they start the day we open to members.${until ? ` Free through: ${until}.` : ""}`);
+    items.push(`Your ${PROVIDER_FREE_MONTHS} founding months${side} are free, and they start ${LAUNCH_LABEL}.${until ? ` Free through: ${until}.` : ""}`);
     if (plan === "flat") {
       items.push(
         until
@@ -243,7 +244,7 @@ function partnerDraft(input: JoinConfirmationInput, name: string): EmailDraft {
     headline: `You're in, ${name}.`,
     intro: [`Welcome to the Aesthetic Success Network as a Founding Partner. ${cardLine}`],
     sections,
-    ctas: [{ label: "Open your portal", url: input.portalUrl }],
+    ctaTop: { label: "Open your portal", url: input.portalUrl },
     closing: "Questions? Reply to this email and our partnerships team will get back to you within one business day.",
     signoff: TEAM_SIGNOFF,
     footerNote: "Founding partner agreement accepted",
@@ -301,12 +302,9 @@ function expertDraft(input: JoinConfirmationInput, name: string): EmailDraft {
     title: "Sign in",
     paragraphs: [`Sign in to your portal with this email: ${accountEmail}. Enter it there and we'll send you a 6-digit sign-in code. No password needed.`],
   });
-  const ctas = ONBOARDING_CALL_URL
-    ? [
-        { label: "Book your onboarding call", url: ONBOARDING_CALL_URL },
-        { label: "Sign in to your portal", url: input.portalUrl, secondary: true },
-      ]
-    : [{ label: "Sign in to your portal", url: input.portalUrl }];
+  // Sign-in button at the top of the email; the onboarding call (if set) stays below.
+  const ctaTop = { label: "Sign in to your portal", url: input.portalUrl };
+  const ctas = ONBOARDING_CALL_URL ? [{ label: "Book your onboarding call", url: ONBOARDING_CALL_URL }] : undefined;
   return {
     subject: both
       ? `You're in, ${name}. Welcome to the Aesthetic Success Network.`
@@ -325,6 +323,7 @@ function expertDraft(input: JoinConfirmationInput, name: string): EmailDraft {
           }`.trim(),
     ],
     sections,
+    ctaTop,
     ctas,
     closing: "Questions? Reply to this email and we'll get back to you within one business day.",
     signoff: ["Welcome to the bench.", ...TEAM_SIGNOFF],

@@ -4,204 +4,279 @@ import { notFound } from "next/navigation";
 import SitePage from "@/components/site/SitePage";
 import SiteNav from "@/components/site/SiteNav";
 import SiteFooter from "@/components/site/SiteFooter";
-import PageFx from "@/components/site/PageFx";
-import { getSupabaseAdmin } from "@/lib/supabase/server";
-import { isHiddenFromDirectory } from "@/lib/directoryVisibility";
+import JsonLd from "@/components/seo/JsonLd";
+import { founding } from "@/lib/content";
+import { protocolsFor } from "@/lib/foundingExperts";
+import { expertExtras, getPublicExpert, hostOf, otherExperts } from "@/lib/directoryProfiles";
+import "@/app/directory.css";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
+const SITE = "https://www.aestheticsuccessnetwork.com";
+
 /**
- * /experts/[id]: PUBLIC profile page for an accepted expert, in the ASN
- * design. Data and gating are DMN's: only ACTIVE experts with a headshot and
- * a bio are public, and only public-safe fields are rendered (never email,
- * phone, billing, or the booking link, which is a member-portal benefit).
- * Kit titles are a public teaser; spotlights show kind + date only.
+ * /experts/[id]: PUBLIC profile for an expert on the bench. Same publish
+ * gate as the directory (active + headshot + bio, not hidden). Public-safe
+ * fields only: never email, phone, billing or the booking link (booking is
+ * a member benefit). Kit titles and spotlight kinds are public teasers.
  */
-function initials(name: string): string {
-  const parts = name.trim().split(/\s+/);
-  return ((parts[0]?.[0] ?? "") + (parts[1]?.[0] ?? "")).toUpperCase() || "AS";
-}
-
-async function getExpert(id: string) {
-  const sb = getSupabaseAdmin();
-  const { data } = await sb
-    .from("experts")
-    .select("id, display_name, full_name, specialty, company_name, bio, topics, website, headshot_url, status, email")
-    .eq("id", id)
-    .maybeSingle();
-  // Same publish-ready gate as the directory: no headshot/bio -> not public.
-  if (!data || data.status !== "active" || !data.headshot_url || !data.bio) return null;
-  if (isHiddenFromDirectory(data.email)) return null;
-  return data;
-}
-
-export async function generateMetadata({
-  params,
-}: {
-  params: Promise<{ id: string }>;
-}): Promise<Metadata> {
+export async function generateMetadata({ params }: { params: Promise<{ id: string }> }): Promise<Metadata> {
   const { id } = await params;
-  const expert = await getExpert(id).catch(() => null);
-  if (!expert) return { title: "Expert not found", robots: { index: false } };
-  const name = expert.display_name || expert.full_name || "ASN Expert";
+  const hit = await getPublicExpert(id).catch(() => null);
+  if (!hit) return { title: "Expert not found", robots: { index: false } };
+  const { expert } = hit;
+  const description = expert.bio.replace(/\s+/g, " ").slice(0, 160);
   return {
-    title: `${name}, ASN Expert`,
-    description: String(expert.bio).slice(0, 160),
+    title: `${expert.name}, ASN Expert`,
+    description,
     alternates: { canonical: `/experts/${expert.id}` },
+    openGraph: { title: `${expert.name} | Aesthetic Success Network`, description, images: [{ url: expert.headshot_url }] },
   };
 }
 
-export default async function PublicExpertProfilePage({
-  params,
-}: {
-  params: Promise<{ id: string }>;
-}) {
+const Tick = () => (
+  <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden>
+    <path d="M3.5 8.5l3 3 6-7" strokeLinecap="round" strokeLinejoin="round" />
+  </svg>
+);
+const Lock = () => (
+  <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.6" aria-hidden>
+    <rect x="3" y="7" width="10" height="7" rx="2" />
+    <path d="M5.5 7V5a2.5 2.5 0 015 0v2" />
+  </svg>
+);
+
+export default async function PublicExpertProfilePage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
-  const expert = await getExpert(id);
-  if (!expert) notFound();
+  const hit = await getPublicExpert(id);
+  if (!hit) notFound();
+  const { expert, company } = hit;
 
-  const sb = getSupabaseAdmin();
+  const [{ kits, spotlights }, more] = await Promise.all([expertExtras(id), otherExperts(id, 3)]);
+  const protocols = protocolsFor(expert.name);
+  const bio = expert.bio.split(/\r?\n\s*\r?\n/).map((p) => p.trim()).filter(Boolean);
+  const role = [expert.specialty, expert.company_name].filter(Boolean).join(" · ");
 
-  // Kit titles only: a public teaser; the content stays members-only.
-  const { data: kitRows } = await sb
-    .from("resources")
-    .select("topic_slug, topic_title")
-    .eq("originating_expert_id", id)
-    .eq("is_published", true)
-    .eq("submission_status", "approved");
-  const kits = [...new Map((kitRows ?? []).map((r) => [r.topic_slug, r.topic_title as string])).values()];
-
-  // Spotlight teaser: kind + date ONLY. Titles and bodies stay members-only.
-  const { data: spotRows } = await sb
-    .from("profile_spotlights")
-    .select("id, kind, event_date")
-    .eq("expert_id", id)
-    .eq("is_published", true)
-    .order("published_at", { ascending: false, nullsFirst: false })
-    .limit(5);
-  const spotlights = (spotRows ?? []).map((s) => ({
-    id: s.id as string,
-    kind: String(s.kind).charAt(0).toUpperCase() + String(s.kind).slice(1),
-    dateLabel: s.event_date
-      ? new Intl.DateTimeFormat("en-US", { month: "short", day: "numeric" }).format(new Date(s.event_date))
-      : null,
-  }));
-
-  const name = expert.display_name || expert.full_name || "ASN Expert";
-  const topics = String(expert.topics ?? "")
-    .split(/[,\n;]+/)
-    .map((t: string) => t.trim())
-    .filter(Boolean);
-  const bioParagraphs = String(expert.bio)
-    .split(/\n{2,}/)
-    .map((p) => p.trim())
-    .filter(Boolean);
+  const jsonLd = {
+    "@context": "https://schema.org",
+    "@type": "Person",
+    name: expert.name,
+    description: expert.bio.replace(/\s+/g, " ").slice(0, 300),
+    image: expert.headshot_url.startsWith("http") ? expert.headshot_url : `${SITE}${expert.headshot_url}`,
+    url: `${SITE}/experts/${expert.id}`,
+    ...(expert.company_name ? { worksFor: { "@type": "Organization", name: expert.company_name } } : {}),
+    ...(expert.website ? { sameAs: [expert.website] } : {}),
+  };
 
   return (
-    <SitePage>
+    <SitePage className="dx-page">
       <SiteNav active="/experts" />
+      <JsonLd data={jsonLd} />
 
-      <header className="hero hero--home" id="top" style={{ paddingBottom: 40 }}>
-        <div className="wrap" style={{ display: "block" }}>
-          <div className="profile-head">
-            <div className="profile-avatar">
-              {expert.headshot_url ? (
-                // eslint-disable-next-line @next/next/no-img-element
-                <img src={expert.headshot_url} alt={name} />
-              ) : (
-                initials(name)
-              )}
+      <header className="dx-phero">
+        <div className="dx-wrap dx-phero-grid">
+          <div className="dx-portrait">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src={expert.headshot_url} alt={expert.name} />
+          </div>
+          <div className="dx-phero-text">
+            <nav className="dx-crumbs" aria-label="Breadcrumb">
+              <Link href="/experts">Experts</Link>
+              <span aria-hidden>/</span>
+              <span>{expert.name}</span>
+            </nav>
+            <div className="dx-eyebrow">
+              <span className="dx-dot" />
+              Vetted expert &middot; Aesthetic Success Network
             </div>
-            <div>
-              <span className="eyebrow">Network Expert</span>
-              <h1 style={{ fontSize: 40 }}>{name}</h1>
-              {expert.specialty || expert.company_name ? (
-                <p className="sub" style={{ marginBottom: 0 }}>
-                  {[expert.specialty, expert.company_name].filter(Boolean).join(" · ")}
-                </p>
-              ) : null}
-              {topics.length > 0 && (
-                <div className="profile-topics">
-                  {topics.map((t) => (
-                    <span key={t}>{t}</span>
-                  ))}
-                </div>
+            <h1>{expert.name}</h1>
+            {role && <p className="dx-role">{role}</p>}
+            {expert.topics.length > 0 && (
+              <div className="dx-ptopics">
+                {expert.topics.map((t) => (
+                  <span key={t}>{t}</span>
+                ))}
+              </div>
+            )}
+            <div className="dx-actions">
+              <Link className="dx-btn dx-btn-gold" href="/join/member">
+                Reserve a founding spot
+              </Link>
+              {expert.website && (
+                <a className="dx-btn dx-btn-ghost" href={expert.website} target="_blank" rel="noopener noreferrer">
+                  Visit {hostOf(expert.website)}
+                </a>
               )}
             </div>
           </div>
         </div>
       </header>
 
-      <section>
-        <div className="wrap">
-          <article className="profile-bio">
-            {bioParagraphs.map((p, i) => (
-              <p key={i}>{p}</p>
-            ))}
-          </article>
+      <main className="dx-wrap dx-pbody">
+        <div className="dx-pmain">
+          <section className="dx-block">
+            <h2>About</h2>
+            <div className="dx-prose">
+              {bio.map((p, i) => (
+                <p key={i}>{p}</p>
+              ))}
+            </div>
+          </section>
 
-          {kits.length > 0 && (
-            <div className="profile-section">
-              <span className="kicker">Kits in the resource library</span>
-              <div className="locked-list">
-                {kits.map((k) => (
-                  <div className="row" key={k}>
-                    <span>{k}</span>
-                    <span className="lk">Members only</span>
-                  </div>
+          {protocols.length > 0 && (
+            <section className="dx-block">
+              <h2>Protocols</h2>
+              <p className="dx-blocksub">
+                Part of the Expert Signature Series. The full Protocols (videos, guides, scripts and checklists) are
+                available to members.
+              </p>
+              <div className="dx-protocols">
+                {protocols.map((p) => (
+                  <figure key={p.src}>
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img src={p.src} alt={p.alt} loading="lazy" decoding="async" />
+                    <figcaption>{p.title}</figcaption>
+                  </figure>
                 ))}
               </div>
-            </div>
+            </section>
+          )}
+
+          {kits.length > 0 && (
+            <section className="dx-block">
+              <h2>In the library</h2>
+              <ul className="dx-locked">
+                {kits.map((k) => (
+                  <li key={k}>
+                    <span>{k}</span>
+                    <span className="dx-lk">
+                      <Lock /> Members only
+                    </span>
+                  </li>
+                ))}
+              </ul>
+            </section>
           )}
 
           {spotlights.length > 0 && (
-            <div className="profile-section">
-              <span className="kicker">Recent spotlights</span>
-              <div className="locked-list">
+            <section className="dx-block">
+              <h2>Recent spotlights</h2>
+              <ul className="dx-locked">
                 {spotlights.map((s) => (
-                  <div className="row" key={s.id}>
-                    <span>
-                      <span className="blur" aria-hidden>
-                        Member-only spotlight content
-                      </span>
+                  <li key={s.id}>
+                    <span className="dx-blur" aria-hidden>
+                      Member-only spotlight content
                     </span>
-                    <span className="lk">
-                      {s.kind}
+                    <span className="dx-lk">
+                      <Lock /> {s.kind}
                       {s.dateLabel ? ` · ${s.dateLabel}` : ""}
                     </span>
-                  </div>
+                  </li>
                 ))}
-              </div>
-            </div>
+              </ul>
+            </section>
           )}
+        </div>
 
-          <div className="profile-section">
-            <span className="kicker">Book a meeting</span>
-            <p className="lead" style={{ margin: "0 0 16px" }}>
-              Booking {name} is a member benefit. Members reach the bench, the kits and every
-              company deal from one login.
-            </p>
-            <div className="cta-row" style={{ display: "flex", gap: 14, flexWrap: "wrap" }}>
-              <Link className="btn bronze" href="/join/member">
-                Start your membership
-              </Link>
-              {expert.website ? (
-                <a className="btn ghost" href={expert.website} target="_blank" rel="noopener noreferrer">
-                  Visit website
-                </a>
+        <aside className="dx-side">
+          <div className="dx-sidecard dx-sidecard-dark">
+            <div className="dx-sidecard-eyebrow">Member benefit</div>
+            <h3>Work with {expert.name}</h3>
+            <ul className="dx-checks">
+              <li>
+                <Tick /> Book time with {expert.name} from the member portal
+              </li>
+              {protocols.length > 0 || kits.length > 0 ? (
+                <li>
+                  <Tick /> Watch the full Protocols and use the templates
+                </li>
               ) : null}
-              <Link className="btn ghost" href="/experts">
-                &larr; Back to all experts
-              </Link>
+              <li>
+                <Tick /> Get an instant, AI-assisted answer from the Expert Hotline
+              </li>
+            </ul>
+            <Link className="dx-btn dx-btn-gold dx-btn-block" href="/join/member">
+              Reserve your founding spot
+            </Link>
+            <p className="dx-sidecard-note">
+              ${founding.priceMonthly} a month, locked in. Nothing to pay today.
+            </p>
+          </div>
+
+          <div className="dx-sidecard">
+            <dl className="dx-facts">
+              {expert.company_name && (
+                <div>
+                  <dt>Company</dt>
+                  <dd>{company ? <Link href={`/companies/${company.id}`}>{expert.company_name}</Link> : expert.company_name}</dd>
+                </div>
+              )}
+              {expert.specialty && (
+                <div>
+                  <dt>Specialty</dt>
+                  <dd>{expert.specialty}</dd>
+                </div>
+              )}
+              {expert.website && (
+                <div>
+                  <dt>Website</dt>
+                  <dd>
+                    <a href={expert.website} target="_blank" rel="noopener noreferrer">
+                      {hostOf(expert.website)}
+                    </a>
+                  </dd>
+                </div>
+              )}
+              <div>
+                <dt>Status</dt>
+                <dd className="dx-verified">
+                  <Tick /> Vetted by the ASN team
+                </dd>
+              </div>
+            </dl>
+          </div>
+
+          {company && (
+            <Link className="dx-sidecard dx-linkcard" href={`/companies/${company.id}`}>
+              <span className="dx-linkcard-logo">
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img src={company.logo_url} alt="" />
+              </span>
+              <span>
+                <small>Also on the network</small>
+                <b>{company.name}</b>
+                <em>View company profile &rarr;</em>
+              </span>
+            </Link>
+          )}
+        </aside>
+      </main>
+
+      {more.length > 0 && (
+        <section className="dx-morerow">
+          <div className="dx-wrap">
+            <div className="dx-morerow-head">
+              <h2>More experts</h2>
+              <Link href="/experts#bench">View all &rarr;</Link>
+            </div>
+            <div className="dx-minis">
+              {more.map((m) => (
+                <Link key={m.id} href={`/experts/${m.id}`} className="dx-mini">
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img src={m.image} alt="" className="dx-mini-photo" loading="lazy" />
+                  <span>
+                    <b>{m.name}</b>
+                    {m.sub && <small>{m.sub}</small>}
+                  </span>
+                </Link>
+              ))}
             </div>
           </div>
-        </div>
-      </section>
+        </section>
+      )}
 
       <SiteFooter />
-
-      <PageFx revealSelector="section .profile-bio, .profile-section" />
     </SitePage>
   );
 }

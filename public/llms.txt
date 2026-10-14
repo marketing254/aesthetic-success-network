@@ -2,9 +2,10 @@
 
 > A membership network for aesthetic practice owners (dermatology, plastic
 > surgery, med spas, estheticians, injectors) that pairs an Expert Hotline
-> with member-only partner deals, a curated resource library of expert
-> kits, and monthly live AMAs and CE. Each member problem gets a written
-> action plan, by text and email, within 2 to 3 business days.
+> with member-only offers from vetted companies, a library of expert
+> Protocols, and monthly live AMAs and CE. Each member problem gets an
+> instant, AI-assisted answer, plus the experts and companies best placed
+> to help.
 > Powered by Business of Aesthetics. Operated by Ekwa Marketing Inc.
 
 ## What it is
@@ -12,11 +13,10 @@
 - Membership-based, not lead-gen. Members pay $29/month (founding) or
   $99/month (standard) for ongoing access. The membership is the
   product: no upsell into a coaching contract.
-- The Expert Hotline is the differentiator: leave a voicemail with any
-  practice problem in plain English and get a written action plan plus
-  3 to 4 recommended experts to contact within 2 to 3 business days.
-  The Hotline is a voicemail line answered in writing, AI-assisted; it
-  is not a live or 24/7 helpline.
+- The Expert Hotline is the differentiator: describe any practice
+  problem in plain English and get an instant, AI-assisted answer with a
+  recommended solution and the experts or companies best placed to help.
+  The Hotline is AI-assisted, not a live human.
 - Partners commit to a genuine member-only discount, at least as good
   as any offer they make comparable customers, and are listed with a
   Verified Partner badge. Members deal with partners directly. No
@@ -61,7 +61,7 @@
 
 - One membership is the product; no four-figure programs behind the
   door.
-- Written action plans, routed by fit, never pay-to-play.
+- Instant, AI-assisted answers, matched by fit, never pay-to-play.
 - Experts, partners and kits curated by the Business of Aesthetics team
   and the founding team (Naren Arulrajah, Founder & CEO, Ekwa Marketing;
   Lester De Alwis, Co-Founder, Aesthetic Success Network), not by an

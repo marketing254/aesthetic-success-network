@@ -12,9 +12,9 @@ All prices in USD. Cancel anytime: no contracts, no retention call.
 - **Availability**: first 100 members only
 - **Rate lock**: locked for as long as the membership stays active
 - **Includes**:
-  - The Expert Hotline: leave a voicemail, get a written action plan plus
-    3 to 4 recommended experts by text and email within 2 to 3 business
-    days (AI-assisted, not live, not 24/7)
+  - The Expert Hotline: an instant, AI-assisted answer with a recommended
+    solution and the experts or companies best placed to help (AI-assisted,
+    not a live human)
   - Full resource library access: a growing library of expert kits
     across Pricing & Margins, Consult & Conversion, Team & Culture,
     Patient Experience, Marketing & Growth, and Operations & Compliance,

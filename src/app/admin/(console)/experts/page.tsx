@@ -29,6 +29,7 @@ import SchoolOutlinedIcon from "@mui/icons-material/SchoolOutlined";
 import RestartAltOutlinedIcon from "@mui/icons-material/RestartAltOutlined";
 import WorkspacePremiumOutlinedIcon from "@mui/icons-material/WorkspacePremiumOutlined";
 import DeleteOutlineIcon from "@mui/icons-material/DeleteOutlined";
+import { LAUNCH_LABEL } from "@/lib/providerBilling";
 
 // Shape mirrors the columns selected by /api/admin/experts (a Pick of
 // ExpertApplicationsRow, not the full row).
@@ -130,7 +131,7 @@ function Inner() {
   const grantFree = async (email: string, name: string) => {
     if (
       !confirm(
-        `Make ${name} billing-exempt (manual override)?\n\nThey will never be charged and never asked for a card. This cannot be undone.\n\nThis is not the founding expert offer (first 6 months free from the member launch, then $39 a month); use a founding invite for that.\n\nIf they also list a company, that company keeps paying normally.`,
+        `Make ${name} billing-exempt (manual override)?\n\nThey will never be charged and never asked for a card. This cannot be undone.\n\nThis is not the founding expert offer (first 6 months free from ${LAUNCH_LABEL}, then $39 a month); use a founding invite for that.\n\nIf they also list a company, that company keeps paying normally.`,
       )
     ) {
       return;
@@ -267,11 +268,11 @@ function Inner() {
                     <Box component="strong" sx={{ color: "text.primary" }}>
                       {slots.remaining} of {slots.cap}
                     </Box>{" "}
-                    billing-exemption overrides left ({slots.used} granted). Founding invites: first 12 months free from the member launch, then $39 flat. Website experts: first 6 months free, then $39 a month with no increase.
+                    billing-exemption overrides left ({slots.used} granted). Founding invites: first 12 months free from {LAUNCH_LABEL}, then $39 flat. Website experts: first 6 months free, then $39 a month with no increase.
                   </>
                 ) : (
                   <>
-                    All {slots.cap} billing-exemption overrides used. Founding invites: first 12 months free from the member launch, then $39 flat. Website experts: first 6 months free, then $39 a month with no increase.
+                    All {slots.cap} billing-exemption overrides used. Founding invites: first 12 months free from {LAUNCH_LABEL}, then $39 flat. Website experts: first 6 months free, then $39 a month with no increase.
                   </>
                 )}
               </Typography>
@@ -1033,7 +1034,7 @@ function RowActions({
           they're onboarded, because the flag lives on the provisioned
           `experts` row, not on the application. Hidden when the 20 slots
           are gone. Not the founding offer (that is the first 6 months free
-          from the member launch, then $39, via a founding invite). */}
+          from {LAUNCH_LABEL}, then $39, via a founding invite). */}
       {status === "onboarded" &&
         (isExempt ? (
           <Tooltip title="Billing-exempt (manual override). Never charged, never asked for a card. (Their company, if any, still pays.)">

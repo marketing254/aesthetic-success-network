@@ -1,3 +1,4 @@
+import Link from "next/link";
 import type { Metadata } from "next";
 import SitePage from "@/components/site/SitePage";
 import SiteNav from "@/components/site/SiteNav";
@@ -6,6 +7,7 @@ import PageFx from "@/components/site/PageFx";
 import PartnerForm from "@/components/site/PartnerForm";
 import PartnerDirectory from "@/components/site/PartnerDirectory";
 import { vendorCategories } from "@/lib/vendorData";
+import { LAUNCH_LABEL } from "@/lib/providerBilling";
 
 // Copy source: the previous ASN site / _asn-source-copy/partners.html
 // (approved ASN copy). The application form posts to DMN's
@@ -19,7 +21,7 @@ import { vendorCategories } from "@/lib/vendorData";
 export const metadata: Metadata = {
   title: "Become a Company",
   description:
-    "Get in front of aesthetics' most engaged buyers through a trusted shortlist instead of a cold ad. Your first 6 months are free, starting the day we open to members. After that it's $39 a month for your first 12 months, then $149 a month.",
+    "Get in front of aesthetics' most engaged buyers through a trusted shortlist instead of a cold ad. Your first 6 months are free, starting " + LAUNCH_LABEL + ". After that it's $39 a month for your first 12 months, then $149 a month.",
   alternates: { canonical: "/companies" },
 };
 
@@ -208,14 +210,14 @@ export default function PartnersPage() {
             Your first 6 months are free. It pays for itself as <em>deals close</em>.
           </h2>
           <p className="lead">
-            Your first 6 months are free, starting the day we open to members. After that it&rsquo;s $39 a month for your first 12 months, then $149 a month.
+            Your first 6 months are free, starting {LAUNCH_LABEL}. After that it&rsquo;s $39 a month for your first 12 months, then $149 a month.
           </p>
           <div className="pgrid">
             <div className="pc hot">
               <div className="badge">Start here</div>
               <div className="tier">First 6 months</div>
               <div className="price">$0</div>
-              <div className="desc">Free from the day we open to members. Get listed and start receiving leads before you pay a cent.</div>
+              <div className="desc">Free from {LAUNCH_LABEL}. Get listed and start receiving leads before you pay a cent.</div>
             </div>
             <div className="pc">
               <div className="tier">Launch rate</div>
@@ -267,11 +269,11 @@ export default function PartnersPage() {
             </div>
             <div className="cc">
               <div className="n">05</div>
-              <p>Pay the fee: your first 6 months are free from the member launch, then $39 a month for 12 months, then $149 a month.</p>
+              <p>Pay the fee: your first 6 months are free from {LAUNCH_LABEL}, then $39 a month for 12 months, then $149 a month.</p>
             </div>
           </div>
           <p className="guarantee">
-            The full terms are in the <a href="/agreement/provider">Provider Agreement</a>.
+            The full terms are in the <Link href="/agreement/provider">Provider Agreement</Link>.
           </p>
         </div>
       </section>

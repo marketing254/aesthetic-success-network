@@ -63,7 +63,7 @@ const SHOW_LIBRARY = process.env.NEXT_PUBLIC_SHOW_JUST_DROPPED === "true";
 
 // Un-named value cards for the library strip (replaces the DMN expert cards).
 const VALUE_CARDS = [
-  { Icon: ForumOutlinedIcon, title: "Expert Hotline", body: "Leave a voicemail. Get a written action plan by text and email within 2 to 3 business days, with the experts worth talking to." },
+  { Icon: ForumOutlinedIcon, title: "Expert Hotline", body: "Describe any practice problem and get an instant, AI-assisted answer, with the experts and companies best placed to help." },
   { Icon: MenuBookOutlinedIcon, title: "Resource library", body: "A growing library of expert kits: training video, action guide, checklist, worksheet and slide deck, produced from real expert sessions." },
   { Icon: StorefrontOutlinedIcon, title: "Partner deals", body: "Member-only offers from vetted partners, each at least as good as any deal they make comparable customers." },
 ];
@@ -572,7 +572,7 @@ export default function AdsLandingView() {
               </Typography>
               <Stack spacing={1.5} sx={{ mt: 3.25 }}>
                 {[
-                  ["Describe the problem", "Financial, team or operational. Leave a voicemail or type it in the portal."],
+                  ["Describe the problem", "Financial, team or operational. In plain English, the way you'd explain it to a colleague."],
                   ["Get a first answer right away", "Beacon answers from our experts’ own sessions, with links to the right page."],
                   ["Need a person?", "Our team comes back to you in writing within 2 to 3 business days, with the experts worth calling."],
                 ].map(([title, sub], i) => (

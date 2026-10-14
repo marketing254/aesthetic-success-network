@@ -37,7 +37,7 @@ export async function sendMemberLaunchEmail(input: MemberLaunchEmailInput): Prom
       {
         title: "What you get from day one",
         items: [
-          "The Expert Hotline. Call, leave a voicemail with your question, and get a written action plan by text and email within 2 to 3 business days.",
+          "The Expert Hotline. Describe any practice problem and get an instant, AI-assisted answer: a recommended solution and the experts and companies best placed to help.",
           "The resource library: playbooks, checklists, calculators and recordings from vetted experts, with new material added as experts join.",
           "Member-only offers from companies we've vetted.",
           "Directories of experts and companies, so you can find the right help fast.",
@@ -51,7 +51,7 @@ export async function sendMemberLaunchEmail(input: MemberLaunchEmailInput): Prom
         tone: "gold",
       },
     ],
-    ctas: [{ label: "Claim my founding spot", url: input.joinUrl }],
+    ctaTop: { label: "Claim my founding spot", url: input.joinUrl },
     notes: ["30-day money-back guarantee. Cancel anytime."],
     closing: "Questions? Reply to this email. Our team reads every reply.",
     signoff: TEAM_SIGNOFF,

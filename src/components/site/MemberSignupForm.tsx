@@ -6,6 +6,8 @@ import { useSearchParams } from "next/navigation";
 import { challengeOptions, heardAboutOptions, isOtherOption, locationOptions, memberRoles } from "@/lib/content";
 import type { RefContext } from "@/lib/referralContext";
 import { trackEvent } from "@/lib/analytics";
+import { founding } from "@/lib/content";
+import { memberLaunchShortLabel } from "@/lib/providerBilling";
 
 /**
  * Member signup (ASN design). Same three steps, the same fields and the SAME
@@ -43,10 +45,20 @@ const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
 export default function MemberSignupForm({
   refCtx = null,
   prefill = null,
+  variant = "page",
+  from = null,
 }: {
   refCtx?: RefContext | null;
   prefill?: SignupPrefill | null;
+  /**
+   * "page": the original layout. "card": the /join/member hero card
+   * (owner design, 14 Oct 2026): price header, progress bars, same steps.
+   */
+  variant?: "page" | "card";
+  /** Validated founding-expert slug from ?from= (lib/foundingExperts). */
+  from?: string | null;
 }) {
+  const card = variant === "card";
   const params = useSearchParams();
 
   const [step, setStep] = useState(0);
@@ -163,6 +175,7 @@ export default function MemberSignupForm({
             biggest_challenge: resolveOther(challenge, challengeOther) ?? null,
             ref: params.get("ref") ?? null,
             promo: params.get("promo") ?? null,
+            from: from ?? null,
           },
         }),
       });
@@ -194,6 +207,19 @@ export default function MemberSignupForm({
   const s = STEPS[step]!;
 
   if (done) {
+    if (card) {
+      return (
+        <div className="jm-thanks" role="status">
+          <span className="jm-eyebrow">You&rsquo;re on the list</span>
+          <h3>Your founding spot is reserved.</h3>
+          <p>
+            {done.startsWith("You're on the founding waitlist")
+              ? `We'll email you before the doors open on ${memberLaunchShortLabel()}. Nothing to pay until you confirm.`
+              : done}
+          </p>
+        </div>
+      );
+    }
     return (
       <div className="thanks waitlist-thanks">
         <h3>You&rsquo;re on the list.</h3>
@@ -203,7 +229,29 @@ export default function MemberSignupForm({
   }
 
   return (
-    <div className="netform signup" id="memberSignupForm">
+    <div className={card ? "netform signup jm-form" : "netform signup"} id="memberSignupForm">
+      {card && (
+        <>
+          <div className="jm-price">
+            <span className="jm-price-big">${founding.priceMonthly}</span>
+            <span className="jm-price-per">
+              a month,
+              <br />
+              locked in
+            </span>
+            <span className="jm-price-alt">
+              or ${founding.priceAnnual} a year
+              <br />
+              founding rate
+            </span>
+          </div>
+          <div className="jm-steps" aria-hidden>
+            {STEPS.map((_, i) => (
+              <span key={i} className={i <= step ? "on" : undefined} />
+            ))}
+          </div>
+        </>
+      )}
       {refCtx && (
         <div className="signup-ref">
           {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -219,7 +267,7 @@ export default function MemberSignupForm({
         </div>
       )}
 
-      <span className="kicker">{s.eyebrow}</span>
+      <span className={card ? "kicker jm-sr" : "kicker"}>{s.eyebrow}</span>
       <h2 className="signup-title">{s.title}</h2>
       <p className="signup-sub">{s.sub}</p>
 
@@ -352,7 +400,7 @@ export default function MemberSignupForm({
         </button>
       </div>
       <div className="formnote">
-        Nothing to pay today &middot; We contact you before the doors open &middot; You confirm before any charge
+        Nothing to pay today &middot; We {card ? "email" : "contact"} you before the doors open &middot; You confirm before any charge
       </div>
     </div>
   );

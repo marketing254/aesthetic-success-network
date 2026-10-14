@@ -15,6 +15,7 @@ import {
 import LockRoundedIcon from "@mui/icons-material/LockRounded";
 import CheckRoundedIcon from "@mui/icons-material/CheckRounded";
 import { loadStripe, type Stripe } from "@stripe/stripe-js";
+import { LAUNCH_LABEL } from "@/lib/providerBilling";
 import {
   Elements,
   PaymentElement,
@@ -169,7 +170,7 @@ export default function TrialStartCard({
 
         {/* Terms: free founding months, then the flat rate */}
         <Box sx={{ border: `1px solid ${LINE}`, borderRadius: "12px", px: 2, py: 1.25, mb: 2.5 }}>
-          <RampLine label="First 6 months, from member launch" price="$0/mo" bold />
+          <RampLine label={"First 6 months, from " + LAUNCH_LABEL} price="$0/mo" bold />
           {expertCard || flatCompany ? (
             <RampLine label="After that, no increase" price="$39/mo" />
           ) : (
@@ -433,7 +434,7 @@ function BenefitsPanel({ audience, flat }: { audience: "gold" | "green"; flat: b
     >
       <Typography sx={{ fontSize: "1rem", fontWeight: 700, letterSpacing: "-0.01em", color: INK, mb: 0.5 }}>What your membership includes</Typography>
       <Typography sx={{ fontSize: "0.8125rem", color: BODY, mb: 2, lineHeight: 1.55 }}>
-        {`${flat ? "Your first 6 months are free, starting the day we open to members. After that it's $39 a month, and it stays $39 with no increase." : "Your first 6 months are free, starting the day we open to members. After that it's $39 a month for your first 12 months, then $149 a month."} Cancel before your first charge and you won't be charged; after that, 30 days' notice.`}
+        {`${flat ? "Your first 6 months are free, starting " + LAUNCH_LABEL + ". After that it's $39 a month, and it stays $39 with no increase." : "Your first 6 months are free, starting " + LAUNCH_LABEL + ". After that it's $39 a month for your first 12 months, then $149 a month."} Cancel before your first charge and you won't be charged; after that, 30 days' notice.`}
       </Typography>
       <Stack component="ul" spacing={1.25} sx={{ listStyle: "none", p: 0, m: 0 }}>
         {items.map((t) => (

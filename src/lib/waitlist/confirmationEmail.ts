@@ -162,8 +162,8 @@ function memberDraft(input: ConfirmationInput): EmailDraft {
       {
         title: "What you get as a founding member",
         items: [
-          "The Expert Hotline. Call our toll-free line, leave a voicemail, and get a written action plan by text and email within 2 to 3 business days, routed to the right experts by fit.",
-          "A growing resource library. Training videos, action guides, checklists and worksheets, with new expert kits added weekly.",
+          "The Expert Hotline. Describe any practice problem and get an instant, AI-assisted answer: a recommended solution and the experts and companies best placed to help, matched by fit, never pay-to-play.",
+          "A growing library of expert Protocols. Training videos, action guides, checklists and worksheets, with new Protocols added regularly.",
           "Member-only partner deals. Exclusive pricing from vetted partners across devices, injectables, skincare, software and services.",
           "Live AMAs and CE. Monthly live sessions with the field's best experts, plus continuing-education opportunities.",
         ],
@@ -699,7 +699,6 @@ function vendorApprovalDraft(input: VendorApprovalInput): LayoutDraft {
       },
     ],
     ctaTop: input.portalUrl ? { label: "Sign in to your portal", url: input.portalUrl } : undefined,
-    ctas: input.portalUrl ? [{ label: "Sign in to your portal", url: input.portalUrl }] : undefined,
     closing: "Questions? Reply to this email and our partnerships team will get back to you within one business day.",
     signoff: TEAM_SIGNOFF,
     footerNote: "Partner verified",
@@ -961,7 +960,6 @@ function expertApprovalDraft(input: ExpertApprovalInput): LayoutDraft {
       },
     ],
     ctaTop: input.portalLoginUrl ? { label: "Sign in to your portal", url: input.portalLoginUrl } : undefined,
-    ctas: input.portalLoginUrl ? [{ label: "Sign in to your portal", url: input.portalLoginUrl }] : undefined,
     closing: "Questions? Reply to this email and we'll get back to you within one business day.",
     signoff: ["Welcome to the bench.", ...TEAM_SIGNOFF],
     footerNote: "Expert approved",

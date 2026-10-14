@@ -124,8 +124,8 @@ export default function ToolsPage() {
             Want the <em>plan</em>, not just the math?
           </h2>
           <p className="lead2">
-            The Expert Hotline turns numbers like these into a written action plan in 2 to 3
-            business days. Founding membership is $29/mo, locked while your membership stays
+            Bring numbers like these to the Expert Hotline for an instant, AI-assisted answer.
+            Founding membership is $29/mo, locked while your membership stays
             active.
           </p>
           <div className="cta-row" style={{ display: "flex", justifyContent: "center", gap: 14, flexWrap: "wrap" }}>

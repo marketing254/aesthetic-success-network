@@ -225,11 +225,10 @@ without being told about it.</p>
   <div style="font-family:Georgia,'Times New Roman',serif;font-size:19px;font-weight:700;color:#0A1A2F;line-height:1.35;">Bring us any practice problem,<br>and we'll go and find you the answer.</div>
 </div>
 
-<p style="margin:0 0 14px;">Here's how it works. You leave the question as a voicemail on the
-hotline (or reply to this email), our team routes it to the right experts in the network, and
-within <b>2 to 3 business days</b> you get a written action plan back by text and email, plus who
-to talk to if you want to go further. It's not a live line, and nobody can pay to jump the queue.
-It's a real answer from people who've actually solved that exact problem.</p>
+<p style="margin:0 0 14px;">Here's how it works. You describe the problem in plain English, the way
+you'd explain it to a colleague, and the Hotline gives you an <b>instant, AI-assisted answer</b>: a
+recommended solution, plus the experts and companies best placed to help if you want to go further.
+It's matched by fit, and nobody can pay to jump the queue.</p>
 
 <p style="margin:0 0 14px;">Ask us anything you're genuinely stuck on. Staffing, scheduling,
 pricing, consult conversion, a number that won't move, a conversation you're dreading. Nothing is

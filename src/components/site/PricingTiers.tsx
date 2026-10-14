@@ -76,7 +76,7 @@ export default function PricingTiers() {
               : "Locked for as long as your membership stays active. Annual: $290/yr (two months free)."}
           </div>
           <ul>
-            <li>The Expert Hotline: a written action plan in 2 to 3 business days</li>
+            <li>The Expert Hotline: an instant, AI-assisted answer</li>
             <li>The full resource library, new expert kits weekly</li>
             <li>Every member-only company deal</li>
             <li>Practice calculators and tools</li>

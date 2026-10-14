@@ -162,7 +162,7 @@ export const planTiers: PlanTier[] = [
     cadenceLabel: "/month",
     blurb: "Everything you need to run, hire, buy, and grow.",
     features: [
-      "Expert hotline, written action plan in 2 to 3 business days",
+      "Expert Hotline: instant, AI-assisted answers",
       "Full partner savings network",
       "Member directory",
       "Full library + weekly content",

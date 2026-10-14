@@ -5,6 +5,7 @@ import SiteFooter from "@/components/site/SiteFooter";
 import PageFx from "@/components/site/PageFx";
 import ExpertForm from "@/components/site/ExpertForm";
 import ExpertDirectory from "@/components/site/ExpertDirectory";
+import { LAUNCH_LABEL } from "@/lib/providerBilling";
 
 // Copy source: the previous ASN site / _asn-source-copy/experts.html
 // (approved ASN copy). The application form posts to DMN's
@@ -213,14 +214,14 @@ export default function ExpertsPage() {
             Build first. Pay only as the value <em>compounds</em>.
           </h2>
           <p className="lead">
-            Your first 6 months are free, starting the day we open to members. After that it&rsquo;s $39 a month, and it stays $39 with no increase.
+            Your first 6 months are free, starting {LAUNCH_LABEL}. After that it&rsquo;s $39 a month, and it stays $39 with no increase.
           </p>
           <div className="pgrid">
             <div className="pc hot">
               <div className="badge">Start here</div>
               <div className="tier">First 6 months</div>
               <div className="price">$0</div>
-              <div className="desc">Free from the day we open to members. Get set up and build your library first.</div>
+              <div className="desc">Free from {LAUNCH_LABEL}. Get set up and build your library first.</div>
             </div>
             <div className="pc">
               <div className="tier">After that</div>

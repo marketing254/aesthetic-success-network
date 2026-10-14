@@ -19,6 +19,7 @@ import {
   normalizeProviderRate,
   providerTermsSentence,
   type ProviderRate,
+  LAUNCH_LABEL,
 } from "@/lib/providerBilling";
 
 export type VendorBillingPlan = ProviderRate;
@@ -67,7 +68,7 @@ export function vendorRamp(plan: VendorBillingPlan | string | null | undefined, 
   const freeRow: VendorRampRow = {
     label: "Free founding months",
     price: "$0",
-    note: until ? `Until ${until}` : `${PROVIDER_FREE_MONTHS} months from the member launch`,
+    note: until ? `Until ${until}` : `${PROVIDER_FREE_MONTHS} months from ${LAUNCH_LABEL}`,
     free: true,
   };
   const rows: VendorRampRow[] =
