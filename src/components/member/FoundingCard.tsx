@@ -57,7 +57,7 @@ const WHATS_INSIDE: { icon: SvgIconComponent; title: string; body: string }[] = 
   {
     icon: SupportAgentOutlinedIcon,
     title: "The expert hotline",
-    body: "Leave a voicemail with any practice problem. You get a written action plan by text and email within 2 to 3 business days, AI-assisted.",
+    body: "Describe any practice problem and get an instant, AI-assisted answer: a recommended solution and the experts and companies best placed to help.",
   },
   {
     icon: CalculateOutlinedIcon,

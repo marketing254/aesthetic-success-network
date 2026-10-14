@@ -5,6 +5,7 @@ import { Box, Button, Chip, Container, Stack, Typography } from "@mui/material";
 import CheckRoundedIcon from "@mui/icons-material/CheckRounded";
 import ArrowForwardRoundedIcon from "@mui/icons-material/ArrowForwardRounded";
 import { COLORS } from "@/theme";
+import { LAUNCH_LABEL } from "@/lib/providerBilling";
 
 /**
  * "One network. Three ways in." — three-card section that introduces the
@@ -57,7 +58,7 @@ const CARDS: Array<{
   {
     eyebrow: "Partners",
     title: "For companies serving aesthetic practices",
-    body: "Get in front of aesthetics' most engaged buyers through a trusted shortlist instead of a cold ad. Your first 6 months are free from the member launch, then $39 a month for 12 months, then $149.",
+    body: "Get in front of aesthetics' most engaged buyers through a trusted shortlist instead of a cold ad. Your first 6 months are free from " + LAUNCH_LABEL + ", then $39 a month for 12 months, then $149.",
     perks: [
       "Profile and placement in your category",
       "Lead flow with a dashboard",

@@ -16,6 +16,7 @@ import {
 } from "@mui/material";
 import { vendorCategories } from "@/lib/vendorData";
 import { isOtherOption, resolveOtherOption, splitOtherOption } from "@/lib/content";
+import { LAUNCH_LABEL } from "@/lib/providerBilling";
 
 export type FoundingInviteRoleValue = "partner" | "expert" | "both";
 
@@ -132,12 +133,12 @@ export default function FoundingInviteDialog({
   const needsCompany = v.role === "partner" || v.role === "both";
   const pricingHelper =
     v.role === "expert"
-      ? "Agreement, acceptance page, email and Stripe all show the first 12 months free (from the member launch), then $39 a month with no increase. A card is saved at acceptance; nothing is charged until the free months end."
+      ? "Agreement, acceptance page, email and Stripe all show the first 12 months free (from " + LAUNCH_LABEL + "), then $39 a month with no increase. A card is saved at acceptance; nothing is charged until the free months end."
       : v.pricing_plan === "flat"
-        ? `Company listing: first 6 months free from the member launch, then $39 a month with no increase. Nothing they see mentions $149.${
+        ? `Company listing: first 6 months free from ${LAUNCH_LABEL}, then $39 a month with no increase. Nothing they see mentions $149.${
             v.role === "both" ? " Expert access on the same invite is 12 months free, then $39." : ""
           }`
-        : `Company listing: first 6 months free from the member launch, then $39 a month for 12 months, then $149 a month. Agreement, acceptance page, email and Stripe all show this.${
+        : `Company listing: first 6 months free from ${LAUNCH_LABEL}, then $39 a month for 12 months, then $149 a month. Agreement, acceptance page, email and Stripe all show this.${
             v.role === "both" ? " Expert access on the same invite is 12 months free, then $39." : ""
           }`;
 
@@ -277,11 +278,11 @@ export default function FoundingInviteDialog({
               helperText={pricingHelper}
             >
               {v.role === "expert" ? (
-                <MenuItem value="ladder" sx={{ whiteSpace: "normal" }}>Founding expert: 12 months free from launch, then $39 a month with no increase</MenuItem>
+                <MenuItem value="ladder" sx={{ whiteSpace: "normal" }}>Founding expert: 12 months free from {LAUNCH_LABEL}, then $39 a month with no increase</MenuItem>
               ) : (
                 [
-                  <MenuItem key="ladder" value="ladder" sx={{ whiteSpace: "normal" }}>Founding company: 6 months free from launch, then $39 a month for 12 months, then $149</MenuItem>,
-                  <MenuItem key="flat" value="flat" sx={{ whiteSpace: "normal" }}>Founding company, flat: 6 months free from launch, then $39 a month with no increase</MenuItem>,
+                  <MenuItem key="ladder" value="ladder" sx={{ whiteSpace: "normal" }}>Founding company: 6 months free from {LAUNCH_LABEL}, then $39 a month for 12 months, then $149</MenuItem>,
+                  <MenuItem key="flat" value="flat" sx={{ whiteSpace: "normal" }}>Founding company, flat: 6 months free from {LAUNCH_LABEL}, then $39 a month with no increase</MenuItem>,
                 ]
               )}
             </TextField>

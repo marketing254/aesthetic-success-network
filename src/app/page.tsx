@@ -6,6 +6,7 @@ import PageFx from "@/components/site/PageFx";
 import Calculator from "@/components/site/Calculator";
 import WaitlistForm from "@/components/site/WaitlistForm";
 import JsonLd from "@/components/seo/JsonLd";
+import { LAUNCH_LABEL } from "@/lib/providerBilling";
 
 // The ASN home page: the approved plain-CSS design (previous ASN site,
 // _asn-source-copy/index.html) on top of DMN's functionality. The hero
@@ -24,11 +25,11 @@ import JsonLd from "@/components/seo/JsonLd";
 const FAQ_ITEMS: { q: string; a: string }[] = [
   {
     q: "What exactly do I get as a member?",
-    a: "The Expert Hotline (written action plans in 2 to 3 business days), a growing resource library with new expert kits weekly, exclusive member-only company deals, and monthly live AMAs and CE with the field's best experts.",
+    a: "The Expert Hotline (instant, AI-assisted answers), a growing library of expert Protocols, exclusive member-only company deals, and monthly live AMAs and CE with the field's best experts.",
   },
   {
-    q: "Is the Hotline a live, 24/7 helpline?",
-    a: "No, and we won't pretend otherwise. It's a voicemail line. You leave your question and our team (AI-assisted) replies by text and email within 2 to 3 business days with a recommended solution plus 3 to 4 experts to contact.",
+    q: "Is the Hotline a live human?",
+    a: "No, and we won't pretend otherwise. The Hotline is AI-assisted: you describe your problem and get an instant answer with a recommended solution and the experts or companies best placed to help.",
   },
   {
     q: "How does the founding rate work?",
@@ -76,13 +77,13 @@ export default function HomePage() {
           <div>
             <span className="eyebrow">For aesthetic practice owners</span>
             <h1>
-              Every practice problem gets a <em>written action plan</em> instantly from a vetted
-              community of experts and companies.
+              Every practice problem gets an <em>instant, AI-assisted answer</em>, plus the experts
+              and companies best placed to help.
             </h1>
             <p className="sub">
               The Expert Hotline routes your toughest questions to the right people. Vetted
-              companies give you member-only deals. New expert kits arrive weekly. That&rsquo;s the
-              network.
+              companies give you member-only deals. New expert Protocols are added regularly.
+              That&rsquo;s the network.
             </p>
             <div className="cta-row">
               <Link className="btn bronze" href="/join/member">
@@ -188,17 +189,17 @@ export default function HomePage() {
             <div className="example">
               <div className="tag">Example &middot; illustrative</div>
               <h5>&ldquo;My filler margins are shrinking and I don&rsquo;t know where.&rdquo;</h5>
-              <p>A reply like this arrives by text and email within 2 to 3 business days:</p>
+              <p>An answer like this comes back instantly (illustrative example):</p>
               <ul>
                 <li>A written action plan: inventory audit steps plus a pricing worksheet</li>
                 <li>3 to 4 vetted experts in aesthetics finance and operations to contact</li>
-                <li>Relevant kits from the library, matched to your problem</li>
+                <li>Relevant Protocols from the library, matched to your problem</li>
               </ul>
             </div>
             <div className="honest">
-              <b>How it actually works:</b> the Hotline is a voicemail line, not a live 24/7
-              helpline. You leave your question; our team (AI-assisted) replies in writing within
-              2 to 3 business days, routed by fit, never pay-to-play.
+              <b>How it actually works:</b> the Hotline is AI-assisted, not a live human. You
+              describe your problem and get an instant answer: a recommended solution and the
+              experts or companies best placed to help, matched by fit, never pay-to-play.
             </div>
           </div>
           <div>
@@ -206,9 +207,9 @@ export default function HomePage() {
               <div className="stepr">
                 <div className="n">01</div>
                 <div>
-                  <h4>Call and describe the problem</h4>
+                  <h4>Describe the problem</h4>
                   <p>
-                    In plain English, on our toll-free line, (855) 567-5323. No forms, no forums, no
+                    In plain English, the way you&rsquo;d explain it to a colleague. No forums, no
                     scrolling.
                   </p>
                 </div>
@@ -216,20 +217,19 @@ export default function HomePage() {
               <div className="stepr">
                 <div className="n">02</div>
                 <div>
-                  <h4>We route it by fit</h4>
+                  <h4>It&rsquo;s matched by fit</h4>
                   <p>
-                    Our team reviews your voicemail and matches it to the best solution and the
-                    right experts.
+                    The Hotline finds the best solution and the experts and companies best placed to
+                    help. Never pay-to-play.
                   </p>
                 </div>
               </div>
               <div className="stepr">
                 <div className="n">03</div>
                 <div>
-                  <h4>You get a written plan</h4>
+                  <h4>You get an answer, instantly</h4>
                   <p>
-                    Text and email within 2 to 3 business days: a recommended solution plus 3 to 4
-                    experts to contact.
+                    A recommended solution, plus the experts and companies to contact next.
                   </p>
                 </div>
               </div>
@@ -255,8 +255,8 @@ export default function HomePage() {
               <div className="num">No.1</div>
               <h3>Expert Hotline</h3>
               <p>
-                Written action plans for staffing, pricing, marketing and compliance problems, in
-                2 to 3 business days.
+                Instant, AI-assisted answers for staffing, pricing, marketing and compliance
+                problems.
               </p>
             </div>
             <div className="feat">
@@ -264,7 +264,7 @@ export default function HomePage() {
               <h3>Resource library</h3>
               <p>
                 Training videos, action guides, checklists, worksheets and slide decks, with new
-                expert kits added weekly.
+                Protocols added regularly.
               </p>
             </div>
             <div className="feat">
@@ -388,32 +388,32 @@ export default function HomePage() {
               </div>
               <div className="main">
                 <div className="hi">Good morning.</div>
-                <div className="sub2">Your latest kits, fresh from the network&rsquo;s experts:</div>
+                <div className="sub2">Your latest Protocols, fresh from the network&rsquo;s experts:</div>
                 <div className="kitrow">
                   <div>
                     <div className="t">Pricing injectables to protect your margin</div>
                     <div className="m">Training video &middot; action guide &middot; worksheet</div>
                   </div>
-                  <div className="pill">New this week</div>
+                  <div className="pill">New</div>
                 </div>
                 <div className="kitrow">
                   <div>
                     <div className="t">The consult that converts without pressure</div>
                     <div className="m">Training video &middot; checklist &middot; script</div>
                   </div>
-                  <div className="pill">Kit</div>
+                  <div className="pill">Protocol</div>
                 </div>
                 <div className="kitrow">
                   <div>
                     <div className="t">Hiring and keeping a great injector</div>
                     <div className="m">Training video &middot; SOP &middot; interview guide</div>
                   </div>
-                  <div className="pill">Kit</div>
+                  <div className="pill">Protocol</div>
                 </div>
               </div>
             </div>
             <div className="note2">
-              Illustrative preview. Kit titles are examples of the format.
+              Illustrative preview. Protocol titles are examples of the format.
             </div>
           </div>
         </div>
@@ -452,7 +452,7 @@ export default function HomePage() {
               <div className="cap">Locked while your membership stays active.</div>
               <ul>
                 <li>The Expert Hotline</li>
-                <li>Full resource library, new kits weekly</li>
+                <li>Full library of expert Protocols, new Protocols added regularly</li>
                 <li>Every member-only company deal</li>
                 <li>Monthly live AMAs and CE</li>
                 <li>30-day money-back guarantee &middot; cancel anytime</li>
@@ -543,7 +543,7 @@ export default function HomePage() {
               </h3>
               <p>
                 Get in front of aesthetics&rsquo; most engaged buyers through a trusted shortlist
-                instead of a cold ad. Your first 6 months are free from the member launch, then $39 a month for 12 months, then $149.
+                instead of a cold ad. Your first 6 months are free from {LAUNCH_LABEL}, then $39 a month for 12 months, then $149.
               </p>
               <ul>
                 <li>Profile plus placement in your category</li>

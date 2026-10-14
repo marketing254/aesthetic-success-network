@@ -21,6 +21,7 @@ import {
   companyStandardStartsAt,
   formatLongDate,
   normalizeProviderRate,
+  LAUNCH_LABEL,
 } from "@/lib/providerBilling";
 
 /**
@@ -370,7 +371,7 @@ function AgreementDoc({ input }: { input: AgreementPdfInput }) {
   const freeUntil = formatLongDate(input.freePeriodEndsAt ?? null);
   const standardFrom = input.freePeriodEndsAt ? formatLongDate(companyStandardStartsAt(new Date(input.freePeriodEndsAt))) : null;
   const flatCompany = normalizeProviderRate(input.rate) === "flat";
-  const freeLabel = freeUntil ? `Through ${freeUntil}` : `First ${PROVIDER_FREE_MONTHS} months (from member launch)`;
+  const freeLabel = freeUntil ? `Through ${freeUntil}` : `First ${PROVIDER_FREE_MONTHS} months (from ${LAUNCH_LABEL})`;
 
   return (
     <Document

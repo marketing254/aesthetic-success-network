@@ -1,0 +1,693 @@
+/* =====================================================================
+   /join/member: founding-membership waitlist page (owner design, 14 Oct 2026)
+   Every rule is scoped to .asn-site.jm so nothing leaks into other pages.
+   ===================================================================== */
+
+.asn-site.jm {
+  --jm-ink: #0a1320;
+  --jm-ink-soft: #3b4a55;
+  --jm-ink-muted: #5c6770;
+  --jm-gold: #d9a84b;
+  --jm-gold-bright: #f0c16e;
+  --jm-gold-deep: #a07823;
+  --jm-cream: #fbf8f1;
+  --jm-ivory: #f6f1e7;
+  --jm-clay: #e0dace;
+  --jm-line: rgba(10, 19, 32, 0.12);
+  background: var(--jm-cream);
+  color: var(--jm-ink);
+  line-height: 1.55;
+}
+.asn-site.jm h1,
+.asn-site.jm h2,
+.asn-site.jm h3 {
+  font-family: var(--font-display), "Fraunces", Georgia, serif;
+  font-weight: 400;
+  letter-spacing: -0.01em;
+  margin: 0;
+}
+.asn-site.jm .jm-wrap {
+  max-width: 1140px;
+  margin: 0 auto;
+  padding: 0 20px;
+}
+.asn-site.jm .jm-eyebrow {
+  font-size: 12px;
+  font-weight: 600;
+  line-height: 1;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--jm-gold);
+}
+.asn-site.jm .jm-sr {
+  position: absolute !important;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+}
+
+/* ---------- nav ---------- */
+.asn-site.jm .jm-nav {
+  background: var(--jm-cream);
+  border-bottom: 1px solid var(--jm-line);
+}
+.asn-site.jm .jm-nav .jm-wrap {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  height: 66px;
+}
+.asn-site.jm .jm-brand {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  text-decoration: none;
+  color: var(--jm-ink);
+  font-family: var(--font-display), "Fraunces", Georgia, serif;
+  font-size: 17px;
+}
+.asn-site.jm .jm-brand img {
+  width: 34px;
+  height: 34px;
+  border-radius: 8px;
+}
+.asn-site.jm .jm-pby {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12px;
+  color: var(--jm-ink-muted);
+}
+.asn-site.jm .jm-chip {
+  background: #fff;
+  border: 1px solid var(--jm-line);
+  border-radius: 6px;
+  padding: 3px 6px;
+  display: inline-flex;
+}
+.asn-site.jm .jm-chip img {
+  height: 18px;
+  width: auto;
+}
+
+/* ---------- invite ribbon (?from=) ---------- */
+.asn-site.jm .jm-invite {
+  background: var(--jm-ink);
+  color: #fff;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+}
+.asn-site.jm .jm-invite .jm-wrap {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding-top: 10px;
+  padding-bottom: 10px;
+  font-size: 14px;
+}
+.asn-site.jm .jm-invite img {
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  border: 2px solid var(--jm-gold);
+  object-fit: cover;
+  flex: none;
+}
+.asn-site.jm .jm-invite b {
+  color: var(--jm-gold-bright);
+  font-weight: 600;
+}
+
+/* ---------- hero ---------- */
+.asn-site.jm .jm-hero {
+  padding: 0;
+  background: var(--jm-ink);
+  color: #fff;
+  position: relative;
+  overflow: hidden;
+}
+.asn-site.jm .jm-hero-grid {
+  display: grid;
+  grid-template-columns: 1.1fr 0.9fr;
+  gap: 56px;
+  padding-top: 64px;
+  padding-bottom: 72px;
+  align-items: center;
+  position: relative;
+}
+.asn-site.jm .jm-hero h1 {
+  font-size: clamp(34px, 4.6vw, 56px);
+  line-height: 1.06;
+  margin: 16px 0 18px;
+  color: #fff;
+}
+.asn-site.jm .jm-hero h1 em {
+  color: var(--jm-gold-bright);
+  font-style: italic;
+}
+.asn-site.jm .jm-lede {
+  font-size: 18px;
+  color: #cdd3da;
+  max-width: 540px;
+  margin: 0;
+}
+.asn-site.jm .jm-ticks {
+  list-style: none;
+  padding: 0;
+  margin: 26px 0 0;
+  display: grid;
+  gap: 10px;
+}
+.asn-site.jm .jm-ticks li {
+  display: flex;
+  gap: 10px;
+  align-items: flex-start;
+  color: #e4e7eb;
+  font-size: 15px;
+}
+.asn-site.jm .jm-ticks svg {
+  flex: none;
+  margin-top: 3px;
+}
+.asn-site.jm .jm-date {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  margin-top: 28px;
+  border: 1px solid rgba(217, 168, 75, 0.45);
+  border-radius: 999px;
+  padding: 8px 16px;
+  font-size: 14px;
+  color: var(--jm-gold-bright);
+}
+.asn-site.jm .jm-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--jm-gold);
+  flex: none;
+}
+.asn-site.jm .jm-hero-art {
+  position: absolute;
+  right: -60px;
+  bottom: -40px;
+  opacity: 0.12;
+  pointer-events: none;
+}
+
+/* ---------- form card (wraps the unchanged 3-step MemberSignupForm) ---------- */
+.asn-site.jm .jm-card {
+  background: #fff;
+  color: var(--jm-ink);
+  border-radius: 18px;
+  padding: 30px;
+  box-shadow: 0 24px 60px rgba(0, 0, 0, 0.35);
+  position: relative;
+  scroll-margin-top: 24px;
+}
+.asn-site.jm .jm-card .netform.signup {
+  max-width: none;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+}
+.asn-site.jm .jm-price {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  border-bottom: 1px solid var(--jm-line);
+  padding-bottom: 16px;
+  margin-bottom: 18px;
+}
+.asn-site.jm .jm-price-big {
+  font-family: var(--font-display), "Fraunces", Georgia, serif;
+  font-size: 44px;
+  line-height: 1;
+}
+.asn-site.jm .jm-price-per {
+  color: var(--jm-ink-muted);
+  font-size: 15px;
+  line-height: 1.3;
+}
+.asn-site.jm .jm-price-alt {
+  margin-left: auto;
+  font-size: 13px;
+  color: var(--jm-ink-muted);
+  text-align: right;
+  line-height: 1.3;
+}
+.asn-site.jm .jm-steps {
+  display: flex;
+  gap: 6px;
+  margin-bottom: 14px;
+}
+.asn-site.jm .jm-steps span {
+  height: 4px;
+  flex: 1;
+  border-radius: 4px;
+  background: var(--jm-clay);
+  transition: background 0.3s ease;
+}
+.asn-site.jm .jm-steps span.on {
+  background: var(--jm-gold);
+}
+.asn-site.jm .jm-card .netform.signup .signup-title {
+  font-size: 24px;
+  margin: 0 0 4px;
+}
+.asn-site.jm .jm-card .netform.signup .signup-sub {
+  color: var(--jm-ink-muted);
+  font-size: 14px;
+  margin: 0 0 18px;
+}
+.asn-site.jm .jm-card .netform .frow {
+  gap: 12px;
+}
+.asn-site.jm .jm-card .netform .field {
+  margin-bottom: 12px;
+}
+.asn-site.jm .jm-card .netform label {
+  font-size: 11px;
+  letter-spacing: 0.12em;
+  color: var(--jm-ink-muted);
+}
+.asn-site.jm .jm-card .netform input:not([type="checkbox"]),
+.asn-site.jm .jm-card .netform select,
+.asn-site.jm .jm-card .netform textarea {
+  background: var(--jm-cream);
+  border: 1px solid var(--jm-clay);
+  color: var(--jm-ink);
+  font-size: 15px;
+  color-scheme: light;
+}
+.asn-site.jm .jm-card .netform select option {
+  background: #fff;
+  color: var(--jm-ink);
+}
+.asn-site.jm .jm-card .netform input:not([type="checkbox"]):focus,
+.asn-site.jm .jm-card .netform select:focus,
+.asn-site.jm .jm-card .netform textarea:focus {
+  outline: 2px solid var(--jm-gold);
+  outline-offset: 1px;
+  background: #fff;
+}
+.asn-site.jm .jm-card .netform input:-webkit-autofill {
+  -webkit-text-fill-color: var(--jm-ink);
+  -webkit-box-shadow: 0 0 0 1000px var(--jm-cream) inset;
+}
+.asn-site.jm .jm-card .check {
+  color: var(--jm-ink-soft);
+  font-size: 13px;
+  text-transform: none;
+  letter-spacing: 0;
+  font-weight: 400;
+}
+.asn-site.jm .jm-card .netform .btn.bronze {
+  border-radius: 999px;
+  background: var(--jm-gold);
+  color: var(--jm-ink);
+  font-weight: 700;
+  font-size: 16px;
+  padding: 15px;
+  margin-top: 12px;
+}
+.asn-site.jm .jm-card .netform .btn.bronze:hover:not([disabled]) {
+  background: var(--jm-gold-bright);
+}
+.asn-site.jm .jm-card .netform .btn.ghost {
+  border-radius: 999px;
+  margin-top: 12px;
+}
+.asn-site.jm .jm-card .formnote {
+  font-size: 12.5px;
+  color: var(--jm-ink-muted);
+}
+.asn-site.jm .jm-card .formerror {
+  color: #8c1d1d;
+  background: #fbeaea;
+  border-color: #e7b9b9;
+}
+.asn-site.jm .jm-thanks {
+  text-align: center;
+  padding: 20px 0;
+}
+.asn-site.jm .jm-thanks h3 {
+  font-size: 28px;
+  margin: 10px 0 8px;
+}
+.asn-site.jm .jm-thanks p {
+  color: var(--jm-ink-muted);
+  font-size: 14px;
+  margin: 0;
+}
+
+/* ---------- sections ---------- */
+.asn-site.jm .jm-sec {
+  padding: 76px 0;
+}
+.asn-site.jm .jm-sec-tight {
+  padding-top: 0;
+}
+.asn-site.jm .jm-sec-h {
+  max-width: 640px;
+  margin-bottom: 34px;
+}
+.asn-site.jm .jm-sec-h h2 {
+  font-size: clamp(28px, 3.4vw, 40px);
+  line-height: 1.12;
+  margin-top: 12px;
+}
+.asn-site.jm .jm-sec-p {
+  color: var(--jm-ink-soft);
+  margin: 12px 0 0;
+}
+.asn-site.jm .jm-grid5 {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 18px;
+}
+.asn-site.jm .jm-feat {
+  background: #fff;
+  border: 1px solid var(--jm-line);
+  border-radius: 16px;
+  padding: 24px;
+}
+.asn-site.jm .jm-feat h3 {
+  font-size: 21px;
+  margin: 14px 0 6px;
+}
+.asn-site.jm .jm-feat p {
+  margin: 0;
+  color: var(--jm-ink-soft);
+  font-size: 15px;
+}
+.asn-site.jm .jm-ic {
+  width: 44px;
+  height: 44px;
+}
+.asn-site.jm .jm-feat-wide {
+  grid-column: span 2;
+  background: var(--jm-ink);
+  color: #fff;
+  border: 0;
+}
+.asn-site.jm .jm-feat-wide h3 {
+  color: #fff;
+}
+.asn-site.jm .jm-feat-wide p {
+  color: #cdd3da;
+}
+
+/* Hotline example */
+.asn-site.jm .jm-demo {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 22px;
+  align-items: start;
+}
+.asn-site.jm .jm-bubble {
+  border-radius: 16px;
+  padding: 20px 22px;
+  font-size: 15px;
+}
+.asn-site.jm .jm-q {
+  background: var(--jm-ivory);
+  border: 1px solid var(--jm-line);
+}
+.asn-site.jm .jm-a {
+  background: #fff;
+  border: 1px solid var(--jm-gold);
+  box-shadow: 0 10px 30px rgba(10, 19, 32, 0.08);
+}
+.asn-site.jm .jm-a ul {
+  margin: 10px 0 0;
+  padding-left: 18px;
+}
+.asn-site.jm .jm-a li {
+  margin: 4px 0;
+}
+.asn-site.jm .jm-tag {
+  display: block;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--jm-gold-deep);
+  margin-bottom: 8px;
+}
+.asn-site.jm .jm-illus {
+  font-size: 12.5px;
+  color: var(--jm-ink-muted);
+  margin-top: 12px;
+}
+
+/* Founding experts + Protocol cards */
+.asn-site.jm .jm-experts {
+  background: var(--jm-ivory);
+}
+.asn-site.jm .jm-marquee {
+  overflow: hidden;
+  padding: 10px 0 26px;
+  -webkit-mask-image: linear-gradient(90deg, transparent, #000 6%, #000 94%, transparent);
+  mask-image: linear-gradient(90deg, transparent, #000 6%, #000 94%, transparent);
+}
+.asn-site.jm .jm-track {
+  display: flex;
+  gap: 20px;
+  width: max-content;
+  padding: 0 10px;
+  animation: jm-slide var(--dur, 48s) linear infinite;
+}
+.asn-site.jm .jm-marquee:hover .jm-track,
+.asn-site.jm .jm-marquee:focus-within .jm-track {
+  animation-play-state: paused;
+}
+.asn-site.jm .jm-track img {
+  width: 220px;
+  height: auto;
+  flex: none;
+  border-radius: 12px;
+  box-shadow: 0 14px 34px rgba(10, 19, 32, 0.18);
+  display: block;
+}
+@keyframes jm-slide {
+  from {
+    transform: translateX(0);
+  }
+  to {
+    transform: translateX(-50%);
+  }
+}
+.asn-site.jm .jm-more {
+  margin-top: 8px;
+  border: 1.5px dashed var(--jm-clay);
+  border-radius: 12px;
+  padding: 22px 26px;
+  color: var(--jm-ink-soft);
+  font-size: 16px;
+  max-width: 620px;
+}
+.asn-site.jm .jm-more b {
+  display: block;
+  font-family: var(--font-display), "Fraunces", Georgia, serif;
+  font-weight: 400;
+  font-size: 22px;
+  color: var(--jm-ink);
+  margin-bottom: 6px;
+}
+
+/* How founding membership works */
+.asn-site.jm .jm-time {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 16px;
+}
+.asn-site.jm .jm-time > div {
+  border-top: 2px solid var(--jm-gold);
+  padding-top: 14px;
+}
+.asn-site.jm .jm-time b {
+  display: block;
+  font-family: var(--font-display), "Fraunces", Georgia, serif;
+  font-weight: 400;
+  font-size: 20px;
+  margin-bottom: 6px;
+}
+.asn-site.jm .jm-time span {
+  color: var(--jm-ink-soft);
+  font-size: 15px;
+}
+.asn-site.jm .jm-time small {
+  display: block;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--jm-gold-deep);
+  margin-bottom: 8px;
+}
+
+/* FAQ */
+.asn-site.jm .jm-faq {
+  max-width: 760px;
+}
+.asn-site.jm .jm-faq details {
+  border-bottom: 1px solid var(--jm-line);
+  padding: 16px 0;
+}
+.asn-site.jm .jm-faq summary {
+  cursor: pointer;
+  font-weight: 600;
+  font-size: 16px;
+  list-style: none;
+}
+.asn-site.jm .jm-faq summary::-webkit-details-marker {
+  display: none;
+}
+.asn-site.jm .jm-faq summary::after {
+  content: "+";
+  float: right;
+  color: var(--jm-gold-deep);
+}
+.asn-site.jm .jm-faq details[open] summary::after {
+  content: "\2013";
+}
+.asn-site.jm .jm-faq details p {
+  margin: 10px 0 0;
+  color: var(--jm-ink-soft);
+}
+
+/* Final CTA */
+.asn-site.jm .jm-final {
+  background: var(--jm-ink);
+  color: #fff;
+  text-align: center;
+}
+.asn-site.jm .jm-final h2 {
+  font-size: clamp(28px, 3.6vw, 42px);
+  margin: 14px 0 12px;
+  color: #fff;
+}
+.asn-site.jm .jm-final p {
+  color: #cdd3da;
+  margin: 0;
+}
+.asn-site.jm .jm-btn {
+  display: inline-block;
+  margin-top: 20px;
+  border-radius: 999px;
+  background: var(--jm-gold);
+  color: var(--jm-ink);
+  font-weight: 700;
+  font-size: 16px;
+  padding: 15px 34px;
+  text-decoration: none;
+}
+.asn-site.jm .jm-btn:hover {
+  background: var(--jm-gold-bright);
+}
+
+/* Line art draws itself once on load (pure CSS; ends fully drawn). */
+.asn-site.jm .jm-draw path,
+.asn-site.jm .jm-draw circle,
+.asn-site.jm .jm-draw rect,
+.asn-site.jm .jm-draw line,
+.asn-site.jm .jm-draw polyline {
+  stroke-dasharray: var(--len, 400);
+  stroke-dashoffset: 0;
+  animation: jm-draw 1.4s ease both;
+}
+@keyframes jm-draw {
+  from {
+    stroke-dashoffset: var(--len, 400);
+  }
+  to {
+    stroke-dashoffset: 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .asn-site.jm .jm-marquee {
+    overflow-x: auto;
+  }
+  .asn-site.jm .jm-track {
+    animation: none;
+  }
+  .asn-site.jm .jm-draw path,
+  .asn-site.jm .jm-draw circle,
+  .asn-site.jm .jm-draw rect,
+  .asn-site.jm .jm-draw line,
+  .asn-site.jm .jm-draw polyline {
+    animation: none;
+  }
+}
+
+/* ---------- responsive ---------- */
+@media (max-width: 900px) {
+  .asn-site.jm .jm-hero-grid {
+    grid-template-columns: 1fr;
+    gap: 34px;
+    padding-top: 40px;
+  }
+  .asn-site.jm .jm-grid5 {
+    grid-template-columns: 1fr 1fr;
+  }
+  .asn-site.jm .jm-feat-wide {
+    grid-column: span 2;
+  }
+  .asn-site.jm .jm-demo {
+    grid-template-columns: 1fr;
+  }
+  .asn-site.jm .jm-time {
+    grid-template-columns: 1fr 1fr;
+  }
+  .asn-site.jm .jm-pby span:first-child {
+    display: none;
+  }
+}
+@media (max-width: 560px) {
+  .asn-site.jm .jm-wrap {
+    padding-left: 16px;
+    padding-right: 16px;
+  }
+  .asn-site.jm .jm-brand span {
+    font-size: 15px;
+  }
+  .asn-site.jm .jm-grid5 {
+    grid-template-columns: 1fr;
+  }
+  .asn-site.jm .jm-feat-wide {
+    grid-column: auto;
+  }
+  .asn-site.jm .jm-card .netform .frow {
+    grid-template-columns: 1fr;
+  }
+  .asn-site.jm .jm-track img {
+    width: 170px;
+  }
+  .asn-site.jm .jm-track {
+    gap: 14px;
+  }
+  .asn-site.jm .jm-time {
+    grid-template-columns: 1fr;
+  }
+  .asn-site.jm .jm-card {
+    padding: 22px;
+  }
+  .asn-site.jm .jm-price-big {
+    font-size: 38px;
+  }
+  .asn-site.jm .jm-sec {
+    padding: 56px 0;
+  }
+  .asn-site.jm .jm-sec-tight {
+    padding-top: 0;
+  }
+  .asn-site.jm .jm-hero-art {
+    width: 320px;
+    height: 320px;
+  }
+}

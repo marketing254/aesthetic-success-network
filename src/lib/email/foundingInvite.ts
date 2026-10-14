@@ -19,6 +19,7 @@ import {
   FOUNDING_EXPERT_FREE_MONTHS,
   PROVIDER_FREE_MONTHS,
   normalizeProviderRate,
+  LAUNCH_LABEL,
 } from "@/lib/providerBilling";
 
 /**
@@ -61,14 +62,14 @@ function termsSection(input: FoundingInviteEmailInput): EmailSection {
   const hasPartner = input.role === "partner" || input.role === "both";
   if (hasExpert) {
     const side = input.role === "both" ? " for your expert access" : "";
-    items.push(`Your first ${FOUNDING_EXPERT_FREE_MONTHS} months${side} are free, starting the day we open to members. After that it's ${EXPERT_RATE_LABEL} a month, and it stays ${EXPERT_RATE_LABEL} with no increase.`);
+    items.push(`Your first ${FOUNDING_EXPERT_FREE_MONTHS} months${side} are free, starting ${LAUNCH_LABEL}. After that it's ${EXPERT_RATE_LABEL} a month, and it stays ${EXPERT_RATE_LABEL} with no increase.`);
   }
   if (hasPartner) {
     const side = input.role === "both" ? " for your company listing" : "";
     items.push(
       normalizeProviderRate(input.pricing) === "flat"
-        ? `Your first ${PROVIDER_FREE_MONTHS} months${side} are free, starting the day we open to members. After that it's ${COMPANY_LAUNCH_LABEL} a month, and it stays ${COMPANY_LAUNCH_LABEL} with no increase.`
-        : `Your first ${PROVIDER_FREE_MONTHS} months${side} are free, starting the day we open to members. After that it's ${COMPANY_LAUNCH_LABEL} a month for your first ${COMPANY_LAUNCH_MONTHS} months, then ${COMPANY_STANDARD_LABEL} a month.`,
+        ? `Your first ${PROVIDER_FREE_MONTHS} months${side} are free, starting ${LAUNCH_LABEL}. After that it's ${COMPANY_LAUNCH_LABEL} a month, and it stays ${COMPANY_LAUNCH_LABEL} with no increase.`
+        : `Your first ${PROVIDER_FREE_MONTHS} months${side} are free, starting ${LAUNCH_LABEL}. After that it's ${COMPANY_LAUNCH_LABEL} a month for your first ${COMPANY_LAUNCH_MONTHS} months, then ${COMPANY_STANDARD_LABEL} a month.`,
     );
   }
   items.push(
@@ -103,7 +104,7 @@ export async function sendFoundingInviteEmail(input: FoundingInviteEmailInput): 
         ],
       },
     ],
-    ctas: [{ label: "Review agreement", url: input.inviteUrl }],
+    ctaTop: { label: "Review and accept your agreement", url: input.inviteUrl },
     notes: ["This link is private to you and expires in 30 days. Please don't forward it."],
     closing: partnerSide
       ? "Questions? Reply to this email and our partnerships team will get back to you within one business day."

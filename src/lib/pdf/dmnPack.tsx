@@ -15,7 +15,6 @@ import { loadExperts, loadPartnerOffers, loadResourceCatalog } from "@/lib/ai/as
  */
 
 const BRAND_NAME = "Aesthetic Success Network";
-const HOTLINE_PHONE = "(855) 567-5323";
 const SUPPORT_EMAIL = "support@aestheticsuccessnetwork.com";
 
 const INK = "#0A1A2F";
@@ -208,9 +207,8 @@ function PackDocument({ memberName, question, dateLabel, experts, partners, kits
         <View style={s.closing} wrap={false}>
           <Text style={s.closingTitle}>Getting the most from your membership</Text>
           <Text style={s.closingText}>
-            Ask <Text style={s.closingGold}>Beacon</Text> inside your portal for a shortlist matched to any problem, leave a
-            voicemail on the Expert Hotline at <Text style={s.closingGold}>{HOTLINE_PHONE}</Text> for a written action plan
-            within 2 to 3 business days, or reply to the email this pack arrived with. It reaches{" "}
+            Ask <Text style={s.closingGold}>Beacon</Text> inside your portal for a shortlist matched to any problem, bring it
+            to the Expert Hotline for an instant, AI-assisted answer, or reply to the email this pack arrived with. It reaches{" "}
             <Text style={s.closingGold}>{SUPPORT_EMAIL}</Text> directly.
           </Text>
         </View>

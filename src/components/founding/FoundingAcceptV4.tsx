@@ -16,6 +16,7 @@ import {
 import LockRoundedIcon from "@mui/icons-material/LockRounded";
 import DescriptionOutlinedIcon from "@mui/icons-material/DescriptionOutlined";
 import { loadStripe, type Stripe } from "@stripe/stripe-js";
+import { LAUNCH_LABEL } from "@/lib/providerBilling";
 import {
   Elements,
   PaymentElement,
@@ -105,7 +106,7 @@ export default function FoundingAcceptV4(props: FoundingAcceptProps) {
         <Typography sx={{ color: "#5C6770", maxWidth: 460, mt: 1 }}>
           You&apos;ve been invited to join as a <strong>{roleLabel}</strong>. Review your
           agreement below, agree, and save your card.{" "}
-          Nothing is charged today. Your free founding months start the day we open to members, and we remind you 7 days before your first charge.
+          Nothing is charged today. Your free founding months start {LAUNCH_LABEL}, and we remind you 7 days before your first charge.
         </Typography>
       </Stack>
 
@@ -153,7 +154,7 @@ export default function FoundingAcceptV4(props: FoundingAcceptProps) {
               <Typography sx={{ fontSize: "0.78rem", color: "#1F5238", fontWeight: 700, letterSpacing: "0.06em", textTransform: "uppercase", mb: 0.5 }}>
                 Founding expert access
               </Typography>
-              <RampLine label="First 12 months, from member launch" price="$0/mo" bold />
+              <RampLine label={"First 12 months, from " + LAUNCH_LABEL} price="$0/mo" bold />
               <RampLine label="After that, no increase" price="$39/mo" />
             </Box>
           )}
@@ -162,7 +163,7 @@ export default function FoundingAcceptV4(props: FoundingAcceptProps) {
               <Typography sx={{ fontSize: "0.78rem", color: "#7A5B17", fontWeight: 700, letterSpacing: "0.06em", textTransform: "uppercase", mb: 0.5 }}>
                 Founding company listing
               </Typography>
-              <RampLine label="First 6 months, from member launch" price="$0/mo" bold />
+              <RampLine label={"First 6 months, from " + LAUNCH_LABEL} price="$0/mo" bold />
               {props.pricing === "flat" || props.pricing === "flat_49" ? (
                 <RampLine label="After that, no increase" price="$39/mo" />
               ) : (

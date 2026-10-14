@@ -17,6 +17,7 @@ import CheckCircleRoundedIcon from "@mui/icons-material/CheckCircleRounded";
 import MailOutlineRoundedIcon from "@mui/icons-material/MailOutlineRounded";
 import VerifiedUserOutlinedIcon from "@mui/icons-material/VerifiedUserOutlined";
 import CalendarTodayOutlinedIcon from "@mui/icons-material/CalendarTodayOutlined";
+import { LAUNCH_LABEL } from "@/lib/providerBilling";
 
 const INTER = "var(--font-body), 'Inter', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif";
 const INK = "#0A1320";
@@ -53,7 +54,7 @@ export default function VendorAppliedPage() {
     {
       icon: CalendarTodayOutlinedIcon,
       title: "Launch pricing locks in",
-      body: "Your first 6 months are free, starting the day we open to members. After that it's $39 a month for your first 12 months, then $149 a month. Your portal lets you set up your catalog and offers right away; they go live to members the day your application is approved.",
+      body: "Your first 6 months are free, starting " + LAUNCH_LABEL + ". After that it's $39 a month for your first 12 months, then $149 a month. Your portal lets you set up your catalog and offers right away; they go live to members the day your application is approved.",
     },
   ];
 

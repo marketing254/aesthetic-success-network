@@ -20,6 +20,7 @@ import TrialStartCard from "@/components/shared/TrialStartCard";
 import { CP } from "@/components/shared/CommunityPortalShell";
 import { EP } from "@/components/shared/TopNavPortalShell";
 import { PageHeader, SectionCard } from "@/components/vendor/PortalUI";
+import { LAUNCH_LABEL } from "@/lib/providerBilling";
 
 const INK = CP.ink;
 const BODY = CP.body;
@@ -36,7 +37,7 @@ const HOVER = EP.bronzeTint;
  * trial end on the row.
  */
 const RAMP = {
-  launch: { months: "Free founding months", price: "$0", note: "From the member launch" },
+  launch: { months: "Free founding months", price: "$0", note: "From " + LAUNCH_LABEL },
   growth: { months: "After that", price: "$39", note: "Flat rate, no increase" },
 } as const;
 
@@ -145,7 +146,7 @@ export default function ExpertBillingPage() {
   const billingExempt = !!expert?.billing_exempt;
   const rampSentence = freePeriodEnds
     ? `Free until ${freePeriodEnds}, then $39 a month. It stays $39, with no increase. Cancel before your first charge and you won't be charged.`
-    : "Your free founding months start the day we open to members. After that it's $39 a month, and it stays $39 with no increase.";
+    : "Your free founding months start " + LAUNCH_LABEL + ". After that it's $39 a month, and it stays $39 with no increase.";
 
   const planLabel = useMemo(() => {
     const phaseLabel = phase === "launch" ? "Launch" : "Growth";

@@ -17,6 +17,7 @@ import CheckCircleRoundedIcon from "@mui/icons-material/CheckCircleRounded";
 import MailOutlineRoundedIcon from "@mui/icons-material/MailOutlineRounded";
 import VerifiedUserOutlinedIcon from "@mui/icons-material/VerifiedUserOutlined";
 import CalendarTodayOutlinedIcon from "@mui/icons-material/CalendarTodayOutlined";
+import { LAUNCH_LABEL } from "@/lib/providerBilling";
 
 /**
  * Expert "application received" thank-you page. Mirror of
@@ -45,7 +46,7 @@ export default function ExpertAppliedPage() {
     {
       icon: CalendarTodayOutlinedIcon,
       title: "Add your card on first login; your free founding months start at launch",
-      body: "Once approved, sign in and add your card in the billing tab. Nothing is charged today. Your first 6 months are free, starting the day we open to members. After that it's $39 a month, and it stays $39 with no increase. We'll email you 7 days before your first charge; cancel any time before then and you won't be charged. Questions? Email experts@aestheticsuccessnetwork.com.",
+      body: "Once approved, sign in and add your card in the billing tab. Nothing is charged today. Your first 6 months are free, starting " + LAUNCH_LABEL + ". After that it's $39 a month, and it stays $39 with no increase. We'll email you 7 days before your first charge; cancel any time before then and you won't be charged. Questions? Email experts@aestheticsuccessnetwork.com.",
     },
   ];
 

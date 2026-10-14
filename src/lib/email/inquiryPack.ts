@@ -13,7 +13,6 @@ import { applyEmailSandbox } from "@/lib/email/sandbox";
  */
 
 const SUPPORT = process.env.MAIL_REPLYTO_SUPPORT ?? "support@aestheticsuccessnetwork.com";
-const HOTLINE_PHONE = "(855) 567-5323";
 
 type TransportChoice = { transport: Transporter; from: string };
 
@@ -63,7 +62,7 @@ function renderHtml(input: { memberName: string; pdfUrl: string; question: strin
     </p>
     <p style="margin:0 0 4px;font-size:13px">It is also attached to this email, and waiting in your portal Inbox.</p>
     <hr style="border:none;border-top:1px solid #E6DDCF;margin:24px 0" />
-    <p style="font-size:12px;color:#7A8590;margin:0 0 8px">Prefer to leave a voicemail? Call the Expert Hotline on <strong>${HOTLINE_PHONE}</strong>, or reply to this email. It reaches <a href="mailto:${escapeHtml(SUPPORT)}" style="color:#A07823">${escapeHtml(SUPPORT)}</a>.</p>
+    <p style="font-size:12px;color:#7A8590;margin:0 0 8px">Questions? Reply to this email. It reaches <a href="mailto:${escapeHtml(SUPPORT)}" style="color:#A07823">${escapeHtml(SUPPORT)}</a>.</p>
     <p style="font-size:12px;color:#7A8590;margin:0">Aesthetic Success Network &middot; Powered by Business of Aesthetics</p>
   </div></body></html>`;
 }

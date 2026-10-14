@@ -4,211 +4,253 @@ import { notFound } from "next/navigation";
 import SitePage from "@/components/site/SitePage";
 import SiteNav from "@/components/site/SiteNav";
 import SiteFooter from "@/components/site/SiteFooter";
-import PageFx from "@/components/site/PageFx";
-import { getSupabaseAdmin } from "@/lib/supabase/server";
-import { isHiddenFromDirectory } from "@/lib/directoryVisibility";
+import JsonLd from "@/components/seo/JsonLd";
+import { founding } from "@/lib/content";
+import { companyExtras, getPublicCompany, hostOf, otherCompanies } from "@/lib/directoryProfiles";
+import "@/app/directory.css";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
+const SITE = "https://www.aestheticsuccessnetwork.com";
+
 /**
- * /companies/[id]: PUBLIC profile page for an accepted company, in the ASN
- * design. Data and gating are DMN's: only approved + verified companies with
- * a logo and a description are public (a covered company shows only while
- * its paying company is live). Public-safe fields only: never contact or
- * billing details, and never the calendar link (member-portal benefit).
- * Offers and spotlights render as locked teasers: ids/kinds only.
+ * /companies/[id]: PUBLIC profile for a verified company. Same publish gate
+ * as the directory (approved + verified + logo + description, not hidden;
+ * a covered company only while its paying company is live). Public-safe
+ * fields only: never contact, billing or calendar details. Offers show as
+ * a locked count; headlines, discounts and codes stay members-only.
  */
-function initials(name: string): string {
-  const parts = name.trim().split(/\s+/);
-  return ((parts[0]?.[0] ?? "") + (parts[1]?.[0] ?? "")).toUpperCase() || "AS";
-}
-
-async function getPartner(id: string) {
-  const sb = getSupabaseAdmin();
-  const { data: v } = await sb
-    .from("vendors")
-    .select("id, company_name, display_name, category, description, logo_url, avatar_url, website, status, verified, billing_parent_id, contact_email")
-    .eq("id", id)
-    .maybeSingle();
-  if (!v || v.status !== "approved" || !v.verified || !(v.logo_url ?? v.avatar_url) || !v.description) return null;
-  if (isHiddenFromDirectory(v.contact_email)) return null;
-  if (v.billing_parent_id) {
-    const { data: parent } = await sb
-      .from("vendors")
-      .select("status, verified")
-      .eq("id", v.billing_parent_id)
-      .maybeSingle();
-    if (!parent || parent.status !== "approved" || !parent.verified) return null;
-  }
-  return v;
-}
-
-export async function generateMetadata({
-  params,
-}: {
-  params: Promise<{ id: string }>;
-}): Promise<Metadata> {
+export async function generateMetadata({ params }: { params: Promise<{ id: string }> }): Promise<Metadata> {
   const { id } = await params;
-  const company = await getPartner(id).catch(() => null);
-  if (!company) return { title: "Company not found", robots: { index: false } };
-  const name = company.display_name || company.company_name || "ASN Company";
+  const hit = await getPublicCompany(id).catch(() => null);
+  if (!hit) return { title: "Company not found", robots: { index: false } };
+  const { company } = hit;
+  const description = company.description.replace(/\s+/g, " ").slice(0, 160);
   return {
-    title: `${name}, Verified Company`,
-    description: String(company.description).slice(0, 160),
+    title: `${company.name}, Verified Company`,
+    description,
     alternates: { canonical: `/companies/${company.id}` },
+    openGraph: { title: `${company.name} | Aesthetic Success Network`, description },
   };
 }
 
-export default async function PublicPartnerProfilePage({
-  params,
-}: {
-  params: Promise<{ id: string }>;
-}) {
+const Tick = () => (
+  <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden>
+    <path d="M3.5 8.5l3 3 6-7" strokeLinecap="round" strokeLinejoin="round" />
+  </svg>
+);
+const Lock = () => (
+  <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.6" aria-hidden>
+    <rect x="3" y="7" width="10" height="7" rx="2" />
+    <path d="M5.5 7V5a2.5 2.5 0 015 0v2" />
+  </svg>
+);
+
+export default async function PublicPartnerProfilePage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
-  const company = await getPartner(id);
-  if (!company) notFound();
+  const hit = await getPublicCompany(id);
+  if (!hit) notFound();
+  const { company, expert } = hit;
 
-  const sb = getSupabaseAdmin();
+  const [{ offerCount, spotlights }, more] = await Promise.all([companyExtras(id), otherCompanies(id, 3)]);
+  const about = company.description.split(/\r?\n\s*\r?\n/).map((p) => p.trim()).filter(Boolean);
 
-  // Offers as a LOCKED teaser: ids only. Headlines, discounts and promo
-  // codes stay members-only.
-  const { data: offerRows } = await sb
-    .from("offers")
-    .select("id")
-    .eq("vendor_id", id)
-    .eq("review_status", "approved")
-    .order("created_at", { ascending: false });
-  const offerCount = (offerRows ?? []).length;
-
-  // Spotlight teaser: kind + date only.
-  const { data: spotRows } = await sb
-    .from("profile_spotlights")
-    .select("id, kind, event_date")
-    .eq("vendor_id", id)
-    .eq("is_published", true)
-    .order("published_at", { ascending: false, nullsFirst: false })
-    .limit(5);
-  const spotlights = (spotRows ?? []).map((s) => ({
-    id: s.id as string,
-    kind: String(s.kind).charAt(0).toUpperCase() + String(s.kind).slice(1),
-    dateLabel: s.event_date
-      ? new Intl.DateTimeFormat("en-US", { month: "short", day: "numeric" }).format(new Date(s.event_date))
-      : null,
-  }));
-
-  const name = company.display_name || company.company_name || "ASN Company";
-  const logo = company.logo_url ?? company.avatar_url ?? null;
-  const descParagraphs = String(company.description)
-    .split(/\n{2,}/)
-    .map((p) => p.trim())
-    .filter(Boolean);
+  const jsonLd = {
+    "@context": "https://schema.org",
+    "@type": "Organization",
+    name: company.name,
+    description: company.description.replace(/\s+/g, " ").slice(0, 300),
+    logo: company.logo_url.startsWith("http") ? company.logo_url : `${SITE}${company.logo_url}`,
+    url: company.website ?? `${SITE}/companies/${company.id}`,
+    ...(expert ? { founder: { "@type": "Person", name: expert.name } } : {}),
+  };
 
   return (
-    <SitePage>
+    <SitePage className="dx-page">
       <SiteNav active="/companies" />
+      <JsonLd data={jsonLd} />
 
-      <header className="hero hero--home" id="top" style={{ paddingBottom: 40 }}>
-        <div className="wrap" style={{ display: "block" }}>
-          <div className="profile-head">
-            <div className="profile-avatar">
-              {logo ? (
-                // eslint-disable-next-line @next/next/no-img-element
-                <img src={logo} alt={name} />
-              ) : (
-                initials(name)
-              )}
+      <header className="dx-phero">
+        <div className="dx-wrap dx-phero-grid dx-phero-grid--company">
+          <div className="dx-logotile">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src={company.logo_url} alt={company.name} />
+          </div>
+          <div className="dx-phero-text">
+            <nav className="dx-crumbs" aria-label="Breadcrumb">
+              <Link href="/companies">Companies</Link>
+              <span aria-hidden>/</span>
+              <span>{company.name}</span>
+            </nav>
+            <div className="dx-eyebrow">
+              <span className="dx-dot" />
+              Verified company &middot; Aesthetic Success Network
             </div>
-            <div>
-              <span className="eyebrow">Verified Company</span>
-              <h1 style={{ fontSize: 40 }}>{name}</h1>
-              {company.category ? (
-                <p className="sub" style={{ marginBottom: 0 }}>
-                  {company.category}
-                </p>
-              ) : null}
+            <h1>{company.name}</h1>
+            <div className="dx-ptopics">
+              {company.category && <span>{company.category}</span>}
+              {offerCount > 0 && <span className="dx-ptopic-gold">Member deal</span>}
+            </div>
+            <div className="dx-actions">
+              <Link className="dx-btn dx-btn-gold" href="/join/member">
+                Reserve a founding spot
+              </Link>
+              {company.website && (
+                <a className="dx-btn dx-btn-ghost" href={company.website} target="_blank" rel="noopener noreferrer">
+                  Visit {hostOf(company.website)}
+                </a>
+              )}
             </div>
           </div>
         </div>
       </header>
 
-      <section>
-        <div className="wrap">
-          <article className="profile-bio">
-            {descParagraphs.map((p, i) => (
-              <p key={i}>{p}</p>
-            ))}
-          </article>
+      <main className="dx-wrap dx-pbody">
+        <div className="dx-pmain">
+          <section className="dx-block">
+            <h2>About</h2>
+            <div className="dx-prose">
+              {about.map((p, i) => (
+                <p key={i}>{p}</p>
+              ))}
+            </div>
+          </section>
 
-          <div className="profile-section">
-            <span className="kicker">Member deal</span>
+          <section className="dx-block">
+            <h2>Member deal</h2>
             {offerCount > 0 ? (
-              <div className="locked-list">
-                {Array.from({ length: offerCount }, (_, i) => (
-                  <div className="row" key={i}>
-                    <span>
-                      <span className="blur" aria-hidden>
-                        Member-only offer details
-                      </span>
-                    </span>
-                    <span className="lk">Offer · Members only</span>
-                  </div>
-                ))}
+              <div className="dx-deal">
+                <div className="dx-deal-icon">
+                  <Lock />
+                </div>
+                <div>
+                  <b>
+                    {offerCount} member-only offer{offerCount === 1 ? "" : "s"}
+                  </b>
+                  <p>
+                    {company.name} gives members a deal at least as good as any offer it makes comparable customers.
+                    The details and how to redeem are inside the member portal.
+                  </p>
+                </div>
               </div>
             ) : (
-              <p className="lead" style={{ margin: 0 }}>
-                This company&rsquo;s member-only offer is confirmed with members directly inside the
-                portal and requires an active membership to redeem.
+              <p className="dx-blocksub">
+                Every verified company commits to a member-only deal. Details are shared with members inside the portal.
               </p>
             )}
-          </div>
+          </section>
 
           {spotlights.length > 0 && (
-            <div className="profile-section">
-              <span className="kicker">Recent spotlights</span>
-              <div className="locked-list">
+            <section className="dx-block">
+              <h2>Recent spotlights</h2>
+              <ul className="dx-locked">
                 {spotlights.map((s) => (
-                  <div className="row" key={s.id}>
-                    <span>
-                      <span className="blur" aria-hidden>
-                        Member-only spotlight content
-                      </span>
+                  <li key={s.id}>
+                    <span className="dx-blur" aria-hidden>
+                      Member-only spotlight content
                     </span>
-                    <span className="lk">
-                      {s.kind}
+                    <span className="dx-lk">
+                      <Lock /> {s.kind}
                       {s.dateLabel ? ` · ${s.dateLabel}` : ""}
                     </span>
-                  </div>
+                  </li>
                 ))}
-              </div>
-            </div>
+              </ul>
+            </section>
           )}
+        </div>
 
-          <div className="profile-section">
-            <span className="kicker">Reach this company</span>
-            <p className="lead" style={{ margin: "0 0 16px" }}>
-              Members contact companies directly and redeem the deal from the portal.
+        <aside className="dx-side">
+          <div className="dx-sidecard dx-sidecard-dark">
+            <div className="dx-sidecard-eyebrow">Member benefit</div>
+            <h3>Get the {company.name} member deal</h3>
+            <ul className="dx-checks">
+              <li>
+                <Tick /> Redeem the member-only offer from the portal
+              </li>
+              <li>
+                <Tick /> Contact {company.name} directly, no middleman
+              </li>
+              <li>
+                <Tick /> Every company is vetted by the ASN team
+              </li>
+            </ul>
+            <Link className="dx-btn dx-btn-gold dx-btn-block" href="/join/member">
+              Reserve your founding spot
+            </Link>
+            <p className="dx-sidecard-note">
+              ${founding.priceMonthly} a month, locked in. Nothing to pay today.
             </p>
-            <div className="cta-row" style={{ display: "flex", gap: 14, flexWrap: "wrap" }}>
-              <Link className="btn bronze" href="/join/member">
-                Start your membership
-              </Link>
-              {company.website ? (
-                <a className="btn ghost" href={company.website} target="_blank" rel="noopener noreferrer">
-                  Visit website
-                </a>
-              ) : null}
-              <Link className="btn ghost" href="/companies">
-                &larr; Back to all companies
-              </Link>
+          </div>
+
+          <div className="dx-sidecard">
+            <dl className="dx-facts">
+              {company.category && (
+                <div>
+                  <dt>Category</dt>
+                  <dd>{company.category}</dd>
+                </div>
+              )}
+              {company.website && (
+                <div>
+                  <dt>Website</dt>
+                  <dd>
+                    <a href={company.website} target="_blank" rel="noopener noreferrer">
+                      {hostOf(company.website)}
+                    </a>
+                  </dd>
+                </div>
+              )}
+              <div>
+                <dt>Status</dt>
+                <dd className="dx-verified">
+                  <Tick /> Verified by the ASN team
+                </dd>
+              </div>
+            </dl>
+          </div>
+
+          {expert && (
+            <Link className="dx-sidecard dx-linkcard" href={`/experts/${expert.id}`}>
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img src={expert.headshot_url} alt="" className="dx-linkcard-photo" />
+              <span>
+                <small>Expert on the bench</small>
+                <b>{expert.name}</b>
+                <em>View expert profile &rarr;</em>
+              </span>
+            </Link>
+          )}
+        </aside>
+      </main>
+
+      {more.length > 0 && (
+        <section className="dx-morerow">
+          <div className="dx-wrap">
+            <div className="dx-morerow-head">
+              <h2>More companies</h2>
+              <Link href="/companies#directory">View all &rarr;</Link>
+            </div>
+            <div className="dx-minis">
+              {more.map((m) => (
+                <Link key={m.id} href={`/companies/${m.id}`} className="dx-mini">
+                  <span className="dx-mini-logo">
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img src={m.image} alt="" loading="lazy" />
+                  </span>
+                  <span>
+                    <b>{m.name}</b>
+                    {m.sub && <small>{m.sub}</small>}
+                  </span>
+                </Link>
+              ))}
             </div>
           </div>
-        </div>
-      </section>
+        </section>
+      )}
 
       <SiteFooter />
-
-      <PageFx revealSelector="section .profile-bio, .profile-section" />
     </SitePage>
   );
 }

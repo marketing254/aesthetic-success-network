@@ -6,6 +6,7 @@ import SiteFooter from "@/components/site/SiteFooter";
 import PageFx from "@/components/site/PageFx";
 import PricingTiers from "@/components/site/PricingTiers";
 import JsonLd from "@/components/seo/JsonLd";
+import { LAUNCH_LABEL } from "@/lib/providerBilling";
 import {
   FOUNDING_MEMBER_CAP,
   PLAN_DISPLAY,
@@ -40,7 +41,7 @@ const PRICING_JSONLD = {
       "@type": "Product",
       name: "Aesthetic Success Network: Founding Membership",
       description:
-        "Membership for aesthetic practice owners. Expert Hotline returning a written action plan in 2 to 3 business days, member-only company offers, and a growing resource library of expert kits.",
+        "A paid membership community for aesthetic practice owners: the Expert Hotline for an instant, AI-assisted answer, member-only offers from vetted companies, and a library of expert Protocols.",
       brand: { "@type": "Brand", name: "Aesthetic Success Network" },
       image: `${SITE}/asn-logo-full-dark.png`,
       url: `${SITE}/pricing`,
@@ -89,7 +90,7 @@ const PRICING_JSONLD = {
       image: `${SITE}/asn-logo-full-dark.png`,
       url: `${SITE}/pricing`,
       offers: [
-        { "@type": "Offer", name: "Expert: first 6 months free (from member launch)", price: "0.00", priceCurrency: "USD", url: `${SITE}/experts` },
+        { "@type": "Offer", name: "Expert: first 6 months free (from " + LAUNCH_LABEL + ")", price: "0.00", priceCurrency: "USD", url: `${SITE}/experts` },
         { "@type": "Offer", name: "Expert, after the free months", price: "39.00", priceCurrency: "USD", url: `${SITE}/experts` },
       ],
     },
@@ -102,7 +103,7 @@ const PRICING_JSONLD = {
       image: `${SITE}/asn-logo-full-dark.png`,
       url: `${SITE}/pricing`,
       offers: [
-        { "@type": "Offer", name: "Company: first 6 months free (from member launch)", price: "0.00", priceCurrency: "USD", url: `${SITE}/companies` },
+        { "@type": "Offer", name: "Company: first 6 months free (from " + LAUNCH_LABEL + ")", price: "0.00", priceCurrency: "USD", url: `${SITE}/companies` },
         { "@type": "Offer", name: "Company, launch rate (first 12 paid months)", price: "39.00", priceCurrency: "USD", url: `${SITE}/companies` },
         { "@type": "Offer", name: "Company, standard rate", price: "149.00", priceCurrency: "USD", url: `${SITE}/companies` },
       ],
@@ -143,8 +144,8 @@ export default function PricingPage() {
           </p>
           <PricingTiers />
           <p className="guarantee">
-            <b>Every membership includes:</b> the Expert Hotline (a written action plan in 2 to 3
-            business days), the resource library of expert kits, templates and checklists, every
+            <b>Every membership includes:</b> the Expert Hotline (instant, AI-assisted answers),
+            the library of expert Protocols, templates and checklists, every
             member-only company deal, the practice calculators, monthly live AMAs and CE, and a
             growing bench of experts.
           </p>
@@ -158,14 +159,14 @@ export default function PricingPage() {
             Build first. Pay only as the value <em>compounds</em>.
           </h2>
           <p className="lead">
-            Your first 6 months are free, starting the day we open to members. After that it&rsquo;s $39 a month, and it stays $39 with no increase.
+            Your first 6 months are free, starting {LAUNCH_LABEL}. After that it&rsquo;s $39 a month, and it stays $39 with no increase.
           </p>
           <div className="pgrid">
             <div className="pc hot">
               <div className="badge">Start here</div>
               <div className="tier">First 6 months</div>
               <div className="price">$0</div>
-              <div className="desc">Free from the day we open to members. Get set up and build your library first.</div>
+              <div className="desc">Free from {LAUNCH_LABEL}. Get set up and build your library first.</div>
             </div>
             <div className="pc">
               <div className="tier">After that</div>
@@ -195,14 +196,14 @@ export default function PricingPage() {
             Your first 6 months are free. It pays for itself as <em>deals close</em>.
           </h2>
           <p className="lead">
-            Your first 6 months are free, starting the day we open to members. After that it&rsquo;s $39 a month for your first 12 months, then $149 a month.
+            Your first 6 months are free, starting {LAUNCH_LABEL}. After that it&rsquo;s $39 a month for your first 12 months, then $149 a month.
           </p>
           <div className="pgrid">
             <div className="pc hot">
               <div className="badge">Start here</div>
               <div className="tier">First 6 months</div>
               <div className="price">$0</div>
-              <div className="desc">Free from the day we open to members. Get listed and start receiving leads before you pay a cent.</div>
+              <div className="desc">Free from {LAUNCH_LABEL}. Get listed and start receiving leads before you pay a cent.</div>
             </div>
             <div className="pc">
               <div className="tier">Launch rate</div>
@@ -266,8 +267,8 @@ export default function PricingPage() {
             <details>
               <summary>Do experts and companies get free months?</summary>
               <p>
-                Yes. For both experts and companies, your first 6 months are free, starting the
-                day we open to members. After that, experts pay $39 a month with no increase;
+                Yes. For both experts and companies, your first 6 months are free, starting{" "}
+                {LAUNCH_LABEL}. After that, experts pay $39 a month with no increase;
                 companies pay $39 a month for their first 12 months, then $149 a month. Cancel any
                 time before your first charge and you won&rsquo;t be charged; after that, cancel
                 with 30 days&rsquo; written notice.

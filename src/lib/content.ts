@@ -1,4 +1,5 @@
-// Single source of truth for the Aesthetic Success Network public site copy.
+
+import { LAUNCH_LABEL } from "@/lib/providerBilling";// Single source of truth for the Aesthetic Success Network public site copy.
 //
 // Sources (in priority order):
 //   1. ASN-SWAP-CANON.md (repo root): identity, prices, tiers, option lists,
@@ -39,9 +40,9 @@ export const founding = {
 export const hero = {
   topChip: "FOUNDING MEMBERSHIP, FIRST 100 ONLY",
   headline:
-    "A network where every practice problem gets a written action plan in 2 to 3 business days.",
+    "A network where every practice problem gets an instant, AI-assisted answer, plus the experts and companies best placed to help.",
   subtitle:
-    "Built for aesthetic practice owners who want fast answers, real member-only company deals, and a curated library of expert kits. One membership.",
+    "Built for aesthetic practice owners who want fast answers, real member-only company deals, and a library of expert Protocols. One membership.",
   bottomNote:
     "The membership is the product. No funnels, no “next step” that costs four figures. Just the value you joined for.",
   // Unsourced counts are not shown. Add a proof point here only with a source.
@@ -51,7 +52,7 @@ export const hero = {
 
 // MARQUEE badges
 export const marqueeBadges = [
-  "Expert Hotline: reply in 2 to 3 business days",
+  "Expert Hotline: instant, AI-assisted answers",
   "Exclusive Company Deals",
   "Curated Resource Library",
   "Proven Systems & SOPs",
@@ -124,7 +125,7 @@ export const waitlistByRole = {
       "The waitlist is how we onboard the founding cohort before launch. Get a guaranteed spot, the founding rate, and first access to every feature we ship.",
     benefits: [
       "$29/month founding rate, never increases while your membership stays active",
-      "Expert Hotline: leave a voicemail, get a written action plan by text and email within 2 to 3 business days",
+      "Expert Hotline: an instant, AI-assisted answer to any practice problem",
       "Member-only company deals from vetted vendors, no per-deal commissions",
       "Cancel anytime, in two clicks, from your account page",
     ],
@@ -161,16 +162,16 @@ export const faqs = [
     q: "What exactly do I get as a member?",
     a: "Four core things:",
     items: [
-      "The Expert Hotline: leave a voicemail with your question, get a written action plan plus the right experts to contact, by text and email, within 2 to 3 business days.",
-      "A growing resource library of expert kits, with new kits added weekly: training videos, action guides, checklists, worksheets and slide decks.",
+      "The Expert Hotline: describe your problem and get an instant, AI-assisted answer with a recommended solution and the experts or companies best placed to help.",
+      "A growing library of expert Protocols, with new Protocols added regularly: training videos, action guides, checklists, worksheets and slide decks.",
       "Exclusive member-only company deals from vetted vendors across devices, injectables, skincare, software and services.",
       "Monthly live AMAs and CE with the field's best experts.",
     ],
     aClose: "Plus proven systems, SOPs, and templates.",
   },
   {
-    q: "Is the Hotline a live, 24/7 helpline?",
-    a: "No, and we won't pretend otherwise. It's a voicemail line. You leave your question and our team (AI-assisted) replies by text and email within 2 to 3 business days with a recommended solution plus 3 to 4 experts to contact.",
+    q: "Is the Hotline a live human?",
+    a: "No, and we won't pretend otherwise. The Hotline is AI-assisted: you describe your problem and get an instant answer with a recommended solution and the experts or companies best placed to help.",
   },
   {
     q: "How does the founding rate work?",
@@ -205,7 +206,7 @@ export const faqs = [
 // FOOTER
 export const footer = {
   brandDescription:
-    "The Expert Hotline answers every practice problem with a written action plan in 2 to 3 business days. Plus exclusive company deals, a curated resource library, and admin-curated experts and companies.",
+    "A paid membership community for aesthetic practice owners: the Expert Hotline for an instant, AI-assisted answer, member-only offers from vetted companies, and a library of expert Protocols.",
   primaryCta: "Claim founding spot",
   secondaryCta: "Email founding team",
   supportLabel: "Support",
@@ -333,8 +334,8 @@ export const pricing = [
     blurb:
       "Full access to every feature in the Aesthetic Success Network. The same membership everyone gets, at a rate that never goes up.",
     features: [
-      "The Expert Hotline: written action plans in 2 to 3 business days",
-      "Full resource library, new kits weekly",
+      "The Expert Hotline: an instant, AI-assisted answer",
+      "Full library of expert Protocols, new Protocols added regularly",
       "Every member-only company deal",
       "Monthly live AMAs and CE",
       "Proven systems, SOPs, templates and checklists",
@@ -348,7 +349,7 @@ export const pricing = [
     tier: "Company",
     audience: "Devices, injectables, skincare, software, services",
     price: "Apply",
-    cadence: "First 6 months free from member launch, then $39/mo for 12 months, then $149/mo",
+    cadence: "First 6 months free from " + LAUNCH_LABEL + ", then $39/mo for 12 months, then $149/mo",
     blurb:
       "Get in front of aesthetics' most engaged buyers through a trusted shortlist instead of a cold ad. Profile and placement in your category, lead flow, and a Verified Company badge.",
     features: [

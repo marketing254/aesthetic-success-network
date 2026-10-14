@@ -47,6 +47,15 @@ export async function GET(req: Request) {
     const from = (page - 1) * pageSize;
     const pageRows = visible.slice(from, from + pageSize);
 
+    // Public-safe flag only: does the company have an approved member deal?
+    // Headlines, discounts and codes stay members-only.
+    const ids = pageRows.map((v) => v.id);
+    const withOffer = new Set<string>();
+    if (ids.length) {
+      const { data: offerRows } = await sb.from("offers").select("vendor_id").in("vendor_id", ids).eq("review_status", "approved");
+      for (const o of offerRows ?? []) withOffer.add(o.vendor_id as string);
+    }
+
     return NextResponse.json({
       partners: pageRows.map((v) => ({
         id: v.id,
@@ -55,6 +64,7 @@ export async function GET(req: Request) {
         description: v.description,
         logo_url: v.logo_url ?? v.avatar_url ?? null,
         website: v.website,
+        has_offer: withOffer.has(v.id),
       })),
       total: visible.length,
       page,

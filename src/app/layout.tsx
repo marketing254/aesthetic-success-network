@@ -37,18 +37,18 @@ export const viewport: Viewport = {
 export const metadata: Metadata = {
   metadataBase: new URL(SITE),
   title: {
-    default: "Aesthetic Success Network | Every practice problem, answered in writing",
+    default: "Aesthetic Success Network | Every practice problem, answered instantly",
     template: "%s | Aesthetic Success Network",
   },
   description:
-    "A membership network for aesthetic practice owners. The Expert Hotline returns a written action plan in 2 to 3 business days, vetted partners give you member-only deals, and new expert kits arrive weekly. Founding rate $29/mo, locked while your membership stays active.",
+    "A paid membership community for aesthetic practice owners: the Expert Hotline for an instant, AI-assisted answer, member-only offers from vetted companies, and a library of expert Protocols. Founding rate $29/mo, locked while your membership stays active.",
   alternates: { canonical: "/" },
   openGraph: {
     type: "website",
     siteName: "Aesthetic Success Network",
-    title: "Aesthetic Success Network: Every practice problem, answered in writing",
+    title: "Aesthetic Success Network: Every practice problem, answered instantly",
     description:
-      "Expert Hotline with written action plans in 2 to 3 business days, member-only partner deals, a curated resource library with new kits weekly, and monthly live AMAs and CE. Founding rate $29/mo for the first 100 members.",
+      "The Expert Hotline for an instant, AI-assisted answer, member-only offers from vetted companies, a library of expert Protocols, and monthly live AMAs and CE. Founding rate $29/mo for the first 100 members.",
     images: [
       {
         url: "/og-image.png",
@@ -62,7 +62,7 @@ export const metadata: Metadata = {
     card: "summary_large_image",
     title: "Aesthetic Success Network",
     description:
-      "Expert Hotline, member-only partner deals, and the resource library aesthetic practice owners actually use.",
+      "The Expert Hotline for an instant, AI-assisted answer, member-only offers from vetted companies, and a library of expert Protocols.",
     images: ["/og-image.png"],
   },
   robots: {
@@ -111,7 +111,7 @@ const ORG_AND_WEBSITE_JSONLD = {
         },
       ],
       description:
-        "Membership network for aesthetic practice owners: an Expert Hotline with written action plans in 2 to 3 business days, member-only partner deals, a curated resource library of expert kits, and monthly live AMAs and CE.",
+        "A paid membership community for aesthetic practice owners: the Expert Hotline for an instant, AI-assisted answer, member-only offers from vetted companies, a library of expert Protocols, and monthly live AMAs and CE.",
     },
     {
       "@type": "WebSite",

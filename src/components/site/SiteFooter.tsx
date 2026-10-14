@@ -59,9 +59,9 @@ export default function SiteFooter() {
               />
             </div>
             <p>
-              A membership for aesthetic practice owners: the Expert Hotline with a written action
-              plan in 2 to 3 business days, member-only company deals, and a curated resource
-              library of expert kits.
+              A paid membership community for aesthetic practice owners: the Expert Hotline for an
+              instant, AI-assisted answer, member-only offers from vetted companies, and a library
+              of expert Protocols.
             </p>
             <div className="foot-contact">
               <a href="tel:+18555675323">(855) 567-5323</a>

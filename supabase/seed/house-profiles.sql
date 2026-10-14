@@ -1,6 +1,6 @@
 -- =====================================================================
 -- ASN house profiles: Naren Arulrajah (expert) and Ekwa Marketing Inc. (company)
--- Run AFTER all migrations (0001 to 0073). Re-runnable: every statement
+-- Run AFTER all migrations (0001 to 0074). Re-runnable: every statement
 -- updates the row if it already exists.
 -- Paste into Supabase Dashboard -> SQL Editor -> New query -> Run.
 --
@@ -97,7 +97,7 @@ insert into public.vendors (
   true,
   'v4',
   now(),
-  'standard',
+  'ladder',
   true,
   0,
   'active',
@@ -116,7 +116,7 @@ on conflict (contact_email) do update set
   plan_id = 'founding',
   status = 'approved',
   verified = true,
-  billing_plan = 'standard',
+  billing_plan = 'ladder',
   founding_partner_locked = true,
   subscription_status = 'active',
   stripe_subscription_id = coalesce(public.vendors.stripe_subscription_id, 'house_ekwa_marketing');
