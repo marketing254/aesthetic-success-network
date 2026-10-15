@@ -3755,3 +3755,36 @@ body:has(> .asn-site) {
 .asn-site .ecard p {
   -webkit-line-clamp: 5;
 }
+
+/* ============================================================
+   Wide screens (owner request, 15 Oct 2026): less empty space at the
+   sides and a calmer home headline. Only applies at 1360px and up, so
+   laptops and phones keep their current layout.
+   ============================================================ */
+@media (min-width: 981px) {
+  .asn-site .hero--home h1 {
+    font-size: 50px;
+    line-height: 1.08;
+    letter-spacing: -0.02em;
+  }
+}
+@media (min-width: 1360px) {
+  .asn-site .wrap {
+    max-width: 1240px;
+  }
+  .asn-site .hero .wrap {
+    grid-template-columns: 1.15fr 0.85fr;
+    gap: 64px;
+  }
+  .asn-site .hero--home .sub {
+    max-width: 560px;
+  }
+}
+@media (min-width: 1600px) {
+  .asn-site .wrap {
+    max-width: 1340px;
+  }
+  .asn-site .hero--home h1 {
+    font-size: 54px;
+  }
+}

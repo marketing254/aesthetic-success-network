@@ -1,5 +1,5 @@
 import type { Metadata, Viewport } from "next";
-import { Fraunces, Inter } from "next/font/google";
+import { Playfair_Display, Plus_Jakarta_Sans } from "next/font/google";
 import Providers from "@/components/Providers";
 import GoogleAnalytics from "@/components/analytics/GoogleAnalytics";
 import "./globals.css";
@@ -7,21 +7,21 @@ import "./globals.css";
 // Loaded after globals.css so the portals keep DMN's globals untouched.
 import "./site.css";
 
-// ASN fonts: Inter for body, Fraunces (with italic + optical sizing) for
-// display. The variables are the same names the MUI theme reads, so the
-// portals pick them up too.
-const inter = Inter({
+// ASN fonts (owner request, 15 Oct 2026): Plus Jakarta Sans for body text,
+// Playfair Display (with italic) for headings. The variables are the same
+// names the MUI theme and site.css read, so the public site and the
+// portals both pick them up.
+const body = Plus_Jakarta_Sans({
   subsets: ["latin"],
   variable: "--font-body",
   display: "swap",
   weight: ["400", "500", "600", "700"],
 });
 
-const fraunces = Fraunces({
+const display = Playfair_Display({
   subsets: ["latin"],
   variable: "--font-display",
   display: "swap",
-  axes: ["opsz"],
   style: ["normal", "italic"],
 });
 
@@ -132,7 +132,7 @@ export default function RootLayout({
   return (
     // suppressHydrationWarning: the inline script below adds a "js" class to
     // <html> before React hydrates, which is expected to differ from the SSR HTML.
-    <html lang="en" className={`${inter.variable} ${fraunces.variable}`} suppressHydrationWarning>
+    <html lang="en" className={`${body.variable} ${display.variable}`} suppressHydrationWarning>
       <head>
         {/* Gate the ASN entrance motion on a `js` class so public-site content
             is always visible without JavaScript (pattern carried over from the

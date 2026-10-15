@@ -3,6 +3,7 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import { getSupabaseAdmin } from "@/lib/supabase/server";
 import { requireAdmin } from "@/lib/auth/guards";
 import { serverError } from "@/lib/api/errorResponse";
+import { FOUNDING_MEMBER_CAP } from "@/lib/stripe";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -168,7 +169,7 @@ export async function GET() {
       redemptions: redemptionStats,
       recentApplications: recentApplications.data ?? [],
       pendingOffers: pendingOffers.data ?? [],
-      foundingCap: 1000,
+      foundingCap: FOUNDING_MEMBER_CAP,
     });
   } catch (err) {
     return serverError(err, { route: "GET /api/admin/overview" });
