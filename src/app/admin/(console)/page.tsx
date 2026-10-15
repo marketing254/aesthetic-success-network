@@ -14,6 +14,7 @@ import {
 import ArrowForwardIcon from "@mui/icons-material/ArrowForward";
 import PeopleAltOutlinedIcon from "@mui/icons-material/PeopleAltOutlined";
 import StoreOutlinedIcon from "@mui/icons-material/StoreOutlined";
+import SchoolOutlinedIcon from "@mui/icons-material/SchoolOutlined";
 import LocalOfferOutlinedIcon from "@mui/icons-material/LocalOfferOutlined";
 import Inventory2OutlinedIcon from "@mui/icons-material/Inventory2Outlined";
 import MarkEmailReadOutlinedIcon from "@mui/icons-material/MarkEmailReadOutlined";
@@ -25,6 +26,7 @@ type Overview = {
   members: { total: number; active: number; thisWeek: number };
   waitlist: { total: number; members: number; vendors: number; last24h: number };
   offers: { pending: number; approved: number; total: number };
+  experts?: { total: number; pending: number };
   catalog: { pending: number; approved: number; total: number };
   redemptions: { lifetimeCount: number; thisMonthCount: number; lifetimeSavings: number };
   recentApplications: {
@@ -115,14 +117,20 @@ export default function AdminOverviewPage() {
         <Typography variant="overline" sx={{ color: "#A07823", display: "block", fontWeight: 700, letterSpacing: "0.18em", mb: 1.5 }}>
           NEEDS YOUR ATTENTION
         </Typography>
-        <Grid container spacing={2.5}>
+        <Box sx={{ display: "grid", gap: 2, gridTemplateColumns: { xs: "1fr", sm: "repeat(2, 1fr)", lg: "repeat(5, 1fr)" } }}>
+          <ActionQueue
+            icon={SchoolOutlinedIcon}
+            label="Expert applications"
+            count={data.experts?.pending ?? 0}
+            detail="to review"
+            href="/admin/experts"
+          />
           <ActionQueue
             icon={StoreOutlinedIcon}
             label="Company approvals"
             count={data.vendors.pending}
             detail="pending review"
             href="/admin/vendors?filter=pending_review"
-            urgency={data.vendors.pending > 0 ? "high" : "normal"}
           />
           <ActionQueue
             icon={LocalOfferOutlinedIcon}
@@ -130,7 +138,6 @@ export default function AdminOverviewPage() {
             count={data.offers.pending}
             detail="awaiting review"
             href="/admin/offers"
-            urgency={data.offers.pending > 0 ? "high" : "normal"}
           />
           <ActionQueue
             icon={Inventory2OutlinedIcon}
@@ -138,16 +145,16 @@ export default function AdminOverviewPage() {
             count={data.catalog.pending}
             detail="awaiting review"
             href="/admin/content"
-            urgency={data.catalog.pending > 0 ? "high" : "normal"}
           />
           <ActionQueue
             icon={MarkEmailReadOutlinedIcon}
-            label="Waitlist · 24h"
+            label="Waitlist, last 24h"
             count={data.waitlist.last24h}
             detail="new signups"
             href="/admin/waitlist"
+            info
           />
-        </Grid>
+        </Box>
       </Box>
 
       {/* KPI cards */}
@@ -357,61 +364,66 @@ function ActionQueue({
   count,
   detail,
   href,
-  urgency,
+  info = false,
 }: {
   icon: React.ElementType<{ sx?: object }>;
   label: string;
   count: number;
   detail: string;
   href: string;
-  urgency?: "critical" | "high" | "normal";
+  /** Informational count (not a review queue): never shows "Action needed". */
+  info?: boolean;
 }) {
-  const tint = urgency === "critical"
-    ? { bg: "rgba(140,29,29,0.12)", border: "rgba(140,29,29,0.32)", color: "#8C1D1D" }
-    : urgency === "high"
-      ? { bg: "rgba(217,168,75,0.16)", border: "rgba(217,168,75,0.4)", color: "#A07823" }
-      : { bg: "rgba(14,42,61,0.07)", border: "rgba(14,42,61,0.18)", color: "#0E2A3D" };
-
+  const needs = !info && count > 0;
   return (
-    <Grid size={{ xs: 12, sm: 6, lg: 3 }}>
-      <Box
-        component={Link}
-        href={href}
-        sx={{
-          display: "block",
-          textDecoration: "none",
-          height: "100%",
-          p: 2.5,
-          borderRadius: "18px",
-          border: "1px solid",
-          borderColor: tint.border,
-          bgcolor: tint.bg,
-          transition: "transform 200ms ease, box-shadow 200ms ease",
-          "&:hover": {
-            transform: "translateY(-2px)",
-            boxShadow: "0 16px 32px -20px rgba(14,42,61,0.3)",
-          },
-        }}
-      >
-        <Stack direction="row" sx={{ justifyContent: "space-between", alignItems: "center", mb: 1 }}>
-          <Box sx={{ width: 32, height: 32, borderRadius: "10px", bgcolor: "rgba(255,255,255,0.7)", display: "grid", placeItems: "center", color: tint.color }}>
-            <Icon sx={{ fontSize: 18 }} />
+    <Box
+      component={Link}
+      href={href}
+      sx={{
+        position: "relative",
+        display: "flex",
+        flexDirection: "column",
+        gap: 1.25,
+        textDecoration: "none",
+        height: "100%",
+        p: 2.25,
+        borderRadius: "14px",
+        bgcolor: "#FFFFFF",
+        border: "1px solid",
+        borderColor: needs ? "rgba(217,168,75,0.55)" : "#E7E2D8",
+        boxShadow: needs ? "0 6px 18px -12px rgba(160,120,35,0.45)" : "0 1px 2px rgba(10,19,32,0.04)",
+        overflow: "hidden",
+        transition: "transform 160ms ease, box-shadow 160ms ease, border-color 160ms ease",
+        "&::before": needs ? { content: '""', position: "absolute", left: 0, top: 0, bottom: 0, width: 4, bgcolor: "#D9A84B" } : undefined,
+        "&:hover": { transform: "translateY(-2px)", boxShadow: "0 14px 28px -18px rgba(10,19,32,0.35)", borderColor: needs ? "#D9A84B" : "#D6CFC2" },
+      }}
+    >
+      <Stack direction="row" sx={{ justifyContent: "space-between", alignItems: "center" }}>
+        <Box sx={{ width: 34, height: 34, borderRadius: "10px", bgcolor: needs ? "rgba(217,168,75,0.16)" : "#F3F1EC", display: "grid", placeItems: "center", color: needs ? "#A07823" : "#5C6770" }}>
+          <Icon sx={{ fontSize: 18 }} />
+        </Box>
+        {needs ? (
+          <Box component="span" sx={{ fontSize: "0.68rem", fontWeight: 700, color: "#7A5A14", bgcolor: "rgba(217,168,75,0.18)", px: 1, py: 0.35, borderRadius: 999 }}>
+            Action needed
           </Box>
-          <ArrowForwardIcon sx={{ fontSize: 18, color: tint.color }} />
-        </Stack>
+        ) : info ? (
+          <ArrowForwardIcon sx={{ fontSize: 18, color: "#9AA1A8" }} />
+        ) : (
+          <Box component="span" sx={{ fontSize: "0.68rem", fontWeight: 700, color: "#1F5C40", bgcolor: "rgba(34,108,78,0.10)", px: 1, py: 0.35, borderRadius: 999 }}>
+            All clear
+          </Box>
+        )}
+      </Stack>
+      <Box>
         <Stack direction="row" spacing={0.75} sx={{ alignItems: "baseline" }}>
-          <Typography sx={{ fontFamily: "var(--font-display)", fontSize: "2.1rem", color: tint.color, lineHeight: 1 }}>
+          <Typography sx={{ fontSize: "1.9rem", fontWeight: 700, color: "#0A1320", lineHeight: 1, letterSpacing: "-0.02em", fontVariantNumeric: "tabular-nums" }}>
             {count}
           </Typography>
-          <Typography variant="body2" sx={{ fontSize: "0.78rem", color: tint.color, fontWeight: 600 }}>
-            {detail}
-          </Typography>
+          <Typography sx={{ fontSize: "0.8rem", color: "#5C6770", fontWeight: 500 }}>{detail}</Typography>
         </Stack>
-        <Typography sx={{ fontSize: "0.85rem", fontWeight: 700, color: tint.color, mt: 0.5 }}>
-          {label}
-        </Typography>
+        <Typography sx={{ fontSize: "0.88rem", fontWeight: 600, color: "#0A1320", mt: 0.75 }}>{label}</Typography>
       </Box>
-    </Grid>
+    </Box>
   );
 }
 

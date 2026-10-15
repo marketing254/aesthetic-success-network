@@ -33,8 +33,8 @@ const COLORS = {
   admin: "#8C1D1D",
 };
 
-const DISPLAY = "var(--font-display), 'Fraunces', Georgia, serif";
-const BODY = "var(--font-body), 'Inter', system-ui, -apple-system, Segoe UI, Roboto, sans-serif";
+const DISPLAY = "var(--font-display), 'Playfair Display', Georgia, serif";
+const BODY = "var(--font-body), 'Plus Jakarta Sans', system-ui, -apple-system, Segoe UI, Roboto, sans-serif";
 
 let theme = createTheme({
   cssVariables: true,
