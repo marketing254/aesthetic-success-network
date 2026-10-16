@@ -24,7 +24,7 @@ Click **Save**. Judge the save by the green toast, not by the masked password bo
 
 Supabase Dashboard → **Authentication → Emails** (called "Email Templates" on older dashboards) → **Magic Link** tab.
 
-1. **Subject heading**: `Your Aesthetic Success Network sign-in code: {{ .Token }}`
+1. **Subject heading**: `Your Aesthetic Success Network sign-in code` (keep `{{ .Token }}` out of the subject; Rackspace rejects a code in the subject as spam)
 2. **Message body**: open `supabase/templates/admin-otp-email.html`, copy the whole file (the HTML comment at the top is harmless) and paste it over the default body. Keep `{{ .Token }}` exactly as written; it is what turns the email into a code.
 3. Click **Save**.
 
@@ -45,7 +45,7 @@ Click **Save**.
 ## 4. Quick check
 
 1. Open `/member/login` (or `/admin/login`) on the deployed site and request a code for an address you control.
-2. The email should arrive from `Aesthetic Success Network <support@aestheticsuccessnetwork.com>` with the subject `Your Aesthetic Success Network sign-in code: 123456` and the code in the gold box.
+2. The email should arrive from `Aesthetic Success Network <support@aestheticsuccessnetwork.com>` with the subject `Your Aesthetic Success Network sign-in code` and the code in the gold box.
 3. Entering the code within 5 minutes signs you in; after 5 minutes it must be rejected.
 4. The app logs each request in `email_events` with `provider: "supabase_auth"`; the subject stored there is only a label, the real subject is the dashboard template above.
 

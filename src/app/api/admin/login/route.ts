@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { requestOtp } from "@/lib/auth/otpFallback";
+import { requestOtp, isAppMailFailure } from "@/lib/auth/otpFallback";
 import { createServerSupabase } from "@/lib/supabase/server-ssr";
 import { getSupabaseAdmin } from "@/lib/supabase/server";
 import { checkRateLimit } from "@/lib/waitlist/rateLimit";
@@ -83,6 +83,13 @@ export async function POST(req: Request) {
         return NextResponse.json(
           { error: "A code was sent recently. Wait a minute, then request a new one." },
           { status: 429 },
+        );
+      }
+      // The app's own sender already tried and failed: say so, never retry.
+      if (isAppMailFailure(error)) {
+        return NextResponse.json(
+          { error: "Couldn't send the code email right now. Please try again in a few minutes." },
+          { status: 503 },
         );
       }
       const isUserNotFound =

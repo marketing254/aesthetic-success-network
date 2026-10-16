@@ -74,7 +74,10 @@ export async function sendAdminCodeEmail(to: string, code: string): Promise<void
     from: FROM,
     to,
     replyTo: SUPPORT,
-    subject: `Your ${BRAND} sign-in code: ${code}`,
+    // Never put the code in the subject: Rackspace's outbound spam filter
+    // rejects "sign-in code: 123456" subjects after repeated sends (550
+    // 5.7.1, confirmed 16 Oct 2026). The code stays in the body.
+    subject: `Your ${BRAND} sign-in code`,
     html: html(code),
     text: `Your ${BRAND} sign-in code is ${code}. Enter it on the sign-in page. It expires in a few minutes and works once. If you did not try to sign in, ignore this email.`,
   });
