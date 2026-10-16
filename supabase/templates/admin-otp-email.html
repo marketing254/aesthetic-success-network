@@ -4,7 +4,7 @@
   Supabase uses this ONE template for every signInWithOtp() call, so the same
   email serves member, expert, partner, job-seeker and admin sign-in codes.
   Including {{ .Token }} makes Supabase send a 6-digit code instead of a link.
-  Suggested subject:  Your Aesthetic Success Network sign-in code: {{ .Token }}
+  Suggested subject:  Your Aesthetic Success Network sign-in code   (never put {{ .Token }} in the subject: Rackspace rejects it as spam)
   See supabase/templates/README.md for the dashboard steps.
 -->
 <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#f7f5f0;padding:28px 0;">

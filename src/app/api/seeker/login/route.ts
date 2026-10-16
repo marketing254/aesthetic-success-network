@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { isOtpThrottle, sendOtpViaFallback, requestOtp } from "@/lib/auth/otpFallback";
+import { isOtpThrottle, sendOtpViaFallback, requestOtp, isAppMailFailure } from "@/lib/auth/otpFallback";
 import { createServerSupabase } from "@/lib/supabase/server-ssr";
 import { getSupabaseAdmin } from "@/lib/supabase/server";
 import { checkRateLimit } from "@/lib/waitlist/rateLimit";
@@ -110,7 +110,8 @@ export async function POST(req: Request) {
   if (error) {
     const msg = error.message ?? "";
     const isUserNotFound =
-      /not allowed|not found|invalid/i.test(msg) || error.status === 422 || error.status === 400;
+      !isAppMailFailure(error) &&
+      (      /not allowed|not found|invalid/i.test(msg) || error.status === 422 || error.status === 400);
     try {
       await admin.from("auth_audit").insert({
         event: "otp_send_denied",
@@ -131,6 +132,9 @@ export async function POST(req: Request) {
       );
     }
     console.error("[seeker:login] supabase otp send failed, using fallback transport:", error.status, msg);
+    if (isAppMailFailure(error)) {
+      return NextResponse.json({ error: "Couldn't send your sign-in code right now. Please try again in a few minutes." }, { status: 503 });
+    }
     const fb = await sendOtpViaFallback(email, "seeker:login");
     if (!fb.ok) {
       return NextResponse.json(

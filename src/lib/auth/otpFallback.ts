@@ -33,6 +33,14 @@ export async function sendOtpViaFallback(email: string, tag: string): Promise<Ot
   }
 }
 
+/** Marker returned by requestOtp when the app's own sender already failed. */
+export const APP_MAIL_FAILED = "app_mail_failed";
+
+/** True when requestOtp already tried the app sender and it failed: do not retry. */
+export function isAppMailFailure(error: { status?: number; message?: string } | null | undefined): boolean {
+  return !!error && error.message === APP_MAIL_FAILED;
+}
+
 /** True when Supabase's per-address resend throttle produced the error. */
 export function isOtpThrottle(error: { status?: number; message?: string }): boolean {
   return error.status === 429 || /security purposes|once every/i.test(error.message ?? "");
@@ -57,7 +65,12 @@ export async function requestOtp(
   if ((process.env.OTP_TRANSPORT ?? "").toLowerCase() === "app") {
     const fb = await sendOtpViaFallback(email, tag);
     if (fb.ok) return { error: null };
-    return { error: { status: fb.reason === "no_user" ? 422 : 500, message: fb.reason === "no_user" ? "user not found" : fb.detail ?? fb.reason } };
+    if (fb.reason === "no_user") return { error: { status: 422, message: "user not found" } };
+    // The app's own sender already tried and failed. Return a fixed marker
+    // (the SMTP detail is logged above) so callers neither read a mail error
+    // such as "Invalid login" as "no account", nor send the same code email
+    // a second time, which is what spam filters punish.
+    return { error: { status: 503, message: APP_MAIL_FAILED } };
   }
   const ms = Number(process.env.OTP_SUPABASE_TIMEOUT_MS ?? "6000");
   const timeout = new Promise<{ error: { status: number; message: string } }>((resolve) =>
