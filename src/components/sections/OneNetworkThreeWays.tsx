@@ -34,7 +34,7 @@ const CARDS: Array<{
     body: "Bring any practice problem to the Hotline and get a written action plan plus the right experts to call, within 2 to 3 business days.",
     perks: [
       "Expert Hotline with written action plans",
-      "Growing resource library, new expert kits weekly",
+      "Growing resource library, new expert Protocols weekly",
       "Member-only partner deals on devices, injectables, skincare, software and services",
       "Monthly live AMAs and CE",
       "Updates from the network's experts and partners",

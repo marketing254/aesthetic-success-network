@@ -133,7 +133,7 @@ export const planTiers: PlanTier[] = [
     priceMonthly: 0,
     cadenceLabel: "Forever free",
     blurb: "A taste of the network. Public-facing assets only.",
-    features: ["Public updates feed", "2 sample kits", "Waitlist for paid tiers"],
+    features: ["Public updates feed", "2 sample Protocols", "Waitlist for paid tiers"],
     highlight: false,
     ctaLabel: "Downgrade",
   },

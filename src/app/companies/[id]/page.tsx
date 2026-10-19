@@ -53,7 +53,10 @@ export default async function PublicPartnerProfilePage({ params }: { params: Pro
   if (!hit) notFound();
   const { company, expert } = hit;
 
-  const [{ offerCount, spotlights }, more] = await Promise.all([companyExtras(id), otherCompanies(id, 3)]);
+  const [{ offerCount, spotlights, media }, more] = await Promise.all([companyExtras(id), otherCompanies(id, 3)]);
+  const mediaCard = media.find((m) => m.kind === "image" && m.title === "card");
+  const mediaVideos = media.filter((m) => m.kind === "video");
+  const mediaDocs = media.filter((m) => m.kind === "pdf");
   const about = company.description.split(/\r?\n\s*\r?\n/).map((p) => p.trim()).filter(Boolean);
 
   const jsonLd = {
@@ -116,6 +119,30 @@ export default async function PublicPartnerProfilePage({ params }: { params: Pro
               ))}
             </div>
           </section>
+
+          {(mediaVideos.length > 0 || mediaDocs.length > 0 || mediaCard) && (
+            <section className="dx-block">
+              <h2>Meet {company.name}</h2>
+              {mediaVideos.map((v) => (
+                <video key={v.id} className="dx-media-video" src={v.url} controls preload="metadata" poster={mediaCard?.url} />
+              ))}
+              {mediaDocs.length > 0 && (
+                <ul className="dx-docs">
+                  {mediaDocs.map((d) => (
+                    <li key={d.id}>
+                      <span className="dx-doc-icon" aria-hidden>
+                        PDF
+                      </span>
+                      <span className="dx-doc-title">{d.title}</span>
+                      <a href={d.downloadUrl} className="dx-doc-dl">
+                        Download
+                      </a>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </section>
+          )}
 
           <section className="dx-block">
             <h2>Member deal</h2>

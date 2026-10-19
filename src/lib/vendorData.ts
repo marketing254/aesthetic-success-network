@@ -425,7 +425,7 @@ export const vendorAgreementSections: AgreementSection[] = [
     number: "02",
     title: "Expert terms (if you also hold the expert capability)",
     body:
-      "Experts share one recording (up to about one hour) of themselves teaching a topic, plus supporting details. We produce the content kit (training video, action guide, checklist, key takeaways, worksheet, slide deck, wall poster, and extras), and you approve it before it goes live under your profile. You keep ownership of your content and grant ASN a license to produce, host, and distribute the kits to members. Expert access pricing: the first 6 months free from " + LAUNCH_LABEL + ", then $39 a month with no increase. Paid courses and products: you sell them on your own site and keep the full price; the one condition is a member-only offer on each. Hotline referrals are routed by fit, never by payment.",
+      "Experts share one recording (up to about one hour) of themselves teaching a topic, plus supporting details. We produce the content Protocol (training video, action guide, checklist, key takeaways, worksheet, slide deck, wall poster, and extras), and you approve it before it goes live under your profile. You keep ownership of your content and grant ASN a license to produce, host, and distribute the Protocols to members. Expert access pricing: the first 6 months free from " + LAUNCH_LABEL + ", then $39 a month with no increase. Paid courses and products: you sell them on your own site and keep the full price; the one condition is a member-only offer on each. Hotline referrals are routed by fit, never by payment.",
   },
   {
     id: "fees-and-payment",
@@ -460,7 +460,7 @@ export const vendorAgreementSections: AgreementSection[] = [
     number: "07",
     title: "Term, renewal, and termination",
     body:
-      "The initial term is 12 months from signup, renewing automatically for successive 12-month terms unless either party gives 30 days' non-renewal notice. Either party may terminate for convenience with 30 days' written notice. Either party may terminate immediately for a material breach that remains uncured 15 days after written notice, for insolvency, or for conduct that materially harms the network. On termination: the profile is removed, the badge license ends, and unpaid fees become due. Expert kits are unpublished from the member library; purchasers of paid courses retain the access you sold them on your own site.",
+      "The initial term is 12 months from signup, renewing automatically for successive 12-month terms unless either party gives 30 days' non-renewal notice. Either party may terminate for convenience with 30 days' written notice. Either party may terminate immediately for a material breach that remains uncured 15 days after written notice, for insolvency, or for conduct that materially harms the network. On termination: the profile is removed, the badge license ends, and unpaid fees become due. Expert Protocols are unpublished from the member library; purchasers of paid courses retain the access you sold them on your own site.",
   },
   {
     id: "disclaimers",

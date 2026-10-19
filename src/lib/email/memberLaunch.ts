@@ -38,7 +38,7 @@ export async function sendMemberLaunchEmail(input: MemberLaunchEmailInput): Prom
         title: "What you get from day one",
         items: [
           "The Expert Hotline. Describe any practice problem and get an instant, AI-assisted answer: a recommended solution and the experts and companies best placed to help.",
-          "The resource library: playbooks, checklists, calculators and recordings from vetted experts, with new material added as experts join.",
+          "The resource library: Protocols, checklists, calculators and recordings from vetted experts, with new material added as experts join.",
           "Member-only offers from companies we've vetted.",
           "Directories of experts and companies, so you can find the right help fast.",
         ],

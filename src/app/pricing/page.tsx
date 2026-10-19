@@ -85,7 +85,7 @@ const PRICING_JSONLD = {
       "@type": "Product",
       name: "Aesthetic Success Network: Expert Bench",
       description:
-        "Featured spot on the ASN expert bench for coaches, consultants and educators serving aesthetic practices. We produce your content kits, surface them in the member library, and route warm leads to your calendar. Sell your own courses and products to members and keep the full price.",
+        "Featured spot on the ASN expert bench for coaches, consultants and educators serving aesthetic practices. We produce your content Protocols, surface them in the member library, and route warm leads to your calendar. Sell your own courses and products to members and keep the full price.",
       brand: { "@type": "Brand", name: "Aesthetic Success Network" },
       image: `${SITE}/asn-logo-full-dark.png`,
       url: `${SITE}/pricing`,

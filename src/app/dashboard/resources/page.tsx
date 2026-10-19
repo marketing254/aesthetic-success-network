@@ -253,7 +253,7 @@ export default function ResourceLibraryPage() {
       <EditorialHeader
         eyebrow="Resource library"
         title="Built from real experts. Ready for you & your team."
-        standfirst="Each kit is a topic pack: training video, action guide, worksheets, checklist, and ready-to-use templates. Stream the video, download the rest."
+        standfirst="Each Protocol is a topic pack: training video, action guide, worksheets, checklist, and ready-to-use templates. Stream the video, download the rest."
       />
 
       {/* Toolbar — dropdown filters + sort + search. Scales as we add more
@@ -375,11 +375,11 @@ export default function ResourceLibraryPage() {
           }}
         >
           <Typography sx={{ ...editorialText.heading, mb: 0.5 }}>
-            {q ? `No kits match "${q}"` : topics.length === 0 ? "No kits published yet" : "No kits in this filter"}
+            {q ? `No Protocols match "${q}"` : topics.length === 0 ? "No Protocols published yet" : "No Protocols in this filter"}
           </Typography>
           <Typography sx={editorialText.meta}>
             {topics.length === 0 && !q
-              ? "Kits will appear here as soon as the ASN content team adds them."
+              ? "Protocols will appear here as soon as the ASN content team adds them."
               : "Try a different filter or clear the search."}
           </Typography>
         </Box>

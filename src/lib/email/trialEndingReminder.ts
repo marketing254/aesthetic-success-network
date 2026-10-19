@@ -76,7 +76,7 @@ export async function sendTrialEndingReminder(input: TrialEndingReminderInput): 
         title: "Want to stop?",
         paragraphs: [
           `Cancel any time before ${date} and you won't be charged. Open your billing page and choose Cancel, or reply to this email with the word "cancel" and we'll take care of it. ${
-            input.role === "expert" ? "Your playbook and material are yours to keep." : "Your material is yours to keep."
+            input.role === "expert" ? "Your Protocol and material are yours to keep." : "Your material is yours to keep."
           } After your first charge, cancellation takes ${CANCEL_NOTICE_DAYS} days' written notice.`,
         ],
       },

@@ -160,7 +160,7 @@ you exactly what's inside and where to find it, which is quicker than us writing
 ${posterHtml}
 ${emailCtaButton(tourUrl(), "Watch the 2 minute tour &rarr;")}
 
-<p style="margin:0 0 14px;">That's the only thing to do today. There's a growing library of kits in
+<p style="margin:0 0 14px;">That's the only thing to do today. There's a growing library of Protocols in
 there and it's tempting to try to see it all at once. Don't. We'll point you at a great place to
 start in a couple of days.</p>
 
@@ -187,7 +187,7 @@ function renderKit(opts: {
   const intro =
     matchKind === "best"
       ? `You mentioned your biggest challenge right now is <b>${escapeHtml(challenge)}</b>, so rather than pointing you at the whole library, here's the one place to start.`
-      : `You mentioned your biggest challenge right now is <b>${escapeHtml(challenge)}</b>. There isn't a kit aimed squarely at that yet, but this is the closest starting point in the library today, and we're adding new kits every week.`;
+      : `You mentioned your biggest challenge right now is <b>${escapeHtml(challenge)}</b>. There isn't a Protocol aimed squarely at that yet, but this is the closest starting point in the library today, and we're adding new Protocols every week.`;
   const body = `<p style="margin:0 0 14px;">Hi ${escapeHtml(firstName)},</p>
 
 <p style="margin:0 0 14px;">${intro}</p>
@@ -399,11 +399,11 @@ async function matchKit(challenge: string, kits: KitOption[]): Promise<MatchResu
       {
         role: "system",
         content: [
-          "You match an aesthetic practice owner's stated biggest challenge to ONE kit from a catalog.",
+          "You match an aesthetic practice owner's stated biggest challenge to ONE Protocol from a catalog.",
           "Rules:",
-          '- If a kit clearly addresses the challenge, answer match:"best" with its slug.',
+          '- If a Protocol clearly addresses the challenge, answer match:"best" with its slug.',
           '- If nothing addresses it squarely but one is a reasonable nearby starting point, answer match:"closest" with its slug.',
-          '- If the challenge is outside anything the catalog covers (or is not a practice-management topic at all), answer match:"none" with slug:null. Do NOT stretch a kit to fit.',
+          '- If the challenge is outside anything the catalog covers (or is not a practice-management topic at all), answer match:"none" with slug:null. Do NOT stretch a Protocol to fit.',
           'Respond as JSON: {"match":"best"|"closest"|"none","slug":string|null,"reason":"one sentence"}',
         ].join("\n"),
       },
@@ -438,12 +438,12 @@ async function postNoMatchToSlack(
   reason: string,
 ): Promise<boolean> {
   const text = [
-    ":mailbox_with_no_mail: *New member: no kit matched their challenge*",
+    ":mailbox_with_no_mail: *New member: no Protocol matched their challenge*",
     `*Member:* ${slackText(member.name)} (${slackText(member.email)})`,
     member.practice ? `*Practice:* ${slackText(member.practice)}` : null,
     `*Their biggest challenge:* ${slackText(member.challenge)}`,
-    `*Why no kit was sent:* ${slackText(reason)}`,
-    `No day-3 kit email was sent. Someone should reply to them personally from ${FOUNDING_EMAIL}.`,
+    `*Why no Protocol was sent:* ${slackText(reason)}`,
+    `No day-3 Protocol email was sent. Someone should reply to them personally from ${FOUNDING_EMAIL}.`,
   ]
     .filter(Boolean)
     .join("\n");
@@ -682,7 +682,7 @@ export async function processOnboardingQueue(): Promise<{
       const match: MatchResult =
         challenge && kits.length > 0
           ? await matchKit(challenge, kits)
-          : { match: "none", slug: null, reason: challenge ? "no kits published" : "member gave no challenge at signup" };
+          : { match: "none", slug: null, reason: challenge ? "no Protocols published" : "member gave no challenge at signup" };
 
       if (match.match === "none" || !match.slug) {
         await postNoMatchToSlack(

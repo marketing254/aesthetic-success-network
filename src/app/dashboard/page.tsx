@@ -264,9 +264,9 @@ export default function DashboardHome() {
           resuming={!!continueKit}
           standfirst={
             viewedCount === 0
-              ? "Your founding-member library is open. Pick a kit and start with the training video, then work through the guide and templates at your own pace."
+              ? "Your founding-member library is open. Pick a Protocol and start with the training video, then work through the guide and templates at your own pace."
               : startedKits === topics.length
-                ? "You have started every kit. Completed kits earn a check mark and stay in your library."
+                ? "You have started every Protocol. Completed Protocols earn a check mark and stay in your library."
                 : `You have opened ${startedKits} of ${topics.length} kits. Keep momentum: pick up where you left off, or start something new.`
           }
         />
@@ -278,7 +278,7 @@ export default function DashboardHome() {
           <MetricStrip
             items={[
               {
-                label: "Kits available",
+                label: "Protocols available",
                 value: String(topics.length),
                 meta: topics.length === 1 ? "in your library" : "available to you",
               },
@@ -288,7 +288,7 @@ export default function DashboardHome() {
                 meta: `${startedKits}/${topics.length} kits started`,
               },
               {
-                label: "Kits completed",
+                label: "Protocols completed",
                 value: String(completedKits),
                 meta: `${Math.max(topics.length - completedKits, 0)} to go`,
               },
@@ -307,8 +307,8 @@ export default function DashboardHome() {
       <Reveal delay={200}>
       <EditorialSection
         eyebrow={spotKit?.lastViewedAt ? "Continue watching" : "Begin"}
-        title={spotKit?.lastViewedAt ? "Your most recent kit" : "Start with this kit"}
-        actions={<SeeAllLink href="/dashboard/resources" label="All kits" />}
+        title={spotKit?.lastViewedAt ? "Your most recent Protocol" : "Start with this Protocol"}
+        actions={<SeeAllLink href="/dashboard/resources" label="All Protocols" />}
       >
         {resourcesLoading ? (
           <Stack sx={{ alignItems: "center", py: 4 }}>
@@ -342,7 +342,7 @@ export default function DashboardHome() {
         <EditorialSection
           eyebrow="Trending"
           title="Top 5 in the network"
-          actions={<SeeAllLink href="/dashboard/resources" label="All kits" />}
+          actions={<SeeAllLink href="/dashboard/resources" label="All Protocols" />}
         >
           <KitRail>
             {topFive.map((t, i) => (
@@ -1052,7 +1052,7 @@ function RecentKitCard({ topic }: { topic: TopicCard }) {
               mb: 0.5,
             }}
           >
-            {started ? "Most recently opened" : topic.isFree ? "Free starter kit" : "Recommended kit"}
+            {started ? "Most recently opened" : topic.isFree ? "Free starter Protocol" : "Recommended Protocol"}
           </Typography>
           <Typography
             sx={{
@@ -1259,7 +1259,7 @@ function BillboardHero({
                   mb: 0.5,
                 }}
               >
-                {resuming ? "Continue watching" : "Featured kit"}
+                {resuming ? "Continue watching" : "Featured Protocol"}
               </Typography>
               <Typography
                 sx={{

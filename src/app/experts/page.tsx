@@ -18,7 +18,7 @@ import { LAUNCH_LABEL } from "@/lib/providerBilling";
 export const metadata: Metadata = {
   title: "Become an Expert",
   description:
-    "Turn your aesthetics expertise into a done-for-you content library and a pipeline of warm leads. Share one recording; we produce the kit and bring the audience.",
+    "Turn your aesthetics expertise into a done-for-you content library and a pipeline of warm leads. Share one recording; we produce the Protocol and bring the audience.",
   alternates: { canonical: "/experts" },
 };
 

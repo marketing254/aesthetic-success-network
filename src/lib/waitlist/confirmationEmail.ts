@@ -632,7 +632,7 @@ const PARTNER_WHAT_WE_DO = [
   "Your page in our partner directory, with your logo, your description, your member offer and a way to book you.",
   "Founding partners are featured first when we open to members.",
   "We build material from one recording (a webinar, demo or talk you've already done), in your company's name. You approve every piece before it goes live, and it's yours to keep, even if you leave.",
-  "A ready-made launch kit. Posts with the words written, quote cards, a QR code and an email banner.",
+  "A ready-made launch Protocol. Posts with the words written, quote cards, a QR code and an email banner.",
   "We promote you, not just list you. Our email list, our social channels, and a blog post from your session.",
   "A seat on the ASN podcast, exclusive to members.",
   "First call to speak at our events.",
@@ -740,7 +740,7 @@ function buildMemberWelcomeEmail({ firstName, portalUrl }: MemberWelcomeInput): 
   <div style="font-family:${FONT_UI};font-size:11px;letter-spacing:0.22em;text-transform:uppercase;color:${BRAND.goldDeep};font-weight:700;margin-bottom:18px;">FOUNDING MEMBER · PORTAL ACTIVE</div>
   <h1 style="font-family:${FONT_DISPLAY};font-size:30px;line-height:1.18;font-weight:500;color:${BRAND.ink};margin:0 0 18px;letter-spacing:-.02em;">Welcome, ${safeName}.</h1>
   <p style="font-size:16px;line-height:1.7;color:${BRAND.inkSoft};margin:0 0 14px;">
-    Your founding-member portal is live. You'll find the resource library waiting for you: practical, no-fluff kits built for aesthetic practice owners. Pick a topic and dig in.
+    Your founding-member portal is live. You'll find the resource library waiting for you: practical, no-fluff Protocols built for aesthetic practice owners. Pick a topic and dig in.
   </p>
   <p style="font-size:16px;line-height:1.7;color:${BRAND.inkSoft};margin:0 0 28px;">
     To get in, click the button below and enter the email you joined with. We'll send you a one-time 6-digit sign-in code.
@@ -750,9 +750,9 @@ function buildMemberWelcomeEmail({ firstName, portalUrl }: MemberWelcomeInput): 
   <h2 style="font-family:${FONT_UI};font-size:14px;font-weight:700;color:${BRAND.ink};letter-spacing:.005em;margin:0 0 10px;text-transform:uppercase;">What you have access to today</h2>
   <ul style="font-size:14.5px;line-height:1.75;color:${BRAND.inkSoft};margin:0;padding-left:20px;">
     <li>The resource library: videos, action guides, worksheets, checklists</li>
-    <li>Kits on pricing and margins, consult conversion, team and hiring, marketing and growth, operations and compliance</li>
+    <li>Protocols on pricing and margins, consult conversion, team and hiring, marketing and growth, operations and compliance</li>
     <li>Your member profile (practice details, contact info)</li>
-    <li>New kits unlock automatically. You don't need to do anything</li>
+    <li>New Protocols unlock automatically. You don't need to do anything</li>
   </ul>
   <p style="font-size:13px;line-height:1.65;color:${BRAND.inkMute};margin:32px 0 0;">
     Questions? Reply to this email. Our team reads every reply.<br/>
@@ -763,7 +763,7 @@ function buildMemberWelcomeEmail({ firstName, portalUrl }: MemberWelcomeInput): 
 
   const text = `Welcome, ${firstName}.
 
-Your founding-member portal is live. You'll find the resource library waiting for you: practical, no-fluff kits built for aesthetic practice owners. Pick a topic and dig in.
+Your founding-member portal is live. You'll find the resource library waiting for you: practical, no-fluff Protocols built for aesthetic practice owners. Pick a topic and dig in.
 
 To get in, open the link below and enter the email you joined with. We'll send you a one-time 6-digit sign-in code.
 
@@ -771,9 +771,9 @@ Open your portal: ${portalUrl}
 
 What you have access to today:
 - The resource library: videos, action guides, worksheets, checklists
-- Kits on pricing and margins, consult conversion, team and hiring, marketing and growth, operations and compliance
+- Protocols on pricing and margins, consult conversion, team and hiring, marketing and growth, operations and compliance
 - Your member profile (practice details, contact info)
-- New kits unlock automatically. You don't need to do anything
+- New Protocols unlock automatically. You don't need to do anything
 
 Questions? Reply to this email. Our team reads every reply.
 ${BRAND_NAME}. Powered by Business of Aesthetics.`;
@@ -860,7 +860,7 @@ function expertApplicationDraft(input: ExpertConfirmationInput): LayoutDraft {
         title: "If your application is approved",
         items: [
           "You'll receive an approval email with a link to book a 30-minute onboarding conversation with our team.",
-          "During onboarding, we'll set up your expert profile and walk you through how it works. You share one recording of you teaching your topic, and we turn it into a full playbook for our members, published by ASN with your name and expertise front and center. Members who want more help can book time straight onto your calendar.",
+          "During onboarding, we'll set up your expert profile and walk you through how it works. You share one recording of you teaching your topic, and we turn it into a full Protocol for our members, published by ASN with your name and expertise front and center. Members who want more help can book time straight onto your calendar.",
           `Your founding terms lock in. ${providerTermsSentence(null, { expert: true })} You pay nothing while we build.`,
         ],
       },
@@ -938,7 +938,7 @@ function expertApprovalDraft(input: ExpertApprovalInput): LayoutDraft {
       {
         title: "Your next step: sign in and accept your agreement",
         paragraphs: [
-          `Sign in to your expert portal with this email: ${input.email}. Enter it there and we'll send you a 6-digit code. Inside, review the Provider Agreement, tick "I agree" and save a card. Nothing is charged today; that step opens your portal, we email you a signed copy, and we start building your first playbook.`,
+          `Sign in to your expert portal with this email: ${input.email}. Enter it there and we'll send you a 6-digit code. Inside, review the Provider Agreement, tick "I agree" and save a card. Nothing is charged today; that step opens your portal, we email you a signed copy, and we start building your first Protocol.`,
         ],
         tone: "green",
       },

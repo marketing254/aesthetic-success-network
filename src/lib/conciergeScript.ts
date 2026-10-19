@@ -46,18 +46,18 @@ export const CONCIERGE_NODES: Record<string, ConciergeNode> = {
   resources: {
     id: "resources",
     reply:
-      "The Resource library has every published kit: training videos, action guides, checklists, slide decks. What are you looking for?",
+      "The Resource library has every published Protocol: training videos, action guides, checklists, slide decks. What are you looking for?",
     options: [
       { label: "Browse the whole library", href: "/dashboard/resources", tone: "primary" },
       { label: "Filter by an expert", href: "/dashboard/experts" },
       { label: "Continue where I left off", href: "/dashboard" },
-      { label: "Show me a Book Club kit", next: "bookclub" },
+      { label: "Show me a Book Club Protocol", next: "bookclub" },
     ],
   },
   bookclub: {
     id: "bookclub",
     reply:
-      "Book Club kits are designed to be read alongside the book: a training video, named key principles as 9×16 shorts, plus a study guide, discussion questions, and an infographic.",
+      "Book Club Protocols are designed to be read alongside the book: a training video, named key principles as 9×16 shorts, plus a study guide, discussion questions, and an infographic.",
     options: [
       { label: "Open the Resource library and filter by Book Club", href: "/dashboard/resources", tone: "primary" },
     ],

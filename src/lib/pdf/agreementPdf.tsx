@@ -281,7 +281,7 @@ const PARTNER_RECEIVES = [
 ];
 
 const EXPERT_TERMS = [
-  `Experts share one recording (up to about one hour) of themselves teaching a topic, plus supporting details. We produce the content kit (training video, action guide, checklist, key takeaways, worksheet, slide deck, wall poster, and extras), and you approve it before it goes live under your profile. You keep ownership of your content and grant ASN a license to produce, host, and distribute the kits to members. Expert access pricing: nothing for your first ${PROVIDER_FREE_MONTHS} months, which start the day the network opens to members, then ${EXPERT_RATE_LABEL} per month, and it stays ${EXPERT_RATE_LABEL} per month for as long as your expert access remains continuously active.`,
+  `Experts share one recording (up to about one hour) of themselves teaching a topic, plus supporting details. We produce the content Protocol (training video, action guide, checklist, key takeaways, worksheet, slide deck, wall poster, and extras), and you approve it before it goes live under your profile. You keep ownership of your content and grant ASN a license to produce, host, and distribute the Protocols to members. Expert access pricing: nothing for your first ${PROVIDER_FREE_MONTHS} months, which start the day the network opens to members, then ${EXPERT_RATE_LABEL} per month, and it stays ${EXPERT_RATE_LABEL} per month for as long as your expert access remains continuously active.`,
   "Paid courses and products: you may offer your own paid courses and products to members. Members buy on your own site and you keep the full price; the one condition is a member-only offer on each. Hotline referrals are routed by fit, never by payment.",
 ];
 
@@ -309,7 +309,7 @@ const GENERAL_SECTIONS: { title: string; body: string }[] = [
   {
     title: "8. Term, renewal, and termination",
     body:
-      "The initial term is 12 months from signup, renewing automatically for successive 12-month terms unless either party gives 30 days' non-renewal notice. You may cancel at any time before your first charge with immediate effect and no charge. After the first charge, either party may terminate for convenience with 30 days' written notice. Either party may terminate immediately for a material breach that remains uncured 15 days after written notice, for insolvency, or for conduct that materially harms the network. On termination: the profile is removed, the badge license ends, and unpaid fees become due. Expert kits are unpublished from the member library; purchasers of paid courses retain access.",
+      "The initial term is 12 months from signup, renewing automatically for successive 12-month terms unless either party gives 30 days' non-renewal notice. You may cancel at any time before your first charge with immediate effect and no charge. After the first charge, either party may terminate for convenience with 30 days' written notice. Either party may terminate immediately for a material breach that remains uncured 15 days after written notice, for insolvency, or for conduct that materially harms the network. On termination: the profile is removed, the badge license ends, and unpaid fees become due. Expert Protocols are unpublished from the member library; purchasers of paid courses retain access.",
   },
   {
     title: "9. Disclaimers and liability",

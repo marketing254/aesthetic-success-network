@@ -189,7 +189,7 @@ const PARTNER_WHAT_WE_DO = [
   "Your page in our partner directory, with your logo, description, member offer and a way to book you.",
   "Founding partners are featured first when we open to members.",
   "We build material from one recording, in your company's name. You approve every piece, and it's yours to keep, even if you leave.",
-  "A ready-made launch kit, and we promote you through our email list, social channels and a blog post from your session.",
+  "A ready-made launch Protocol, and we promote you through our email list, social channels and a blog post from your session.",
   "A seat on the ASN podcast and first call to speak at our events.",
   "The Expert Hotline recommends you by fit. Referrals are never pay-to-play.",
   "Your courses and products in front of members. Members buy on your own site and you keep the full price. The one condition: a member-only offer on each.",
@@ -263,24 +263,24 @@ function expertDraft(input: JoinConfirmationInput, name: string): EmailDraft {
   if (ONBOARDING_CALL_URL) {
     sections.push({
       title: "Your next step: book your onboarding call",
-      paragraphs: ["Pick a time for a 30-minute conversation with our team. We'll set up your expert profile, plan your first playbook, and answer any questions."],
+      paragraphs: ["Pick a time for a 30-minute conversation with our team. We'll set up your expert profile, plan your first Protocol, and answer any questions."],
       tone: "green",
     });
   } else {
     sections.push({
       title: "Your next step: your onboarding call",
-      paragraphs: ["Our team will email you to book a 30-minute onboarding conversation. We'll set up your expert profile, plan your first playbook, and answer any questions."],
+      paragraphs: ["Our team will email you to book a 30-minute onboarding conversation. We'll set up your expert profile, plan your first Protocol, and answer any questions."],
       tone: "green",
     });
   }
   sections.push({
     title: "What you can do inside the portal",
     items: [
-      "Share your first recording. One recording of you teaching your topic is all we need. Our team turns it into a full playbook, published by ASN with your name and expertise front and center.",
+      "Share your first recording. One recording of you teaching your topic is all we need. Our team turns it into a full Protocol, published by ASN with your name and expertise front and center.",
       "Upload extra resources. SOPs, templates, slide decks, recordings and PDFs. We review them, format them in the ASN style, and add them to the member library.",
       "Complete your profile. This is what members see when the Expert Hotline recommends you.",
     ],
-    paragraphs: ["The member side opens soon. Until then, use this time to get your profile and first playbook ready so members find you on day one."],
+    paragraphs: ["The member side opens soon. Until then, use this time to get your profile and first Protocol ready so members find you on day one."],
   });
   if (input.cardCaptured) sections.push(billingSection(input));
   if (both) {

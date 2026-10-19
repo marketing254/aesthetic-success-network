@@ -64,7 +64,7 @@ const SHOW_LIBRARY = process.env.NEXT_PUBLIC_SHOW_JUST_DROPPED === "true";
 // Un-named value cards for the library strip (replaces the DMN expert cards).
 const VALUE_CARDS = [
   { Icon: ForumOutlinedIcon, title: "Expert Hotline", body: "Describe any practice problem and get an instant, AI-assisted answer, with the experts and companies best placed to help." },
-  { Icon: MenuBookOutlinedIcon, title: "Resource library", body: "A growing library of expert kits: training video, action guide, checklist, worksheet and slide deck, produced from real expert sessions." },
+  { Icon: MenuBookOutlinedIcon, title: "Resource library", body: "A growing library of expert Protocols: training video, action guide, checklist, worksheet and slide deck, produced from real expert sessions." },
   { Icon: StorefrontOutlinedIcon, title: "Partner deals", body: "Member-only offers from vetted partners, each at least as good as any deal they make comparable customers." },
 ];
 
@@ -74,7 +74,7 @@ const CREATIVE_VARIANTS: Record<string, { badge: string; title: [string, string]
   savings: {
     badge: "Vetted partner savings",
     title: ["Membership savings for your ", "practice."],
-    copy: "Access confirmed member-only offers from vetted partners alongside ASN's experts, expert kits, tools and the wider partner network.",
+    copy: "Access confirmed member-only offers from vetted partners alongside ASN's experts, expert Protocols, tools and the wider partner network.",
   },
   hotline: {
     badge: "The ASN Expert Hotline",
@@ -86,7 +86,7 @@ const CREATIVE_VARIANTS: Record<string, { badge: string; title: [string, string]
 const DEFAULT_HERO = {
   badge: "Curated by the Business of Aesthetics team, not an algorithm",
   title: ["Never solve a practice problem ", "alone again."] as [string, string],
-  copy: "Bring ASN any practice problem. Get a written answer, and the right expert to talk to. Plus a growing library of expert kits from vetted experts.",
+  copy: "Bring ASN any practice problem. Get a written answer, and the right expert to talk to. Plus a growing library of expert Protocols from vetted experts.",
 };
 
 function readCookie(name: string): string | null {
@@ -619,7 +619,7 @@ export default function AdsLandingView() {
           <Box sx={{ display: "grid", gridTemplateColumns: { xs: "1fr", sm: "repeat(2, 1fr)" }, gap: 2 }}>
             {(
               [
-                ["Put into practice", MenuBookOutlinedIcon, "Resource library", "Expert kits: training videos, guides, checklists and worksheets your team can put to use."],
+                ["Put into practice", MenuBookOutlinedIcon, "Resource library", "Expert Protocols: training videos, guides, checklists and worksheets your team can put to use."],
                 ["Ask an expert", ForumOutlinedIcon, "Expert Hotline", "Ask any practice problem in plain English. Beacon answers right away, and our team follows up in writing within 2 to 3 business days when you need a person."],
                 ["Run the numbers", CalculateOutlinedIcon, "Tools and templates", "Practice calculators and templates built for aesthetic practice owners, ready in the portal."],
                 ["Save on what you already buy", StorefrontOutlinedIcon, "Partner deals and member offers", "Explore the expert and partner directories and claim confirmed member-only offers from vetted partners."],
@@ -733,7 +733,7 @@ export default function AdsLandingView() {
               <Box component="ul" sx={{ listStyle: "none", p: 0, mt: 3, mb: 0, color: "rgba(255,255,255,0.77)", fontSize: "0.76rem" }}>
                 {[
                   "Expert Hotline and written practice support",
-                  "Expert kits, tools and templates",
+                  "Expert Protocols, tools and templates",
                   "Vetted partners and member offers",
                   "30-day money-back guarantee",
                   "Cancel anytime",
@@ -912,7 +912,7 @@ export default function AdsLandingView() {
           </Box>
           {[
             ["Who is ASN membership for?", "Aesthetic practice owners, med spa operators, injectors, practice managers, and their clinical and administrative teams."],
-            ["What is included?", "The Expert Hotline, a curated expert directory, a growing library of expert kits, practical tools and templates, a vetted partner directory, and confirmed member offers."],
+            ["What is included?", "The Expert Hotline, a curated expert directory, a growing library of expert Protocols, practical tools and templates, a vetted partner directory, and confirmed member offers."],
             ["How does the Expert Hotline work?", "Ask in plain English, typed or spoken. Beacon answers right away from our experts’ own sessions. Anything clinical, legal or personal never gets a guess: it goes to our team, and you get a written answer by text and email within 2 to 3 business days, plus the right experts to talk to. A person, not a search box."],
             ["How does registration work?", "Complete your essential membership details, choose monthly or annual billing, agree to the member terms, and pay securely, all on the same page."],
             ["When will I be charged?", "Payment is collected securely in the payment section on this page. Your ASN portal unlocks once Stripe confirms the payment."],

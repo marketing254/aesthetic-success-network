@@ -85,7 +85,7 @@ export const features = [
   {
     title: "Curated Content",
     summary:
-      "A growing resource library of expert kits, with new kits added weekly, plus member rates on every paid expert course.",
+      "A growing resource library of expert Protocols, with new Protocols added weekly, plus member rates on every paid expert course.",
     icon: "target",
   },
   {
@@ -106,7 +106,7 @@ export const waitlist = {
     "Early access, be the first to know when new features and company deals launch",
     "Founding pricing, waitlist members get first crack at the founding rate",
     "Priority founding access, limited to 100 spots, waitlist members notified first",
-    "First notice, new kits, company deals, and live session invitations",
+    "First notice, new Protocols, company deals, and live session invitations",
   ],
   submitLabel: "Join the Waitlist",
   submittingLabel: "Saving your spot…",
@@ -427,14 +427,14 @@ export const libraryTopics: {
   duration: string;
   kind: LibraryTopicKind;
 }[] = [
-  { title: "Pricing injectables to protect your margin", track: "Pricing & Margins", duration: "Kit", kind: "kpi" },
-  { title: "The consult that converts without pressure", track: "Consult & Conversion", duration: "Kit", kind: "patient" },
-  { title: "Hiring and keeping a great injector", track: "Team & Culture", duration: "Kit", kind: "huddle" },
-  { title: "Med spa KPIs that matter", track: "Operations & Compliance", duration: "Kit", kind: "ppo" },
-  { title: "Retention and membership plans", track: "Patient Experience", duration: "Kit", kind: "book" },
-  { title: "Aesthetic marketing that fills the calendar", track: "Marketing & Growth", duration: "Kit", kind: "seo" },
-  { title: "Reviews and online reputation", track: "Marketing & Growth", duration: "Kit", kind: "reviews" },
-  { title: "Before-and-after photography that sells the result", track: "Consult & Conversion", duration: "Kit", kind: "photos" },
+  { title: "Pricing injectables to protect your margin", track: "Pricing & Margins", duration: "Protocol", kind: "kpi" },
+  { title: "The consult that converts without pressure", track: "Consult & Conversion", duration: "Protocol", kind: "patient" },
+  { title: "Hiring and keeping a great injector", track: "Team & Culture", duration: "Protocol", kind: "huddle" },
+  { title: "Med spa KPIs that matter", track: "Operations & Compliance", duration: "Protocol", kind: "ppo" },
+  { title: "Retention and membership plans", track: "Patient Experience", duration: "Protocol", kind: "book" },
+  { title: "Aesthetic marketing that fills the calendar", track: "Marketing & Growth", duration: "Protocol", kind: "seo" },
+  { title: "Reviews and online reputation", track: "Marketing & Growth", duration: "Protocol", kind: "reviews" },
+  { title: "Before-and-after photography that sells the result", track: "Consult & Conversion", duration: "Protocol", kind: "photos" },
 ];
 
 // Kits are presented by the network's expert bench, not a single host.

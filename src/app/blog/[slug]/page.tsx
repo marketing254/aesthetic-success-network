@@ -261,7 +261,7 @@ export default async function BlogArticlePage({
             </div>
 
             <div className="invite-box" style={{ margin: "26px 0 0", maxWidth: "none" }}>
-              <span className="kicker">The kit</span>
+              <span className="kicker">The Protocol</span>
               <h3 style={{ margin: "8px 0 6px" }}>{article.kitCta.kitName}</h3>
               <p style={{ marginBottom: 14 }}>{article.kitCta.description}</p>
               {article.kitCta.support ? (

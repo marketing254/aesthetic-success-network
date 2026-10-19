@@ -112,10 +112,10 @@ const LEAD_MAGNETS: Record<
   { title: string; pdfPath: string | null; attachmentFilename: string | null; buttonLabel: string }
 > = {
   "starter-kit": {
-    title: "your free starter kit",
+    title: "your free starter Protocol",
     pdfPath: null,
     attachmentFilename: null,
-    buttonLabel: "Download your kit",
+    buttonLabel: "Download your Protocol",
   },
 };
 
@@ -171,7 +171,7 @@ export async function sendLeadMagnetEmail(
   c?: LeadMagnetSpec,
 ): Promise<boolean> {
   if (typeof a === "string") {
-    const magnet = c ?? { title: "your free starter kit" };
+    const magnet = c ?? { title: "your free starter Protocol" };
     return sendLeadMagnetEmailImpl({
       to: a,
       firstName: b ?? null,
@@ -190,8 +190,8 @@ async function sendLeadMagnetEmailImpl(opts: LeadMagnetEmailInput): Promise<bool
   try {
     const registry = (opts.magnetSlug && LEAD_MAGNETS[opts.magnetSlug]) || LEAD_MAGNETS["starter-kit"];
     const slug = opts.magnetSlug ?? "starter-kit";
-    const title = (opts.magnetTitle ?? registry.title).trim() || "your free starter kit";
-    const buttonLabel = (opts.buttonLabel ?? registry.buttonLabel).trim() || "Download your kit";
+    const title = (opts.magnetTitle ?? registry.title).trim() || "your free starter Protocol";
+    const buttonLabel = (opts.buttonLabel ?? registry.buttonLabel).trim() || "Download your Protocol";
     const downloadUrl = opts.downloadUrl?.trim() || `${SITE_URL}/`;
     const pdfRelative = opts.pdfPath === undefined ? registry.pdfPath : opts.pdfPath;
 
@@ -262,7 +262,7 @@ async function sendLeadMagnetEmailImpl(opts: LeadMagnetEmailInput): Promise<bool
         <hr style="border:none;border-top:1px solid #E6DDCF;margin:28px 0 20px 0;" />
 
         <p style="font-size:13px;color:#3B4A55;line-height:1.6;">
-          <strong>P.S.</strong> This is one of the kits our members get. New done-for-you kits from working experts are added to the Aesthetic Success Network regularly, alongside the Expert Hotline for the problems a PDF cannot solve. If this was useful,
+          <strong>P.S.</strong> This is one of the Protocols our members get. New done-for-you Protocols from working experts are added to the Aesthetic Success Network regularly, alongside the Expert Hotline for the problems a PDF cannot solve. If this was useful,
           <a href="${escapeHtml(SITE_URL)}" style="color:#A07823;font-weight:600;">there is a lot more where it came from</a>.
           Founding spots are <strong>$39/month</strong>, locked for as long as your membership stays active.
         </p>
@@ -288,7 +288,7 @@ async function sendLeadMagnetEmailImpl(opts: LeadMagnetEmailInput): Promise<bool
       "The Aesthetic Success Network team",
       "Powered by Business of Aesthetics",
       "",
-      `P.S. This is one of the kits our members get. New done-for-you kits from working experts are added to the Aesthetic Success Network regularly, alongside the Expert Hotline for the problems a PDF cannot solve. If this was useful, there is a lot more where it came from: ${SITE_URL}`,
+      `P.S. This is one of the Protocols our members get. New done-for-you Protocols from working experts are added to the Aesthetic Success Network regularly, alongside the Expert Hotline for the problems a PDF cannot solve. If this was useful, there is a lot more where it came from: ${SITE_URL}`,
       "Founding spots are $39/month, locked for as long as your membership stays active.",
     ].join("\n");
 

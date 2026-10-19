@@ -162,8 +162,8 @@ export function BookCoachingCard({ topicTitle, expert }: { topicTitle?: string; 
               >
                 {featured
                   ? topicTitle
-                    ? `${firstName} built this kit. Bring your questions about ${topicTitle} straight to ${firstName}${featured.booking_link ? ", or book a session below" : " in the discussion below"}.`
-                    : `${firstName} built this kit. Bring your questions straight to the source.`
+                    ? `${firstName} built this Protocol. Bring your questions about ${topicTitle} straight to ${firstName}${featured.booking_link ? ", or book a session below" : " in the discussion below"}.`
+                    : `${firstName} built this Protocol. Bring your questions straight to the source.`
                   : topicTitle
                     ? `Bring your questions about ${topicTitle}, or anything else about running your practice, to a focused 30-minute strategy call.`
                     : "Bring your hardest practice question to a focused 30-minute strategy call."}

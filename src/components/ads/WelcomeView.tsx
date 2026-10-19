@@ -29,7 +29,7 @@ const LINE = "#ded9ce";
 
 const TIMELINE = [
   ["Today", "You’re in", "Open the welcome email and watch the two-minute portal tour."],
-  ["Day 3", "Start with one kit", "We point you to one practical resource instead of the whole library."],
+  ["Day 3", "Start with one Protocol", "We point you to one practical resource instead of the whole library."],
   ["Day 7", "Ask one question", "Bring the Expert Hotline a real problem your practice is facing."],
   ["Day 14", "Tell us the truth", "Three short questions help ASN improve around what members need."],
 ] as const;

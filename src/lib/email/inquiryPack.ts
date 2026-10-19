@@ -56,7 +56,7 @@ function renderHtml(input: { memberName: string; pdfUrl: string; question: strin
     <h1 style="font-size:22px;color:#0A1A2F;margin:0 0 14px">Thanks, the team will be in touch</h1>
     <p style="margin:0 0 14px">Hi ${escapeHtml(input.memberName)}, we have your question and a member of the team will get back to you in writing, by text and email, within <strong>2 to 3 business days</strong>.</p>
     ${q}
-    <p style="margin:0 0 20px">In the meantime, here is a pack of everything your membership gives you right now: every expert, partner offer, and kit in the portal.</p>
+    <p style="margin:0 0 20px">In the meantime, here is a pack of everything your membership gives you right now: every expert, partner offer, and Protocol in the portal.</p>
     <p style="margin:0 0 26px">
       <a href="${escapeHtml(input.pdfUrl)}" style="display:inline-block;background:#0A1A2F;color:#fff;text-decoration:none;font-weight:bold;padding:12px 22px;border-radius:6px">Download your ASN pack (PDF)</a>
     </p>

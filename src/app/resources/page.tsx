@@ -15,7 +15,7 @@ import ResourceKits from "@/components/site/ResourceKits";
 export const metadata: Metadata = {
   title: "Resource Library",
   description:
-    "A preview of the Aesthetic Success Network resource library: expert-built kits on pricing, consults, team, patient experience, marketing and operations, added weekly for members.",
+    "A preview of the Aesthetic Success Network resource library: expert-built Protocols on pricing, consults, team, patient experience, marketing and operations, added weekly for members.",
   alternates: { canonical: "/resources" },
   robots: { index: false, follow: true },
 };
@@ -24,7 +24,7 @@ const CATEGORIES = [
   { title: "Pricing & Margins", body: "Worksheets and audit checklists for pricing injectables, devices and packages without guessing." },
   { title: "Consult & Conversion", body: "Consult scripts, follow-up templates and before-and-after guidance that convert without pressure." },
   { title: "Team & Culture", body: "Interview guides, comp-plan templates and onboarding SOPs for injectors, estheticians and front desk." },
-  { title: "Patient Experience", body: "Retention and membership-plan playbooks, review requests and the touches that keep patients coming back." },
+  { title: "Patient Experience", body: "Retention and membership-plan Protocols, review requests and the touches that keep patients coming back." },
   { title: "Marketing & Growth", body: "Campaign templates, referral programs and reputation systems that fill the calendar." },
   { title: "Operations & Compliance", body: "KPI dashboards, chart-audit checklists, medical-direction notes and vendor-vetting templates." },
 ];
@@ -67,7 +67,7 @@ export default function ResourcesPage() {
 
       <section style={{ paddingTop: 0 }}>
         <div className="wrap center">
-          <span className="kicker">Latest kits</span>
+          <span className="kicker">Latest Protocols</span>
           <h2 className="title">
             A preview of what&rsquo;s <em>live</em> right now.
           </h2>

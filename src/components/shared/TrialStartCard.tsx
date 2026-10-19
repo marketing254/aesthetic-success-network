@@ -407,8 +407,8 @@ function BenefitsPanel({ audience, flat }: { audience: "gold" | "green"; flat: b
   const items = expert
     ? [
         "Featured profile on the expert bench, seen by every member",
-        "One recording becomes a full kit: training video, action guide, checklist, worksheet, slide deck",
-        "Every kit carries your booking link, so members book straight onto your calendar",
+        "One recording becomes a full Protocol: training video, action guide, checklist, worksheet, slide deck",
+        "Every Protocol carries your booking link, so members book straight onto your calendar",
         "Post updates to the network feed and answer member inquiries",
         "Sell your own courses and products to members and keep the full price (members buy on your site; the one condition is a member-only offer)",
         "Refer and earn: $50 per referred member, paid after their first payment",

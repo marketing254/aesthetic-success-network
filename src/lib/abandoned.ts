@@ -386,7 +386,7 @@ ${SIGNOFF}`,
 const EMAIL2_PARAGRAPHS = [
   "Here is what is inside, on the day you join.",
   "The Expert Hotline. Describe any practice problem in plain English and get an instant, AI-assisted answer. Beacon answers right away from our experts' own sessions, and when you need a person, our team comes back in writing, by text and email, within 2 to 3 business days with the right experts to talk to. Not a search box. A person.",
-  "A growing library of done-for-you kits from working experts. Each one is a session turned into something your team can use: training video, action guide, checklist, worksheet, a wall poster for the treatment room.",
+  "A growing library of done-for-you Protocols from working experts. Each one is a session turned into something your team can use: training video, action guide, checklist, worksheet, a wall poster for the treatment room.",
   "Templates and SOPs, written from an expert's own process, so a team can run them on a Monday morning.",
   "Member-only offers from companies that serve aesthetic practices, and monthly live AMAs and CE with the experts.",
 ];
