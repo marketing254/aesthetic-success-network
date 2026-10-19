@@ -239,7 +239,7 @@ export async function POST(req: Request) {
     .limit(1);
   if (existing && existing.length > 0) {
     return NextResponse.json(
-      { error: `A kit with slug "${slug}" already exists. Pick a different slug.` },
+      { error: `A Protocol with slug "${slug}" already exists. Pick a different slug.` },
       { status: 409 },
     );
   }

@@ -167,7 +167,7 @@ function buildNav(): NavGroup[] {
     {
       label: "Content",
       items: [
-        { href: "/admin/resources", label: "Resources", icon: LibraryBooksOutlinedIcon, badgeKey: "resourcesPending", keywords: "kits protocols library" },
+        { href: "/admin/resources", label: "Resources", icon: LibraryBooksOutlinedIcon, badgeKey: "resourcesPending", keywords: "Protocols protocols library" },
         { href: "/admin/content", label: "Catalog", icon: Inventory2OutlinedIcon, badgeKey: "catalogPending", keywords: "products services" },
         { href: "/admin/offers", label: "Company offers", icon: LocalOfferOutlinedIcon, badgeKey: "offersPending", keywords: "deals" },
         { href: "/admin/spotlights", label: "Spotlights", icon: AutoAwesomeOutlinedIcon, keywords: "news events" },
@@ -179,7 +179,7 @@ function buildNav(): NavGroup[] {
       items: [
         { href: "/admin/inquiries", label: "Inquiries", icon: ChatBubbleOutlineOutlinedIcon, keywords: "questions" },
         { href: "/admin/hotline", label: "Hotline triage", icon: SupportAgentOutlinedIcon, keywords: "pearl" },
-        { href: "/admin/feedback", label: "Kit feedback", icon: StarOutlineRoundedIcon, keywords: "ratings" },
+        { href: "/admin/feedback", label: "Protocol feedback", icon: StarOutlineRoundedIcon, keywords: "ratings" },
         ...(jobBoardEnabled()
           ? [
               { href: "/admin/jobs", label: "Job board", icon: WorkOutlineRoundedIcon },

@@ -63,7 +63,7 @@ export default function VendorAnalyticsPage() {
     <Stack spacing={3}>
       <PageHeader
         title="Analytics"
-        subtitle="Views, unique members reached, member inquiries, and the average rating for each kit attributed to your name. Updated in near real-time."
+        subtitle="Views, unique members reached, member inquiries, and the average rating for each Protocol attributed to your name. Updated in near real-time."
       />
 
       {loading ? (
@@ -74,7 +74,7 @@ export default function VendorAnalyticsPage() {
         <EmptyState
           icon={InsightsRoundedIcon}
           title="Nothing to show yet"
-          body="When the team publishes a kit tagged with your name, the views, inquiries, and ratings will appear here."
+          body="When the team publishes a Protocol tagged with your name, the views, inquiries, and ratings will appear here."
         />
       ) : (
         <>
@@ -98,7 +98,7 @@ export default function VendorAnalyticsPage() {
           </Box>
 
           {/* Per-resource table */}
-          <SectionCard title="By resource" subtitle="Each kit attributed to your company" padding="none">
+          <SectionCard title="By resource" subtitle="Each Protocol attributed to your company" padding="none">
             <Stack divider={<ListDivider />}>
               {rows.map((r) => (
                 <Box key={r.id} sx={{ ...(listRowSx as object), py: 2 }}>

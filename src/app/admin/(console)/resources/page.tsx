@@ -195,7 +195,7 @@ export default function AdminResourcesPage() {
   };
 
   const onDelete = async (slug: string) => {
-    if (!confirm(`Delete this kit? Every file row for "${slug}" will be removed. The Storage files stay in place. This cannot be undone.`)) return;
+    if (!confirm(`Delete this Protocol? Every file row for "${slug}" will be removed. The Storage files stay in place. This cannot be undone.`)) return;
     setDeleting(slug);
     try {
       const res = await fetch(`/api/admin/resources/${slug}`, { method: "DELETE" });
@@ -316,12 +316,12 @@ export default function AdminResourcesPage() {
           </Typography>
           <Typography sx={{ fontSize: "0.82rem", color: "#5C6770" }}>
             {tab === "pending_review"
-              ? "No kits awaiting approval."
+              ? "No Protocols awaiting approval."
               : tab === "approved"
-                ? "No approved kits yet."
+                ? "No approved Protocols yet."
                 : tab === "rejected"
-                  ? "No rejected kits."
-                  : "No kits in the catalog."}
+                  ? "No rejected Protocols."
+                  : "No Protocols in the catalog."}
           </Typography>
         </Box>
       ) : (
@@ -607,7 +607,7 @@ function KitRow({
           href={`/dashboard/resources/${kit.slug}`}
           target="_blank"
           rel="noopener noreferrer"
-          aria-label="Preview kit"
+          aria-label="Preview Protocol"
           size="small"
           sx={{ color: "#5C6770", "&:hover": { color: "#0A1320", bgcolor: "rgba(14,42,61,0.04)" } }}
         >
@@ -616,7 +616,7 @@ function KitRow({
         <IconButton
           onClick={onDelete}
           disabled={deleting}
-          aria-label="Delete kit"
+          aria-label="Delete Protocol"
           size="small"
           sx={{ color: "#8C1D1D", "&:hover": { bgcolor: "rgba(140,29,29,0.06)" } }}
         >

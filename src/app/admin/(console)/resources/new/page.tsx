@@ -42,7 +42,7 @@ const COVER_FIELDS: FileField[] = [
     field: "resource_card",
     label: "Resource card",
     accept: "image/*",
-    description: "Wide hero used on the public /resources page and the kit detail header (recommended 2560×1440 PNG).",
+    description: "Wide hero used on the public /resources page and the Protocol detail header (recommended 2560×1440 PNG).",
   },
 ];
 
@@ -374,8 +374,8 @@ export default function NewKitPage() {
       }
       setSuccess(
         approveOnSubmit
-          ? `Kit "${title}" published. ${body.rowsInserted} rows inserted.`
-          : `Kit "${title}" submitted for review. ${body.rowsInserted} rows inserted.`,
+          ? `Protocol "${title}" published. ${body.rowsInserted} rows inserted.`
+          : `Protocol "${title}" submitted for review. ${body.rowsInserted} rows inserted.`,
       );
       setTimeout(() => router.push("/admin/resources"), 1400);
     } catch (err) {
@@ -428,7 +428,7 @@ export default function NewKitPage() {
 
       <Grid container spacing={3}>
         <Grid size={{ xs: 12, md: 7 }}>
-          <SectionCard title="Kit details" subtitle="What members see in the library.">
+          <SectionCard title="Protocol details" subtitle="What members see in the library.">
             <Stack spacing={2}>
               <TextField
                 label="Title"
@@ -455,18 +455,18 @@ export default function NewKitPage() {
               />
               <Stack direction={{ xs: "column", sm: "row" }} spacing={1.25}>
                 <TextField
-                  label="Kit type"
+                  label="Protocol type"
                   value={kitType}
                   onChange={(e) => setKitType(e.target.value as "standard" | "book_club")}
                   select
                   size="small"
                   fullWidth
-                  helperText="Book Club kits get a different shape: shorts + study guide + discussion questions."
+                  helperText="Book Club Protocols get a different shape: shorts + study guide + discussion questions."
                   slotProps={{ inputLabel: { sx: { fontSize: "0.84rem" } }, formHelperText: { sx: { fontSize: "0.7rem", ml: 0.25 } } }}
                   sx={{ "& .MuiOutlinedInput-root": { fontSize: "0.88rem", borderRadius: 1.25 } }}
                 >
-                  <MenuItem value="standard" sx={{ fontSize: "0.86rem" }}>Standard kit</MenuItem>
-                  <MenuItem value="book_club" sx={{ fontSize: "0.86rem" }}>Book Club kit</MenuItem>
+                  <MenuItem value="standard" sx={{ fontSize: "0.86rem" }}>Standard Protocol</MenuItem>
+                  <MenuItem value="book_club" sx={{ fontSize: "0.86rem" }}>Book Club Protocol</MenuItem>
                 </TextField>
                 <TextField
                   label="Category"
@@ -554,7 +554,7 @@ export default function NewKitPage() {
                   select
                   size="small"
                   fullWidth
-                  helperText="Attributes the kit to an expert. Their portal will show it + inquiries route to them."
+                  helperText="Attributes the Protocol to an expert. Their portal will show it + inquiries route to them."
                   slotProps={{ inputLabel: { sx: { fontSize: "0.84rem" } }, formHelperText: { sx: { fontSize: "0.7rem", ml: 0.25 } } }}
                   sx={{ "& .MuiOutlinedInput-root": { fontSize: "0.88rem", borderRadius: 1.25 } }}
                 >
@@ -586,7 +586,7 @@ export default function NewKitPage() {
           <Box sx={{ mt: 2.5 }}>
             <SectionCard
               title="Covers"
-              subtitle="Two images per kit. Both optional, but a kit looks much better with them."
+              subtitle="Two images per Protocol. Both optional, but a Protocol looks much better with them."
             >
               <Stack spacing={1.25}>
                 {COVER_FIELDS.map((f) => (
@@ -605,7 +605,7 @@ export default function NewKitPage() {
           <Box sx={{ mt: 2.5 }}>
             <SectionCard
               title="Content files"
-              subtitle="Pick the files you have ready. Each one becomes a row in the kit's curriculum. At least one required."
+              subtitle="Pick the files you have ready. Each one becomes a row in the Protocol's curriculum. At least one required."
             >
               <Stack spacing={1.25}>
                 {activeContentFields.map((f) => (

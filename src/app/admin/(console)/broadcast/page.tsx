@@ -182,7 +182,7 @@ export default function AdminBroadcastPage() {
             minRows={4}
             maxRows={12}
             fullWidth
-            placeholder="New kit just dropped: the consult script that actually moves conversion."
+            placeholder="New Protocol just dropped: the consult script that actually moves conversion."
             slotProps={{ htmlInput: { maxLength: 4000 } }}
             helperText={`${content.length}/4000`}
           />
@@ -194,7 +194,7 @@ export default function AdminBroadcastPage() {
             placeholder="https://…"
             size="small"
             fullWidth
-            helperText="Podcast URL, event registration, new kit slug, etc."
+            helperText="Podcast URL, event registration, new Protocol slug, etc."
           />
 
           <Stack direction="row" spacing={1} sx={{ justifyContent: "flex-end", flexWrap: "wrap", rowGap: 1 }}>

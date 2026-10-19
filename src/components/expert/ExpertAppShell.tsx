@@ -16,6 +16,7 @@ import {
 } from "@mui/material";
 import DashboardOutlinedIcon from "@mui/icons-material/DashboardOutlined";
 import UploadFileOutlinedIcon from "@mui/icons-material/UploadFileOutlined";
+import DownloadRoundedIcon from "@mui/icons-material/DownloadRounded";
 import InsightsOutlinedIcon from "@mui/icons-material/InsightsOutlined";
 import ChatBubbleOutlineOutlinedIcon from "@mui/icons-material/ChatBubbleOutlineOutlined";
 import SmartToyOutlinedIcon from "@mui/icons-material/SmartToyOutlined";
@@ -91,11 +92,12 @@ function initials(name: string | null | undefined): string {
   return (parts[0]![0]! + parts[parts.length - 1]![0]!).toUpperCase();
 }
 
-// The seven sections as horizontal tabs. Order follows the creator
-// workflow: Dashboard, Resources, Feed, AI helper, Inquiries, Billing, Profile.
+// Sections as horizontal tabs, in the creator workflow order:
+// Dashboard, My Protocols, Social pack, Feed, AI helper, Inquiries, Billing, Profile.
 const navItems: CommunityNavItem[] = [
   { href: "/expert", label: "Dashboard", icon: DashboardOutlinedIcon },
-  { href: "/expert/resources", label: "Resources", icon: UploadFileOutlinedIcon },
+  { href: "/expert/protocols", label: "My Protocols", icon: UploadFileOutlinedIcon },
+  { href: "/expert/downloads", label: "Social pack", icon: DownloadRoundedIcon },
   { href: "/expert/posts", label: "Feed", icon: ChatBubbleOutlineOutlinedIcon },
   { href: "/expert/chatbot", label: "AI helper", icon: SmartToyOutlinedIcon },
   { href: "/expert/inquiries", label: "Inquiries", icon: InsightsOutlinedIcon },

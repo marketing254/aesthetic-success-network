@@ -739,7 +739,7 @@ export default function MemberSignupFlow({
             launch; no DMN people or images are carried over). */}
         {PLAYBOOK_CARDS.length > 0 && (
         <Box sx={{ mt: { xs: 5, md: 6 } }}>
-          <SectionHead title="Expert kits" sub="Each one turns an expert's session into a short training video, a guide, a checklist, a worksheet and a wall poster." />
+          <SectionHead title="Expert Protocols" sub="Each one turns an expert's session into a short training video, a guide, a checklist, a worksheet and a wall poster." />
           <Box
             sx={{
               display: "grid",
@@ -902,7 +902,7 @@ const MEMBERSHIP_TILES: { kicker: string; title: string; text: string; chip?: st
   {
     kicker: "Learn",
     title: "Resource library",
-    text: "A growing library of expert kits. Each one turns an expert's session into a training video, a guide, a checklist, a worksheet and a wall poster.",
+    text: "A growing library of expert Protocols. Each one turns an expert's session into a training video, a guide, a checklist, a worksheet and a wall poster.",
   },
   {
     kicker: "Run",

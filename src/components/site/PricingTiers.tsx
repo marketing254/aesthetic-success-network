@@ -77,7 +77,7 @@ export default function PricingTiers() {
           </div>
           <ul>
             <li>The Expert Hotline: an instant, AI-assisted answer</li>
-            <li>The full resource library, new expert kits weekly</li>
+            <li>The full resource library, new expert Protocols weekly</li>
             <li>Every member-only company deal</li>
             <li>Practice calculators and tools</li>
             <li>Monthly live AMAs and CE</li>

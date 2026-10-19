@@ -57,8 +57,8 @@ const KIND_ICON: Record<string, SvgIconComponent> = {
 const EMPTY_COPY: Record<NotificationAudience, string> = {
   vendor: "Updates about your approvals, offers, and redemptions will show up here.",
   admin: "New company applications, offer submissions, and team actions will land here.",
-  expert: "Updates about your kits, member inquiries and replies will show up here.",
-  member: "New kits, company offers and replies to your questions will show up here.",
+  expert: "Updates about your Protocols, member inquiries and replies will show up here.",
+  member: "New Protocols, company offers and replies to your questions will show up here.",
 };
 
 // Community palette (warm off-white, navy ink, gold highlight).

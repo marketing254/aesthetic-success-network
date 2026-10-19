@@ -23,6 +23,7 @@ import StoreOutlinedIcon from "@mui/icons-material/StoreOutlined";
 import Inventory2OutlinedIcon from "@mui/icons-material/Inventory2Outlined";
 import ManageAccountsOutlinedIcon from "@mui/icons-material/ManageAccountsOutlined";
 import GavelOutlinedIcon from "@mui/icons-material/GavelOutlined";
+import DownloadRoundedIcon from "@mui/icons-material/DownloadRounded";
 import ChatBubbleOutlineRoundedIcon from "@mui/icons-material/ChatBubbleOutlineRounded";
 import InsightsRoundedIcon from "@mui/icons-material/InsightsRounded";
 import HelpOutlineOutlinedIcon from "@mui/icons-material/HelpOutlineOutlined";
@@ -102,6 +103,7 @@ const navGroups: CommunityNavGroup[] = [
     items: [
       { href: "/vendor/account", label: "Account & billing", icon: ManageAccountsOutlinedIcon },
       { href: "/vendor/agreement", label: "Agreement", icon: GavelOutlinedIcon },
+      { href: "/vendor/downloads", label: "Downloads", icon: DownloadRoundedIcon },
     ],
   },
 ];

@@ -363,7 +363,7 @@ export default function ResourceKitDetailPage({ params }: { params: RouteParams 
     [orderedResources, effectiveActiveId],
   );
 
-  const topicTitle = resources[0]?.topic_title ?? "Kit";
+  const topicTitle = resources[0]?.topic_title ?? "Protocol";
   const topicSummary = resources[0]?.topic_summary ?? null;
   const isFree = resources.length > 0 && resources.every((r) => r.is_free);
   const viewedCount = resources.filter((r) => r.progress?.last_viewed_at).length;
@@ -425,7 +425,7 @@ export default function ResourceKitDetailPage({ params }: { params: RouteParams 
             borderBottom: "1px solid var(--paper-rule)",
           }}
         >
-          <Typography sx={{ ...editorialText.heading, mb: 0.5 }}>Kit not found</Typography>
+          <Typography sx={{ ...editorialText.heading, mb: 0.5 }}>Protocol not found</Typography>
           <Typography sx={editorialText.meta}>
             This kit isn&apos;t published yet, or the URL is wrong.
           </Typography>
@@ -459,7 +459,7 @@ export default function ResourceKitDetailPage({ params }: { params: RouteParams 
           <Box sx={{ flex: 1, minWidth: 0 }}>
             <Stack direction="row" spacing={0.75} sx={{ alignItems: "center", mb: 1, flexWrap: "wrap", rowGap: 0.5 }}>
               <Typography sx={editorialText.eyebrow}>
-                {isBookClub ? "Book club kit" : "Kit"}
+                {isBookClub ? "Book club Protocol" : "Protocol"}
               </Typography>
               {isBookClub && (
                 <Box
@@ -827,7 +827,7 @@ export default function ResourceKitDetailPage({ params }: { params: RouteParams 
                 mt: 0.25,
               }}
             >
-              {shortResources.length} quick ideas from {isBookClub ? "the book" : "this kit"}
+              {shortResources.length} quick ideas from {isBookClub ? "the book" : "this Protocol"}
             </Typography>
           </Box>
           <Box

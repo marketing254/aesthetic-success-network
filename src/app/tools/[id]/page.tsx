@@ -168,7 +168,7 @@ export default async function PublicToolPage({ params }: { params: Promise<{ id:
                 {live ? (
                   <li>Enter your numbers free right here. Members see the results and download them as a PDF.</li>
                 ) : null}
-                {tool.kit ? <li>Built to pair with the expert kit, so the numbers feed straight into it.</li> : null}
+                {tool.kit ? <li>Built to pair with the expert Protocol, so the numbers feed straight into it.</li> : null}
                 <li>Works on a phone in the treatment room as well as on a desktop.</li>
               </ul>
             </div>
@@ -184,7 +184,7 @@ export default async function PublicToolPage({ params }: { params: Promise<{ id:
                     <div className="v">{tool.expert ?? "ASN original"}</div>
                   </div>
                   <div className="fact" style={{ border: 0, padding: "0 0 12px" }}>
-                    <div className="l">Companion kit</div>
+                    <div className="l">Companion Protocol</div>
                     <div className="v">{tool.kit ?? "None"}</div>
                   </div>
                   <div className="fact" style={{ border: 0, padding: 0 }}>

@@ -169,7 +169,7 @@ export default function FoundingDirectory({
           <Typography sx={{ color: COLORS.muted, fontSize: "0.98rem", maxWidth: 620 }}>
             {subtitle ??
               (isExperts
-                ? "The people behind the kits: every hand-picked founding expert, live inside the member portal."
+                ? "The people behind the Protocols: every hand-picked founding expert, live inside the member portal."
                 : "The companies behind the member-exclusive offers: every hand-picked founding partner, live inside the member portal.")}
           </Typography>
         </Stack>

@@ -28,7 +28,7 @@ const FEATURES = [
   {
     Icon: Video,
     title: "A growing resource library",
-    body: "New expert kits added weekly: training videos, action guides, checklists, worksheets and slide decks.",
+    body: "New expert Protocols added weekly: training videos, action guides, checklists, worksheets and slide decks.",
   },
   {
     Icon: Users,

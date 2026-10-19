@@ -51,8 +51,8 @@ const WHATS_INSIDE: { icon: SvgIconComponent; title: string; body: string }[] = 
   },
   {
     icon: LibraryBooksOutlinedIcon,
-    title: "Kits and courses",
-    body: "A growing library of kits, each with an action guide, checklist, worksheet and video. Plus full courses from the experts themselves.",
+    title: "Protocols and courses",
+    body: "A growing library of Protocols, each with an action guide, checklist, worksheet and video. Plus full courses from the experts themselves.",
   },
   {
     icon: SupportAgentOutlinedIcon,

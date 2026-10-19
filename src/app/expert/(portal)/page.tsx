@@ -141,10 +141,10 @@ export default function ExpertDashboardPage() {
         title={`Welcome back, ${firstName}`}
         subtitle={
           daysSinceJoin === null
-            ? "Your portal is live. The ASN content team produces and publishes your kits on your behalf. Keep an eye on your library and the inquiries inbox."
+            ? "Your portal is live. The ASN content team produces and publishes your Protocols on your behalf. Keep an eye on your library and the inquiries inbox."
             : daysSinceJoin === 0
-              ? "Your portal is live today. Take a look around. The content team will publish your first kit shortly."
-              : `Day ${daysSinceJoin} on the bench. Members are starting to find your kits. Check your inquiries inbox.`
+              ? "Your portal is live today. Take a look around. The content team will publish your first Protocol shortly."
+              : `Day ${daysSinceJoin} on the bench. Members are starting to find your Protocols. Check your inquiries inbox.`
         }
       />
 
@@ -224,7 +224,7 @@ export default function ExpertDashboardPage() {
       <Box sx={{ display: "grid", gridTemplateColumns: { xs: "1fr 1fr", lg: "repeat(4, 1fr)" }, gap: 3 }}>
         <StatCard
           icon={UploadFileOutlinedIcon}
-          label="Kits in your library"
+          label="Protocols in your library"
           value={resourceCount?.toString() ?? "0"}
           footer={
             resourceCount === 0
@@ -257,7 +257,7 @@ export default function ExpertDashboardPage() {
       <Box sx={{ display: "grid", gridTemplateColumns: { xs: "1fr", md: "1fr 1fr" }, gap: 3, alignItems: "stretch" }}>
         <SectionCard
           title="Recent inquiries"
-          subtitle="Questions members posted on your kits"
+          subtitle="Questions members posted on your Protocols"
           padding="none"
           sx={{ height: "100%" }}
           action={
@@ -337,7 +337,7 @@ export default function ExpertDashboardPage() {
               icon={UploadFileOutlinedIcon}
               done={hasLibrary}
               title="See your library"
-              body="Every kit the ASN content team has published in your voice. New work shows up automatically, with no upload step on your side."
+              body="Every Protocol the ASN content team has published in your voice. New work shows up automatically, with no upload step on your side."
               href="/expert/resources"
               cta="View your library"
             />

@@ -17,7 +17,7 @@ import AdsLandingView from "@/components/ads/AdsLandingView";
 export const metadata: Metadata = {
   title: "Join Aesthetic Success Network",
   description:
-    "Join Aesthetic Success Network for expert kits, written practice support, vetted partners, tools and member offers.",
+    "Join Aesthetic Success Network for expert Protocols, written practice support, vetted partners, tools and member offers.",
   robots: { index: false, follow: false },
 };
 

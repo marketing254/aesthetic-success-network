@@ -2,6 +2,7 @@ import "server-only";
 import { getSupabaseAdmin } from "@/lib/supabase/server";
 import { isHiddenFromDirectory } from "@/lib/directoryVisibility";
 import { sortExpertsHouseFirst, sortPartnersHouseFirst } from "@/lib/houseOrder";
+import { providerAssets, type AssetGroup } from "@/lib/protocols";
 
 /**
  * Server data for the PUBLIC expert and company profile pages
@@ -144,14 +145,22 @@ export async function expertExtras(id: string): Promise<{ kits: string[]; spotli
   return { kits, spotlights: teaser(spotRows as never) };
 }
 
-/** Approved offer count (headlines stay members-only) and spotlights for a company. */
-export async function companyExtras(id: string): Promise<{ offerCount: number; spotlights: Teaser[] }> {
+export type CompanyMedia = AssetGroup["files"];
+
+/**
+ * Approved offer count (headlines stay members-only), spotlights, and the
+ * company-page media (partner card, spotlight video, downloadable PDFs).
+ * Only called for public (approved + verified) companies, so media for a
+ * company that has not signed never shows.
+ */
+export async function companyExtras(id: string): Promise<{ offerCount: number; spotlights: Teaser[]; media: CompanyMedia }> {
   const sb = getSupabaseAdmin();
-  const [{ count }, { data: spotRows }] = await Promise.all([
+  const [{ count }, { data: spotRows }, groups] = await Promise.all([
     sb.from("offers").select("id", { count: "exact", head: true }).eq("vendor_id", id).eq("review_status", "approved"),
     sb.from("profile_spotlights").select("id, kind, event_date").eq("vendor_id", id).eq("is_published", true).order("published_at", { ascending: false, nullsFirst: false }).limit(4),
+    providerAssets({ vendorId: id }, "company_page").catch(() => [] as AssetGroup[]),
   ]);
-  return { offerCount: count ?? 0, spotlights: teaser(spotRows as never) };
+  return { offerCount: count ?? 0, spotlights: teaser(spotRows as never), media: groups.flatMap((g) => g.files) };
 }
 
 export type MiniCard = { id: string; name: string; sub: string | null; image: string };

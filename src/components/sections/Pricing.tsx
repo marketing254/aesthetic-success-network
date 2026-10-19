@@ -21,7 +21,7 @@ const MotionBox = motion.create(Box);
 // $99 "early" tier: founding ($29) is followed directly by standard ($99).
 const VALUE_STACK = [
   "The Expert Hotline: written action plans in 2 to 3 business days",
-  "Full resource library, new expert kits weekly",
+  "Full resource library, new expert Protocols weekly",
   "Every member-only partner deal",
   "Monthly live AMAs and CE",
   "Systems, SOPs, templates and checklists",

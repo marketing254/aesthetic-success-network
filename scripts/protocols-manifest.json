@@ -1,0 +1,191 @@
+{
+  "_about": "Protocol metadata from Lester's '1 - How to upload Protocols to the portal' (19 Oct 2026). Copy exactly. status 'approved' = members see it; 'pending' = only the expert sees it. The importer finds each folder under --root by the Protocol title, so the parent folder name does not matter.",
+  "protocols": [
+    {
+      "title": "The Weight & Wellness Service Line Protocol",
+      "expert_email": "drkaplan@drwell.com",
+      "description": "Add a medical weight program your patients trust, run it like real care, and grow the whole practice with it.",
+      "category": "Weight & Wellness",
+      "tags": [
+        "Med spa",
+        "Surgical practice",
+        "Multi-provider"
+      ],
+      "status": "approved"
+    },
+    {
+      "title": "The Subscription Practice Protocol",
+      "expert_email": "drkaplan@drwell.com",
+      "description": "Automate recurring programs, keep the patient relationship, and build revenue that covers the bills.",
+      "category": "Subscriptions & Automation",
+      "tags": [
+        "Med spa",
+        "Surgical practice",
+        "Multi-provider"
+      ],
+      "status": "approved"
+    },
+    {
+      "title": "The Value-First Membership Protocol",
+      "expert_email": "laura@laurajeannetteandco.com",
+      "description": "Compete on value, not price: memberships patients understand, plans they commit to, and long-time patients who stay.",
+      "category": "Memberships & Retention",
+      "tags": [
+        "Med spa",
+        "Skincare clinic",
+        "Multi-provider"
+      ],
+      "status": "pending"
+    },
+    {
+      "title": "The Team Follow-Through Protocol",
+      "expert_email": "laura@laurajeannetteandco.com",
+      "description": "Intake that qualifies, recommendations without the sales pitch, and a team that follows up every day.",
+      "category": "Team & Sales",
+      "tags": [
+        "Med spa",
+        "Front desk",
+        "Multi-provider"
+      ],
+      "status": "pending"
+    },
+    {
+      "title": "The Retail Gap Protocol",
+      "expert_email": "laura@laurajeannetteandco.com",
+      "description": "Build retail into every step from booking to checkout, and a team that recommends because it cares.",
+      "category": "Retail & Sales",
+      "tags": [
+        "Med spa",
+        "Skincare clinic",
+        "Multi-provider"
+      ],
+      "status": "pending"
+    },
+    {
+      "title": "The Owner Step-Back Protocol",
+      "expert_email": "laura@laurajeannetteandco.com",
+      "description": "Get out of the treatment room without your revenue crashing: delegate, document, take CEO hours, and build a practice no single provider can take with them.",
+      "category": "Leadership & Operations",
+      "tags": [
+        "Owner-operator",
+        "Med spa",
+        "Skincare clinic"
+      ],
+      "status": "pending"
+    },
+    {
+      "title": "The Technology Decision Protocol",
+      "expert_email": "arivkin9@gmail.com",
+      "description": "Decide on new devices and treatments with data, not hype: check the real costs, ask people you trust, know your team and patients, and never rush to be first.",
+      "category": "Technology & Investment",
+      "tags": [
+        "Med spa",
+        "Surgical practice",
+        "Multi-provider"
+      ],
+      "status": "approved"
+    },
+    {
+      "title": "The Trust-First Consultation Protocol",
+      "expert_email": "arivkin9@gmail.com",
+      "description": "Earn trust fast, hear what patients really want, say no when you should, and price so the plan never bends to the margin.",
+      "category": "Consultation & Pricing",
+      "tags": [
+        "Injector",
+        "Med spa",
+        "Surgical practice"
+      ],
+      "status": "approved"
+    },
+    {
+      "title": "The Signature Niche Protocol",
+      "expert_email": "arivkin9@gmail.com",
+      "description": "Pick the thing you'll be known for, get it out there, and build the marketing team you can't do without.",
+      "category": "Positioning & Marketing",
+      "tags": [
+        "Owner-operator",
+        "Med spa",
+        "Injector"
+      ],
+      "status": "approved"
+    },
+    {
+      "title": "The Human-Touch Tech Stack Protocol",
+      "expert_email": "robin@fifthandcor.com",
+      "description": "Build a tech stack that feels like your brand: find where patients get lost, use AI on purpose, and bring your team with you.",
+      "category": "Tech & Patient Experience",
+      "tags": [
+        "Owner-operator",
+        "Med spa",
+        "Front desk"
+      ],
+      "status": "pending"
+    },
+    {
+      "title": "The AI Front Desk Protocol",
+      "expert_email": "ben@aimedconsult.com",
+      "description": "Answer every lead first, and keep people where people matter.",
+      "category": "Front Desk & AI",
+      "tags": [
+        "Med spa",
+        "Surgical practice"
+      ],
+      "status": "pending"
+    },
+    {
+      "title": "The Next-Visit Protocol",
+      "expert_email": "madeline@aimedconsult.com",
+      "description": "Memberships and consultations that bring patients back, not bargain hunters.",
+      "category": "Memberships & Retention",
+      "tags": [
+        "Med spa",
+        "Surgical practice",
+        "Solo injector"
+      ],
+      "status": "pending"
+    }
+  ],
+  "_owner_packs_about": "Expert-only or company-only downloads (never members). 'folder_match' is a folder name fragment searched under --root; 'file_match' picks single files instead.",
+  "owner_packs": [
+    {
+      "group_title": "Share kit (announcement graphics)",
+      "expert_email": "drkaplan@drwell.com",
+      "folder_match": "Share kit"
+    },
+    {
+      "group_title": "Your Kit Overview",
+      "vendor_email": "ben@aimedconsult.com",
+      "file_match": "Your Kit Overview.pdf"
+    }
+  ],
+  "_company_page_about": "Shown on the public company page once the company is approved and verified.",
+  "company_pages": [
+    {
+      "vendor_email": "ben@aimedconsult.com",
+      "folder_match": "Partner listing",
+      "files": [
+        {
+          "match": "Partner card.png",
+          "title": "Partner card",
+          "kind": "image",
+          "role": "card"
+        },
+        {
+          "match": "01 - Partner Spotlight.mp4",
+          "title": "Partner Spotlight",
+          "kind": "video"
+        },
+        {
+          "match": "02 - Meet AI Med Consult.pdf",
+          "title": "Meet AI Med Consult",
+          "kind": "pdf"
+        },
+        {
+          "match": "03 - Before You Buy an AI Front Desk.pdf",
+          "title": "Before You Buy an AI Front Desk",
+          "kind": "pdf"
+        }
+      ]
+    }
+  ]
+}
