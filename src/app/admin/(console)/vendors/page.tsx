@@ -43,7 +43,7 @@ type VendorRow = {
   contact_name: string;
   contact_email: string;
   plan_id: string | null;
-  billing_plan: "ladder" | "flat" | null;
+  billing_plan: "ladder" | "flat" | "quarterly_49" | "quarterly_39" | null;
   status: "pending_review" | "approved" | "rejected" | "suspended" | "churned";
   verified: boolean;
   billing_parent_id: string | null;

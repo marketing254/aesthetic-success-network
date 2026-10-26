@@ -32,7 +32,7 @@ type InviteRow = {
   id: string;
   code: string;
   role: FoundingInviteRoleValue;
-  pricing_plan: "ladder" | "flat";
+  pricing_plan: "ladder" | "flat" | "quarterly_49" | "quarterly_39" | "free";
   full_name: string;
   email: string;
   company_name: string | null;
@@ -424,7 +424,11 @@ function InviteCard({
           />
           <Chip
               label={
-                row.role === "expert"
+                row.pricing_plan === "free"
+                  ? "Free founding expert: nothing to pay"
+                  : row.pricing_plan === "quarterly_49" || row.pricing_plan === "quarterly_39"
+                  ? `6 mo free, then $${row.pricing_plan === "quarterly_39" ? 39 : 49} every 3 months${row.role === "both" ? " (one fee, expert + company)" : ""}`
+                  : row.role === "expert"
                   ? "12 mo free, then $39 flat"
                   : row.pricing_plan === "flat"
                     ? `6 mo free, then $39 flat${row.role === "both" ? " (expert: 12 mo free, $39)" : ""}`
@@ -435,8 +439,8 @@ function InviteCard({
                 height: 20,
                 fontSize: "0.66rem",
                 fontWeight: 700,
-                bgcolor: row.pricing_plan === "flat" ? "rgba(44,122,82,0.12)" : "rgba(160,120,35,0.12)",
-                color: row.pricing_plan === "flat" ? "#1F5238" : "#7A5B17",
+                bgcolor: row.pricing_plan === "flat" || row.pricing_plan === "free" ? "rgba(44,122,82,0.12)" : row.pricing_plan.startsWith("quarterly") ? "rgba(14,42,61,0.08)" : "rgba(160,120,35,0.12)",
+                color: row.pricing_plan === "flat" || row.pricing_plan === "free" ? "#1F5238" : row.pricing_plan.startsWith("quarterly") ? "#0E2A3D" : "#7A5B17",
               }}
           />
           <StatusChip status={row.status} />

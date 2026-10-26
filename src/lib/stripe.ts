@@ -1,14 +1,5 @@
 import Stripe from "stripe";
-import {
-  COMPANY_LAUNCH_LABEL,
-  COMPANY_STANDARD_LABEL,
-  companyStandardStartsAt,
-  freeMonthsFor,
-  normalizeProviderRate,
-  providerFreePeriodEnd,
-  rateLabel,
-  type ProviderRate,
-} from "@/lib/providerBilling";
+import { COMPANY_LAUNCH_LABEL, COMPANY_STANDARD_LABEL, companyStandardStartsAt, freeMonthsFor, normalizeProviderRate, providerFreePeriodEnd, rateLabel, type ProviderRate, isQuarterlyPlan, quarterlyLabel, PROVIDER_FREE_MONTHS, type QuarterlyPlan } from "@/lib/providerBilling";
 
 /**
  * Single source of truth for the Stripe SDK + the Aesthetic Success
@@ -288,6 +279,24 @@ export function partnerPriceIdFor(plan: PartnerPlanKey): string {
   return value;
 }
 
+/**
+ * Quarterly provider prices (owner, 26 Oct 2026): ONE subscription covers
+ * expert access and the company listing. $49 or $39 every three months.
+ *   STRIPE_PRICE_PROVIDER_QUARTERLY_49  $49 / 3 months
+ *   STRIPE_PRICE_PROVIDER_QUARTERLY_39  $39 / 3 months
+ * Create them with scripts/stripe-setup-test.mjs (test) or --live.
+ */
+export function providerQuarterlyPriceIdFor(plan: QuarterlyPlan): string {
+  const envKey = plan === "quarterly_39" ? "STRIPE_PRICE_PROVIDER_QUARTERLY_39" : "STRIPE_PRICE_PROVIDER_QUARTERLY_49";
+  const value = process.env[envKey];
+  if (!value) {
+    throw new Error(
+      `Missing env var ${envKey}. Set this in .env.local (and Vercel) to a Stripe price ID like "price_1Te9...".`,
+    );
+  }
+  return value;
+}
+
 export function expertPriceIdFor(plan: ExpertPlanKey): string {
   const envKey =
     plan === "expert_growth_monthly"   ? "STRIPE_PRICE_EXPERT_GROWTH_MONTHLY"
@@ -371,7 +380,7 @@ export async function createProviderSubscription(opts: {
   customerId: string;
   paymentMethodId: string;
   audience: "expert" | "vendor";
-  /** Company plan: "ladder" (default) or "flat". Ignored for experts. */
+  /** Plan: "ladder" (default) or "flat" for companies; "quarterly_49" / "quarterly_39" for one shared quarterly fee (any audience). */
   rate?: ProviderRate | string | null;
   /** Founding (admin-invited) expert: 12 free months instead of 6. */
   founding?: boolean;
@@ -379,6 +388,7 @@ export async function createProviderSubscription(opts: {
 }): Promise<ProviderSubscriptionResult> {
   const stripe = getStripe();
   const plan = normalizeProviderRate(opts.rate);
+  const quarterly = isQuarterlyPlan(opts.rate) ? opts.rate : null;
 
   // Idempotency: if an earlier attempt already created this provider's
   // billing (for example the row update failed after Stripe succeeded),
@@ -399,7 +409,9 @@ export async function createProviderSubscription(opts: {
     };
   }
 
-  const free = providerFreePeriodEnd(freeMonthsFor({ audience: opts.audience, founding: opts.founding }));
+  // Quarterly plans: six free months for everyone (expert or company), then
+  // the quarterly price. One subscription, no step.
+  const free = providerFreePeriodEnd(quarterly ? PROVIDER_FREE_MONTHS : freeMonthsFor({ audience: opts.audience, founding: opts.founding }));
   const freeSec = Math.floor(free.date.getTime() / 1000);
   const base: Record<string, string> = {
     ...(opts.metadata ?? {}),
@@ -407,6 +419,26 @@ export async function createProviderSubscription(opts: {
     free_period: free.provisional ? "provisional" : "launch_based",
     free_period_ends_at: free.date.toISOString(),
   };
+
+  if (quarterly) {
+    const priceId = providerQuarterlyPriceIdFor(quarterly);
+    const subscription = await stripe.subscriptions.create({
+      customer: opts.customerId,
+      items: [{ price: priceId }],
+      trial_end: freeSec,
+      default_payment_method: opts.paymentMethodId,
+      trial_settings: { end_behavior: { missing_payment_method: "pause" } },
+      metadata: { ...base, plan: `provider_${quarterly}`, rate: quarterly, cadence: "quarterly" },
+    });
+    return {
+      subscription,
+      priceId,
+      freePeriodEndsAt: free.date.toISOString(),
+      standardStartsAt: null,
+      provisional: free.provisional,
+      rateLabel: quarterlyLabel(quarterly),
+    };
+  }
 
   // Experts (any kind) and flat companies: one subscription with a trial.
   if (opts.audience === "expert" || plan === "flat") {

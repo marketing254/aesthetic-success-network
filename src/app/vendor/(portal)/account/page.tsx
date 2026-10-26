@@ -163,7 +163,7 @@ export default function VendorAccountPage() {
             accent="navy"
             label="Next billing"
             value={nextBill}
-            footer={`${currentRow.label} at ${currentRow.price} a month`}
+            footer={`${currentRow.label} at ${currentRow.price} ${ramp.cadence}`}
           />
         </Grid>
         <Grid size={{ xs: 12, sm: 6, lg: 3 }}>
@@ -175,7 +175,7 @@ export default function VendorAccountPage() {
             accent="green"
             label="Lifetime billed"
             value={`$${lifetimeBilled.toFixed(2)}`}
-            footer={ramp.hasStandardStep ? `${ramp.rate} a month for 12 months after your free months, then ${ramp.standardRate}` : `${ramp.rate} a month after your free months, no increase`}
+            footer={ramp.hasStandardStep ? `${ramp.rate} ${ramp.cadence} for 12 months after your free months, then ${ramp.standardRate}` : `${ramp.rate} ${ramp.cadence} after your free months, no increase`}
           />
         </Grid>
       </Grid>
@@ -190,7 +190,7 @@ export default function VendorAccountPage() {
             action={
               <Stack direction="row" spacing={0.5} sx={{ flexWrap: "wrap", gap: 0.5 }}>
                 <TagPill label={isWebsite ? "WEBSITE" : "FOUNDING"} tone={isWebsite ? "neutral" : "gold"} size="sm" />
-                <TagPill label="MONTH-TO-MONTH" tone="neutral" size="sm" />
+                <TagPill label={ramp.quarterly ? "EVERY 3 MONTHS" : "MONTH-TO-MONTH"} tone="neutral" size="sm" />
               </Stack>
             }
           >
@@ -199,13 +199,13 @@ export default function VendorAccountPage() {
                 <Typography sx={{ fontSize: "0.875rem", fontWeight: 700, color: INK }}>
                   {hasTrial
                     ? freeUntilLabel
-                      ? `Free until ${freeUntilLabel}, then ${ramp.hasStandardStep ? `${ramp.rate} a month for 12 months, then ${ramp.standardRate}` : `${ramp.rate} a month with no increase`}`
-                      : `Free founding months, then ${ramp.hasStandardStep ? `${ramp.rate} a month for 12 months, then ${ramp.standardRate}` : `${ramp.rate} a month with no increase`}`
+                      ? `Free until ${freeUntilLabel}, then ${ramp.hasStandardStep ? `${ramp.rate} ${ramp.cadence} for 12 months, then ${ramp.standardRate}` : `${ramp.rate} ${ramp.cadence} with no increase`}`
+                      : `Free founding months, then ${ramp.hasStandardStep ? `${ramp.rate} ${ramp.cadence} for 12 months, then ${ramp.standardRate}` : `${ramp.rate} ${ramp.cadence} with no increase`}`
                     : onStandard
                       ? `${ramp.standardRate} a month, standard rate`
                       : ramp.hasStandardStep
-                        ? `${ramp.rate} a month, launch rate, then ${ramp.standardRate}`
-                        : `${ramp.rate} a month, no increase`}
+                        ? `${ramp.rate} ${ramp.cadence}, launch rate, then ${ramp.standardRate}`
+                        : `${ramp.rate} ${ramp.cadence}, no increase`}
                 </Typography>
                 <Typography sx={{ ...portalText.meta, mt: 0.5 }}>
                   {hasTrial
@@ -225,7 +225,7 @@ export default function VendorAccountPage() {
                   <LadderRow
                     key={row.label}
                     period={row.label}
-                    price={`${row.price}/mo`}
+                    price={`${row.price}${ramp.per}`}
                     note={row.note}
                     current={row.label === currentRow.label}
                   />
@@ -287,7 +287,7 @@ export default function VendorAccountPage() {
                     {!vendor.stripe_subscription_id ? (
                       <>
                         Save a card below to activate your listing. Nothing is charged until your free founding months end; after that it&apos;s{" "}
-                        <Box component="strong" sx={{ color: INK, fontWeight: 700 }}>{ramp.rate} a month</Box>{ramp.hasStandardStep ? ` for 12 months, then ${ramp.standardRate}.` : " with no increase."}
+                        <Box component="strong" sx={{ color: INK, fontWeight: 700 }}>{ramp.rate} {ramp.cadence}</Box>{ramp.hasStandardStep ? ` for 12 months, then ${ramp.standardRate}.` : " with no increase."}
                       </>
                     ) : (
                       <>Your card is on file with Stripe. Open the Stripe portal to update it.</>

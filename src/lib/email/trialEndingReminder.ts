@@ -16,6 +16,8 @@ import {
   PAYMENT_GRACE_DAYS,
   formatLongDate,
   normalizeProviderRate,
+  isQuarterlyPlan,
+  quarterlyLabel,
 } from "@/lib/providerBilling";
 
 /**
@@ -39,7 +41,7 @@ export type TrialEndingReminderInput = {
   trialEndDate: Date;
   /** Portal billing page (update card, cancel). */
   portalUrl: string;
-  /** Company plan ("ladder" / "flat"). Ignored for experts. */
+  /** Plan on the row: "ladder" / "flat" (companies), or "quarterly_49" / "quarterly_39" (one quarterly fee, any role). */
   rate?: string | null;
 };
 
@@ -51,20 +53,23 @@ function endsWords(daysLeft: number): string {
 
 export async function sendTrialEndingReminder(input: TrialEndingReminderInput): Promise<boolean> {
   const name = firstNameOf(input.contactName);
-  const rate = COMPANY_LAUNCH_LABEL;
-  const ladder = input.role === "partner" && normalizeProviderRate(input.rate) !== "flat";
+  const quarterly = isQuarterlyPlan(input.rate);
+  const rate = quarterly ? quarterlyLabel(input.rate) : COMPANY_LAUNCH_LABEL;
+  const period = quarterly ? "every three months" : "a month";
+  const firstPeriod = quarterly ? "first three months" : "first paid month";
+  const ladder = !quarterly && input.role === "partner" && normalizeProviderRate(input.rate) !== "flat";
   const afterLine = ladder
     ? `It stays ${rate} a month for your first ${COMPANY_LAUNCH_MONTHS} paid months, then moves to the ${COMPANY_STANDARD_LABEL} standard company rate.`
-    : `Your rate stays ${rate} a month with no increase, for as long as your ${input.role === "expert" ? "expert membership" : "company listing"} is active.`;
+    : `Your rate stays ${rate} ${period} with no increase, for as long as your ${input.role === "expert" ? "expert membership" : "company listing"} is active.`;
   const date = formatLongDate(input.trialEndDate) ?? "the end of your free months";
   const when = endsWords(input.daysLeft);
   const draft: EmailDraft = {
     subject: `Your free founding months end ${when}`,
-    preview: `Your free founding months end on ${date}. ${rate} a month after that.`,
+    preview: `Your free founding months end on ${date}. ${rate} ${period} after that.`,
     eyebrow: "Billing reminder",
     headline: `Heads-up, ${name}: your free founding months end ${when}.`,
     intro: [
-      `Your free founding months end on ${date}. On that day, Stripe will charge the card on file ${rate} for your first paid month. ${afterLine}`,
+      `Your free founding months end on ${date}. On that day, Stripe will charge the card on file ${rate} for your ${firstPeriod}. ${afterLine}`,
     ],
     sections: [
       {

@@ -332,4 +332,14 @@ export async function applySubscriptionToBusiness(
   } else {
     await sb.from("experts").update(patch).eq("id", ref.id);
   }
+
+  // Quarterly plans put ONE subscription on both the expert row and the
+  // vendor row of the same person. businessForCustomer resolves to one of
+  // them; keep the other in step so both portals show the same status.
+  // (Billing-exempt experts are never written, as above.)
+  if (ref.table === "vendors") {
+    await sb.from("experts").update(patch).eq("stripe_subscription_id", sub.id).eq("billing_exempt", false);
+  } else {
+    await sb.from("vendors").update(patch).eq("stripe_subscription_id", sub.id);
+  }
 }

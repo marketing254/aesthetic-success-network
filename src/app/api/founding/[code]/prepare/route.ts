@@ -4,6 +4,7 @@ import { getSupabaseAdmin } from "@/lib/supabase/server";
 import { apiError, serverError } from "@/lib/api/errorResponse";
 import { checkRateLimit } from "@/lib/waitlist/rateLimit";
 import { clientIp } from "@/lib/security/hashIp";
+import { isFreePlan } from "@/lib/providerBilling";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -34,7 +35,7 @@ export async function POST(req: Request, ctx: { params: Promise<{ code: string }
   const sb = getSupabaseAdmin();
   const { data: invite } = await sb
     .from("founding_invites")
-    .select("id, role, email, full_name, company_name, status, expires_at, stripe_customer_id")
+    .select("id, role, pricing_plan, email, full_name, company_name, status, expires_at, stripe_customer_id")
     .eq("code", code)
     .maybeSingle();
 
@@ -62,6 +63,11 @@ export async function POST(req: Request, ctx: { params: Promise<{ code: string }
       .update({ status: "viewed", viewed_at: new Date().toISOString() } as never)
       .eq("id", invite.id);
   }
+  // Free (no payment) founding expert: no card, no customer, no SetupIntent.
+  if (isFreePlan(invite.pricing_plan) && invite.role === "expert") {
+    return NextResponse.json({ free: true });
+  }
+
   let stripe;
   try {
     stripe = getStripe();

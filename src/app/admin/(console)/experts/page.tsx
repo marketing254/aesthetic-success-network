@@ -131,7 +131,7 @@ function Inner() {
   const grantFree = async (email: string, name: string) => {
     if (
       !confirm(
-        `Make ${name} billing-exempt (manual override)?\n\nThey will never be charged and never asked for a card. This cannot be undone.\n\nThis is not the founding expert offer (first 6 months free from ${LAUNCH_LABEL}, then $39 a month); use a founding invite for that.\n\nIf they also list a company, that company keeps paying normally.`,
+        `Make ${name} a Free founding expert?\n\nNothing to pay, ever. Any expert subscription is cancelled now, their card is removed from Stripe, and they will never get a payment email. This cannot be undone.\n\nIf they also list a company, that company keeps paying normally.`,
       )
     ) {
       return;
@@ -147,7 +147,7 @@ function Inner() {
         setError(body.error ?? `Could not grant (${res.status})`);
         return;
       }
-      setToast(body.message ?? `${name} is now billing-exempt.`);
+      setToast(body.message ?? `${name} is now a Free founding expert.`);
       setError(null);
       await loadSlots();
     } catch (err) {
@@ -1037,14 +1037,14 @@ function RowActions({
           from {LAUNCH_LABEL}, then $39, via a founding invite). */}
       {status === "onboarded" &&
         (isExempt ? (
-          <Tooltip title="Billing-exempt (manual override). Never charged, never asked for a card. (Their company, if any, still pays.)">
-            <WorkspacePremiumOutlinedIcon fontSize="small" sx={{ color: "#2C7A52" }} />
+          <Tooltip title="Free founding expert. Nothing to pay, never charged, never asked for a card. (Their company, if any, still pays.)">
+            <Chip label="Free founding expert" size="small" icon={<WorkspacePremiumOutlinedIcon sx={{ fontSize: 14 }} />} sx={{ height: 22, fontSize: "0.68rem", fontWeight: 700, bgcolor: "rgba(44,122,82,0.12)", color: "#1F5238", "& .MuiChip-icon": { color: "#2C7A52" } }} />
           </Tooltip>
         ) : slotsLeft == null || slotsLeft > 0 ? (
           <Tooltip
-            title={`Make billing-exempt (manual override, never charged)${
-              slotsLeft == null ? "" : ` (${slotsLeft} of 20 overrides left)`
-            }. Not the founding offer. Their company keeps paying normally. Cannot be undone.`}
+            title={`Make this a Free founding expert (nothing to pay, ever)${
+              slotsLeft == null ? "" : ` (${slotsLeft} of 20 free slots left)`
+            }. Cancels any expert subscription and removes their card. Their company keeps paying normally. Cannot be undone.`}
           >
             <IconButton size="small" sx={{ color: "#A07823" }} onClick={() => onGrantFree?.()}>
               <WorkspacePremiumOutlinedIcon fontSize="small" />

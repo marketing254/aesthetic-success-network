@@ -46,6 +46,46 @@ export const FIRST_CHARGE_REMINDER_DAYS = 7;
 /** Company plan (founding_invites.pricing_plan / vendors.billing_plan, 0074). */
 export type ProviderRate = "ladder" | "flat";
 
+/**
+ * Every plan a founding invite can carry (0074 + 0077 + 0078):
+ *   ladder        $39 a month for 12 months, then $149 (companies; experts: 12 months free, then $39)
+ *   flat          $39 a month, no increase (companies)
+ *   quarterly_49  $49 every three months, no increase, ONE fee for every role on the invite
+ *   quarterly_39  $39 every three months, no increase, ONE fee for every role on the invite
+ *   free          free founding expert, nothing to pay (expert-only invites)
+ * Quarterly plans (owner, 26 Oct 2026, same as DMN): six free months from
+ * the member launch, then one quarterly subscription covering expert
+ * access and the company listing together.
+ */
+export type QuarterlyPlan = "quarterly_49" | "quarterly_39";
+export type ProviderPlan = ProviderRate | QuarterlyPlan | "free";
+
+export function isQuarterlyPlan(value: string | null | undefined): value is QuarterlyPlan {
+  return value === "quarterly_49" || value === "quarterly_39";
+}
+/** Dollar amount of a quarterly plan (49 or 39). */
+export function quarterlyAmount(value: string | null | undefined): number {
+  return value === "quarterly_39" ? 39 : 49;
+}
+/** "$49". */
+export function quarterlyLabel(value: string | null | undefined): string {
+  return `$${quarterlyAmount(value)}`;
+}
+/** Any stored value to a ProviderPlan. Unknown / legacy values are ladder. */
+export function normalizeProviderPlan(value: string | null | undefined): ProviderPlan {
+  if (value === "free") return "free";
+  if (isQuarterlyPlan(value)) return value;
+  return value === "flat" || value === "flat_49" ? "flat" : "ladder";
+}
+/** "a month" or "every three months" for prose. */
+export function planCadenceProse(value: string | null | undefined): string {
+  return isQuarterlyPlan(value) ? "every three months" : "a month";
+}
+/** "$49 every 3 months" for compact ramps. */
+export function quarterlyShort(value: string | null | undefined): string {
+  return `${quarterlyLabel(value)} every 3 months`;
+}
+
 /** Launch rate ($39): experts always; companies for the first paid months. */
 export const COMPANY_LAUNCH_AMOUNT = 39;
 /** Paid months at $39 before the $149 step (company ladder plan). */
@@ -56,6 +96,18 @@ export const COMPANY_LAUNCH_LABEL = `$${COMPANY_LAUNCH_AMOUNT}`;
 export const COMPANY_STANDARD_LABEL = `$${COMPANY_STANDARD_AMOUNT}`;
 /** Experts are always $39 after their free months. */
 export const EXPERT_RATE_LABEL = COMPANY_LAUNCH_LABEL;
+
+/**
+ * "Free (no payment)" founding expert (founding_invites.pricing_plan =
+ * 'free', 0077). Expert-only: nothing to pay, no card, no Stripe. At
+ * acceptance the expert row gets billing_exempt = true (lifetime grant).
+ */
+export function isFreePlan(value: string | null | undefined): boolean {
+  return value === "free";
+}
+/** The one sentence every free-expert surface uses (invite page, PDF, emails, admin). */
+export const FREE_EXPERT_HEADLINE = "Founding expert: free. Nothing to pay.";
+export const FREE_EXPERT_LABEL = "Free founding expert";
 
 /** Normalises any stored value (ladder, flat, legacy standard/large/flat_49) to a plan. */
 export function normalizeProviderRate(value: string | null | undefined): ProviderRate {
@@ -146,6 +198,10 @@ export type TermsOpts = { expert?: boolean; founding?: boolean };
  *   company flat     "Your first 6 months are free, ... After that it's $39 a month, and it stays $39 with no increase."
  */
 export function providerTermsSentence(rate: ProviderRate | string | null | undefined, opts: TermsOpts = {}): string {
+  if (isQuarterlyPlan(rate)) {
+    const q = quarterlyLabel(rate);
+    return `Your first ${PROVIDER_FREE_MONTHS} months are free, starting ${memberLaunchLabel()}. After that it's ${q} every three months, and it stays ${q} with no increase. One fee covers every role on this agreement.`;
+  }
   const months = opts.expert ? freeMonthsFor({ audience: "expert", founding: opts.founding }) : PROVIDER_FREE_MONTHS;
   const lead = `Your first ${months} months are free, starting ${memberLaunchLabel()}.`;
   if (opts.expert || normalizeProviderRate(rate) === "flat") {
@@ -156,6 +212,11 @@ export function providerTermsSentence(rate: ProviderRate | string | null | undef
 
 /** Short form for tables and chips: "Free until March 1, 2027, then $39 a month ...". */
 export function providerTermsShort(rate: ProviderRate | string | null | undefined, freeUntil: Date | string | null | undefined, opts: TermsOpts = {}): string {
+  if (isQuarterlyPlan(rate)) {
+    const u = formatLongDate(freeUntil);
+    const after = `${quarterlyShort(rate)}, no increase, one fee for everything`;
+    return u ? `Free until ${u}, then ${after}` : `${PROVIDER_FREE_MONTHS} months free from ${memberLaunchLabel()}, then ${after}`;
+  }
   const months = opts.expert ? freeMonthsFor({ audience: "expert", founding: opts.founding }) : PROVIDER_FREE_MONTHS;
   const until = formatLongDate(freeUntil);
   const after =

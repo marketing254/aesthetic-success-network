@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
+import Image from "next/image";
 import "@/app/directory.css";
 
 /** Public-safe shape returned by GET /api/directory/experts. */
@@ -136,8 +137,7 @@ export default function ExpertDirectory() {
             <article key={e.id} className="dx-card dx-ecard">
               <Link href={`/experts/${e.id}`} className="dx-ecard-photo" aria-label={`${e.name} profile`}>
                 {e.headshot_url ? (
-                  // eslint-disable-next-line @next/next/no-img-element
-                  <img src={e.headshot_url} alt="" loading="lazy" decoding="async" />
+                  <Image src={e.headshot_url} alt={`${e.name}, ${tidy(e.specialty) ?? "ASN expert"}`} fill sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 320px" style={{ objectFit: "cover", objectPosition: "center 22%" }} />
                 ) : (
                   <span className="dx-initials">{initials(e.name)}</span>
                 )}

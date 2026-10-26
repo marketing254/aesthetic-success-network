@@ -16,13 +16,16 @@ import {
   PROVIDER_FREE_MONTHS,
   companyStandardStartsAt,
   formatLongDate,
-  normalizeProviderRate,
+  normalizeProviderPlan,
+  isQuarterlyPlan,
+  quarterlyLabel,
   providerTermsSentence,
   type ProviderRate,
+  type QuarterlyPlan,
   LAUNCH_LABEL,
 } from "@/lib/providerBilling";
 
-export type VendorBillingPlan = ProviderRate;
+export type VendorBillingPlan = ProviderRate | QuarterlyPlan;
 
 export type VendorRampRow = {
   label: string;
@@ -44,15 +47,22 @@ export type VendorRamp = {
   /** True when the plan has the $149 step. */
   hasStandardStep: boolean;
   rows: VendorRampRow[];
-  /** Price this month: "$0.00" during the free period, else the launch or standard rate. */
+  /** Price this period: "$0.00" during the free period, else the launch or standard rate. */
   monthlyNow: (hasTrial: boolean, onStandard?: boolean) => string;
   /** One sentence describing the whole term. */
   summary: string;
+  /** "a month" or "every 3 months". */
+  cadence: string;
+  /** "/mo" or "/3 mo". */
+  per: string;
+  /** True for the quarterly plans (one fee for expert access + company listing). */
+  quarterly: boolean;
 };
 
 /** Normalises whatever is on the row (null, legacy values) to a known plan. */
 export function normalizeVendorPlan(plan: string | null | undefined): VendorBillingPlan {
-  return normalizeProviderRate(plan);
+  const p = normalizeProviderPlan(plan);
+  return p === "free" ? "ladder" : p;
 }
 
 /**
@@ -61,9 +71,28 @@ export function normalizeVendorPlan(plan: string | null | undefined): VendorBill
  */
 export function vendorRamp(plan: VendorBillingPlan | string | null | undefined, freeUntil?: string | Date | null): VendorRamp {
   const p = normalizeVendorPlan(typeof plan === "string" ? plan : plan ?? null);
-  const rate = COMPANY_LAUNCH_LABEL;
   const freeDate = freeUntil ? new Date(freeUntil) : null;
   const until = formatLongDate(freeDate);
+  if (isQuarterlyPlan(p)) {
+    const q = quarterlyLabel(p);
+    const qFree: VendorRampRow = { label: "Free founding months", price: "$0", note: until ? `Until ${until}` : `${PROVIDER_FREE_MONTHS} months from ${LAUNCH_LABEL}`, free: true };
+    return {
+      plan: p,
+      label: "Founding provider, quarterly",
+      rate: q,
+      standardRate: q,
+      hasStandardStep: false,
+      rows: [qFree, { label: "After that", price: q, note: "Every 3 months, no increase. One fee for expert access and company listing.", free: false }],
+      summary: providerTermsSentence(p),
+      monthlyNow(hasTrial: boolean): string {
+        return hasTrial ? "$0.00" : `${q}.00`;
+      },
+      cadence: "every 3 months",
+      per: "/3 mo",
+      quarterly: true,
+    };
+  }
+  const rate = COMPANY_LAUNCH_LABEL;
   const standardFrom = freeDate && !Number.isNaN(freeDate.getTime()) ? formatLongDate(companyStandardStartsAt(freeDate)) : null;
   const freeRow: VendorRampRow = {
     label: "Free founding months",
@@ -90,6 +119,9 @@ export function vendorRamp(plan: VendorBillingPlan | string | null | undefined, 
     monthlyNow(hasTrial: boolean, onStandard = false): string {
       return hasTrial ? "$0.00" : `${onStandard && p !== "flat" ? COMPANY_STANDARD_LABEL : rate}.00`;
     },
+    cadence: "a month",
+    per: "/mo",
+    quarterly: false,
   };
 }
 
@@ -102,5 +134,7 @@ export function currentRampRow(plan: VendorBillingPlan | string | null | undefin
 
 /** Short chip label for the admin console. */
 export function vendorPlanChipLabel(plan: string | null | undefined): string {
-  return normalizeVendorPlan(plan) === "flat" ? "$39 flat" : "$39 x 12, then $149";
+  const p = normalizeVendorPlan(plan);
+  if (isQuarterlyPlan(p)) return `${quarterlyLabel(p)} every 3 months`;
+  return p === "flat" ? "$39 flat" : "$39 x 12, then $149";
 }

@@ -5,7 +5,7 @@ import { notifyTeamEvent } from "@/lib/email/teamNotify";
 import { appOrigin, appUrl } from "@/lib/stripe";
 import type { FoundingInviteRole, FoundingInvitesRow } from "@/lib/supabase/types";
 import { serverError } from "@/lib/api/errorResponse";
-import { inviteDetailFields, sendFoundingInvite } from "@/lib/founding/sendInvite";
+import { inviteDetailFields, regenerateInvitePdf, sendFoundingInvite } from "@/lib/founding/sendInvite";
 import { formatLongDate } from "@/lib/providerBilling";
 
 export const runtime = "nodejs";
@@ -47,7 +47,7 @@ export async function PATCH(req: Request, ctx: { params: Promise<{ id: string }>
   const sb = getSupabaseAdmin();
   const { data: invite } = await sb
     .from("founding_invites")
-    .select("id, status")
+    .select("id, status, role, pricing_plan")
     .eq("id", id)
     .maybeSingle();
   if (!invite) return NextResponse.json({ error: "Invite not found." }, { status: 404 });
@@ -57,6 +57,8 @@ export async function PATCH(req: Request, ctx: { params: Promise<{ id: string }>
       { status: 409 },
     );
   }
+  const currentRole = invite.role as string;
+  const currentPlan = invite.pricing_plan as string;
 
   const patch: Record<string, unknown> = { updated_at: new Date().toISOString() };
   if (body.role) {
@@ -67,7 +69,17 @@ export async function PATCH(req: Request, ctx: { params: Promise<{ id: string }>
   }
   {
     const plan = (body as { pricing_plan?: unknown }).pricing_plan;
-    if (plan === "ladder" || plan === "flat") patch.pricing_plan = plan;
+    if (plan === "ladder" || plan === "flat" || plan === "free" || plan === "quarterly_49" || plan === "quarterly_39") patch.pricing_plan = plan;
+  }
+  // "free" is an expert-only plan: companies always pay.
+  {
+    const nextRole = (patch.role as string | undefined) ?? currentRole;
+    if (patch.pricing_plan === "free" && nextRole !== "expert") {
+      return NextResponse.json({ error: '"Free (no payment)" is only available on expert-only invites.' }, { status: 400 });
+    }
+    if (patch.role && patch.role !== "expert" && !patch.pricing_plan && currentPlan === "free") {
+      patch.pricing_plan = "ladder";
+    }
   }
   if (typeof body.full_name === "string") {
     const v = body.full_name.trim();
@@ -109,7 +121,22 @@ export async function PATCH(req: Request, ctx: { params: Promise<{ id: string }>
 
   const { error } = await sb.from("founding_invites").update(patch as never).eq("id", id);
   if (error) return serverError(error, { route: "PATCH /api/admin/founding-invite/[id]" });
-  return NextResponse.json({ ok: true });
+
+  // Already in someone's inbox (sent / viewed) and the agreement's content
+  // changed? Re-render the PDF at the same path so their existing link
+  // shows the corrected terms. Drafts render at send time; no email here.
+  const agreementKeys = ["role", "pricing_plan", "full_name", "email", "company_name", "member_offer", "signer_name", "companies"];
+  const touchesAgreement = agreementKeys.some((k) => k in patch);
+  let pdfRegenerated = false;
+  if (touchesAgreement && (invite.status === "sent" || invite.status === "viewed")) {
+    const { data: fresh } = await sb.from("founding_invites").select("*").eq("id", id).maybeSingle();
+    if (fresh) {
+      const r = await regenerateInvitePdf(fresh as FoundingInvitesRow);
+      pdfRegenerated = r.ok;
+      if (!r.ok) console.error("[founding PATCH] PDF regeneration failed:", r.error);
+    }
+  }
+  return NextResponse.json({ ok: true, pdfRegenerated });
 }
 
 /**
@@ -223,6 +250,20 @@ export async function POST(req: Request, ctx: { params: Promise<{ id: string }> 
       fields: inviteDetailFields(invite as FoundingInvitesRow, [{ label: "Invite link", value: inviteUrl }]),
     });
     return NextResponse.json({ ok: true, emailed, kind: "invite_sent" });
+  }
+
+  // ---- Regenerate the unsigned PDF in place ---------------------------
+  // After editing an invite that was already sent (name, plan, offer...),
+  // re-render the agreement at the SAME storage path so the link the
+  // person already has shows the corrected document. No email, no status
+  // change, viewed_at untouched.
+  if (action === "regenerate_pdf") {
+    if (invite.status === "accepted" || invite.status === "revoked") {
+      return NextResponse.json({ error: `This invite is ${invite.status}; its agreement is final.` }, { status: 409 });
+    }
+    const r = await regenerateInvitePdf(invite as FoundingInvitesRow);
+    if (!r.ok) return NextResponse.json({ error: r.error }, { status: 500 });
+    return NextResponse.json({ ok: true, agreement_pdf_path: r.path });
   }
 
   // ---- Send (or re-send) --------------------------------------------

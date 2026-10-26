@@ -16,7 +16,7 @@ import {
 import LockRoundedIcon from "@mui/icons-material/LockRounded";
 import DescriptionOutlinedIcon from "@mui/icons-material/DescriptionOutlined";
 import { loadStripe, type Stripe } from "@stripe/stripe-js";
-import { LAUNCH_LABEL } from "@/lib/providerBilling";
+import { LAUNCH_LABEL, FREE_EXPERT_HEADLINE, isFreePlan, isQuarterlyPlan, quarterlyShort } from "@/lib/providerBilling";
 import {
   Elements,
   PaymentElement,
@@ -33,6 +33,11 @@ function getStripePromise() {
 }
 
 const NAVY = "#0E2A3D";
+/** First name for the greeting, skipping titles ("Dr. James Lee" -> "James"). */
+function firstNameOf(name: string): string {
+  const parts = name.trim().split(/\s+/).filter((w) => !/^(dr|mr|mrs|ms|miss|prof|professor|sir|dame)\.?$/i.test(w));
+  return parts[0] ?? name.trim();
+}
 /** One calm message for anything that is not a card problem the person can fix. */
 const STD_ERR = "We couldn't save your card. Nothing was charged. Please try again in a moment, and if it keeps happening email support@aestheticsuccessnetwork.com.";
 const NAVY_DARK = "#06182A";
@@ -62,6 +67,10 @@ export default function FoundingAcceptV4(props: FoundingAcceptProps) {
   // 6), then $39 (experts flat; companies ladder or flat).
   const hasExpert = props.role === "expert" || props.role === "both";
   const hasCompany = props.role === "partner" || props.role === "both";
+  // Free (no payment) founding expert: no price, no card, no Stripe at all.
+  const isFree = props.role === "expert" && isFreePlan(props.pricing);
+  // Quarterly plans: one fee for everything on the invite, every 3 months.
+  const isQuarterly = isQuarterlyPlan(props.pricing);
   const dueToday = "$0.00";
   const displayName = props.signerName?.trim() || props.fullName;
   const showsFeaturedExpert = Boolean(
@@ -72,6 +81,7 @@ export default function FoundingAcceptV4(props: FoundingAcceptProps) {
   const [prepareError, setPrepareError] = useState<string | null>(null);
 
   useEffect(() => {
+    if (isFree) return; // nothing to prepare: no Stripe customer, no SetupIntent
     let cancelled = false;
     (async () => {
       try {
@@ -90,9 +100,9 @@ export default function FoundingAcceptV4(props: FoundingAcceptProps) {
     return () => {
       cancelled = true;
     };
-  }, [props.code]);
+  }, [props.code, isFree]);
 
-  const stripeInstance = useMemo(() => getStripePromise(), []);
+  const stripeInstance = useMemo(() => (isFree ? null : getStripePromise()), [isFree]);
 
   return (
     <Container maxWidth="sm" sx={{ py: { xs: 5, md: 8 }, px: { xs: 1.5, sm: 3 } }}>
@@ -101,12 +111,21 @@ export default function FoundingAcceptV4(props: FoundingAcceptProps) {
           Founding invitation
         </Typography>
         <Typography sx={{ fontFamily: "var(--font-display)", fontSize: { xs: "1.8rem", md: "2.2rem" }, fontWeight: 500, color: "#0A1A2F", letterSpacing: 0 }}>
-          Welcome, {displayName.split(/\s+/)[0]}.
+          Welcome, {firstNameOf(displayName)}.
         </Typography>
         <Typography sx={{ color: "#5C6770", maxWidth: 460, mt: 1 }}>
-          You&apos;ve been invited to join as a <strong>{roleLabel}</strong>. Review your
-          agreement below, agree, and save your card.{" "}
-          Nothing is charged today. Your free founding months start {LAUNCH_LABEL}, and we remind you 7 days before your first charge.
+          {isFree ? (
+            <>
+              You&apos;ve been invited to join as a <strong>{roleLabel}</strong>. Review your agreement below and agree.{" "}
+              {FREE_EXPERT_HEADLINE} No card is needed.
+            </>
+          ) : (
+            <>
+              You&apos;ve been invited to join as a <strong>{roleLabel}</strong>. Review your
+              agreement below, agree, and save your card.{" "}
+              Nothing is charged today. Your free founding months start {LAUNCH_LABEL}, and we remind you 7 days before your first charge.
+            </>
+          )}
         </Typography>
       </Stack>
 
@@ -142,6 +161,22 @@ export default function FoundingAcceptV4(props: FoundingAcceptProps) {
           )}
         </Box>
 
+        {isFree ? (
+          <Box sx={{ px: { xs: 2, md: 3 }, pt: 2.5 }}>
+            <Box sx={{ bgcolor: "rgba(44,122,82,0.09)", borderRadius: 1.5, px: 2, py: 1.75, mb: 2.5 }}>
+              <Typography sx={{ fontSize: "0.78rem", color: "#1F5238", fontWeight: 700, letterSpacing: "0.06em", textTransform: "uppercase", mb: 0.5 }}>
+                Founding expert access
+              </Typography>
+              <Typography sx={{ fontFamily: "var(--font-display)", fontSize: "1.35rem", fontWeight: 600, color: "#0A1A2F", lineHeight: 1.25 }}>
+                {FREE_EXPERT_HEADLINE}
+              </Typography>
+              <Typography sx={{ fontSize: "0.85rem", color: "#3B4A55", mt: 0.75 }}>
+                No card, no subscription, no payment emails. Your founding expert access stays free for as long as it stays active.
+              </Typography>
+            </Box>
+            <FreeAcceptForm {...props} roleLabel={roleLabel} displayName={displayName} />
+          </Box>
+        ) : (
         <Box sx={{ px: { xs: 2, md: 3 }, pt: 2.5 }}>
           <Stack direction="row" sx={{ justifyContent: "space-between", alignItems: "baseline", mb: 2 }}>
             <Typography sx={{ fontSize: "0.9rem", color: "#5C6770", fontWeight: 600 }}>Due today</Typography>
@@ -149,7 +184,16 @@ export default function FoundingAcceptV4(props: FoundingAcceptProps) {
               {dueToday}
             </Typography>
           </Stack>
-          {hasExpert && (
+          {isQuarterly && (
+            <Box sx={{ bgcolor: "rgba(217,168,75,0.08)", borderRadius: 1.5, px: 2, py: 1.5, mb: 2.5 }}>
+              <Typography sx={{ fontSize: "0.78rem", color: "#7A5B17", fontWeight: 700, letterSpacing: "0.06em", textTransform: "uppercase", mb: 0.5 }}>
+                {props.role === "both" ? "Expert access + company listing, one fee" : props.role === "partner" ? "Founding company listing" : "Founding expert access"}
+              </Typography>
+              <RampLine label={"First 6 months, from " + LAUNCH_LABEL} price="$0" bold />
+              <RampLine label="After that, no increase" price={quarterlyShort(props.pricing)} />
+            </Box>
+          )}
+          {hasExpert && !isQuarterly && (
             <Box sx={{ bgcolor: "rgba(44,122,82,0.09)", borderRadius: 1.5, px: 2, py: 1.5, mb: 2 }}>
               <Typography sx={{ fontSize: "0.78rem", color: "#1F5238", fontWeight: 700, letterSpacing: "0.06em", textTransform: "uppercase", mb: 0.5 }}>
                 Founding expert access
@@ -158,7 +202,7 @@ export default function FoundingAcceptV4(props: FoundingAcceptProps) {
               <RampLine label="After that, no increase" price="$39/mo" />
             </Box>
           )}
-          {hasCompany && (
+          {hasCompany && !isQuarterly && (
             <Box sx={{ bgcolor: "rgba(217,168,75,0.08)", borderRadius: 1.5, px: 2, py: 1.5, mb: 2.5 }}>
               <Typography sx={{ fontSize: "0.78rem", color: "#7A5B17", fontWeight: 700, letterSpacing: "0.06em", textTransform: "uppercase", mb: 0.5 }}>
                 Founding company listing
@@ -202,12 +246,15 @@ export default function FoundingAcceptV4(props: FoundingAcceptProps) {
             </Box>
           )}
         </Box>
+        )}
 
         <Box sx={{ borderTop: "1px solid rgba(14,42,61,0.06)", bgcolor: "#FAFAF7", px: 2.5, py: 1.25 }}>
           <Stack direction="row" spacing={0.75} sx={{ alignItems: "center", justifyContent: "center" }}>
             <LockRoundedIcon sx={{ fontSize: 13, color: "#7A8590" }} />
             <Typography sx={{ fontSize: "0.74rem", color: "#7A8590", textAlign: "center", lineHeight: 1.5 }}>
-              Secured by Stripe. Nothing is charged until your free founding months end. Your signed agreement is emailed to you.
+              {isFree
+                ? "No payment details are collected. Your signed agreement is emailed to you."
+                : "Secured by Stripe. Nothing is charged until your free founding months end. Your signed agreement is emailed to you."}
             </Typography>
           </Stack>
           <Typography sx={{ fontSize: "0.72rem", color: "#9CA3AB", textAlign: "center", mt: 0.75 }}>
@@ -290,6 +337,57 @@ function PaymentAcceptForm(props: FoundingAcceptProps & { roleLabel: string; dis
   );
 }
 
+/** Free (no payment) founding expert: agree and accept, no Stripe involved. */
+function FreeAcceptForm(props: FoundingAcceptProps & { roleLabel: string; displayName: string }) {
+  const router = useRouter();
+  const [agreed, setAgreed] = useState(false);
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const FREE_ERR = "We couldn't complete your acceptance. Please try again in a moment, and if it keeps happening email founding@aestheticsuccessnetwork.com.";
+
+  const submit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!agreed || busy) return;
+    setBusy(true);
+    setError(null);
+    try {
+      const res = await fetch(`/api/founding/${props.code}/accept`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({}),
+      });
+      const body = (await res.json().catch(() => ({}))) as { ok?: boolean; next?: string; error?: string };
+      if (!res.ok || !body.ok) {
+        setError(body.error ?? FREE_ERR);
+        setBusy(false);
+        return;
+      }
+      router.push(body.next ?? "/");
+    } catch {
+      setError(FREE_ERR);
+      setBusy(false);
+    }
+  };
+
+  return (
+    <Box component="form" onSubmit={submit}>
+      <AgreementCheckbox
+        agreed={agreed}
+        setAgreed={setAgreed}
+        displayName={props.displayName}
+        roleLabel={props.roleLabel}
+        agreementVersion={props.agreementVersion}
+      />
+      <SubmitButton busy={busy} disabled={!agreed || busy} label="Agree and accept" />
+      {error && (
+        <Alert severity="error" sx={{ mb: 2, fontSize: "0.82rem" }}>
+          {error}
+        </Alert>
+      )}
+    </Box>
+  );
+}
+
 function AgreementCheckbox({
   agreed,
   setAgreed,
@@ -316,7 +414,7 @@ function AgreementCheckbox({
       <Typography sx={{ fontSize: "0.84rem", color: "#3B4A55", lineHeight: 1.55 }}>
         I,&nbsp;{displayName}, agree to the{" "}
         <Box component="span" sx={{ fontWeight: 700, color: "#A07823" }}>
-          ASN Founding {roleLabel} Agreement ({agreementVersion})
+          ASN {roleLabel} Agreement ({agreementVersion})
         </Box>
         .
       </Typography>

@@ -20,7 +20,7 @@ import TrialStartCard from "@/components/shared/TrialStartCard";
 import { CP } from "@/components/shared/CommunityPortalShell";
 import { EP } from "@/components/shared/TopNavPortalShell";
 import { PageHeader, SectionCard } from "@/components/vendor/PortalUI";
-import { LAUNCH_LABEL } from "@/lib/providerBilling";
+import { LAUNCH_LABEL, isQuarterlyPlan, quarterlyLabel } from "@/lib/providerBilling";
 
 const INK = CP.ink;
 const BODY = CP.body;
@@ -139,14 +139,19 @@ export default function ExpertBillingPage() {
   // Experts only ever move launch -> growth. While Stripe says "trialing"
   // they are in the free founding months regardless of months_in_program.
   const phase: "launch" | "growth" = trialing ? "launch" : phaseForMonth(monthsInProgram, "expert") === "launch" ? "launch" : "growth";
-  const currentPrice = `${RAMP[phase].price} / mo`;
+  // Quarterly founding plans (0078): one fee every 3 months, shared with the
+  // company listing when they have one.
+  const quarterly = isQuarterlyPlan(expert?.billing_plan);
+  const rateNow = quarterly ? quarterlyLabel(expert?.billing_plan) : RAMP.growth.price;
+  const cadence = quarterly ? "every 3 months" : "a month";
+  const currentPrice = phase === "launch" ? `$0 / mo` : quarterly ? `${rateNow} / 3 mo` : `${rateNow} / mo`;
   const freePeriodEnds = trialing && expert?.current_period_end ? formatDate(expert.current_period_end) : null;
   const hasSubscription = !!expert?.stripe_subscription_id;
   // Billing exemption (manual admin override). No card, no subscription, no invoices.
   const billingExempt = !!expert?.billing_exempt;
   const rampSentence = freePeriodEnds
-    ? `Free until ${freePeriodEnds}, then $39 a month. It stays $39, with no increase. Cancel before your first charge and you won't be charged.`
-    : "Your free founding months start " + LAUNCH_LABEL + ". After that it's $39 a month, and it stays $39 with no increase.";
+    ? `Free until ${freePeriodEnds}, then ${rateNow} ${cadence}. It stays ${rateNow}, with no increase.${quarterly && expert?.company_name ? " One fee covers your expert access and your company listing." : ""} Cancel before your first charge and you won't be charged.`
+    : "Your free founding months start " + LAUNCH_LABEL + `. After that it's ${rateNow} ${cadence}, and it stays ${rateNow} with no increase.`;
 
   const planLabel = useMemo(() => {
     const phaseLabel = phase === "launch" ? "Launch" : "Growth";
@@ -263,14 +268,14 @@ export default function ExpertBillingPage() {
                 ? freePeriodEnds
                   ? `Free until ${freePeriodEnds}`
                   : "Your free founding months"
-                : `Now: ${RAMP.growth.price} a month`}
+                : `Now: ${rateNow} ${cadence}`}
             </Typography>
             <Typography sx={{ fontSize: "0.875rem", color: CP.ivory80, lineHeight: 1.6, mt: 0.5 }}>
               {rampSentence}
             </Typography>
             <Stack direction={{ xs: "column", sm: "row" }} spacing={1.5} sx={{ mt: 2.5 }}>
               <RampCell {...RAMP.launch} note={freePeriodEnds ? `Until ${freePeriodEnds}` : RAMP.launch.note} current={phase === "launch"} />
-              <RampCell {...RAMP.growth} current={phase === "growth"} />
+              <RampCell {...RAMP.growth} price={rateNow} note={quarterly ? "Every 3 months, no increase" : RAMP.growth.note} current={phase === "growth"} />
             </Stack>
           </Box>
         )}
