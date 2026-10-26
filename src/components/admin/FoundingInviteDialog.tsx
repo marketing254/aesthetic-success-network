@@ -30,7 +30,7 @@ export type AdditionalCompany = {
   contact_email: string;
 };
 
-export type FoundingInvitePricingValue = "ladder" | "flat";
+export type FoundingInvitePricingValue = "ladder" | "flat" | "quarterly_49" | "quarterly_39" | "free";
 
 export type FoundingInviteFormValues = {
   id?: string;
@@ -125,14 +125,21 @@ export default function FoundingInviteDialog({
   const set = (k: keyof FoundingInviteFormValues) => (e: { target: { value: string } }) =>
     setV((prev) => {
       const next = { ...prev, [k]: e.target.value } as FoundingInviteFormValues;
-      // Expert-only invites have exactly one rate ($39 after the free months).
-      if (k === "role" && e.target.value === "expert") next.pricing_plan = "ladder";
+      // Expert invites: paid founding (ladder) or Free (no payment).
+      // Companies can never be free, so leaving "expert" resets a free plan.
+      const quarterly = next.pricing_plan === "quarterly_49" || next.pricing_plan === "quarterly_39";
+      if (k === "role" && e.target.value === "expert" && next.pricing_plan !== "free" && !quarterly) next.pricing_plan = "ladder";
+      if (k === "role" && e.target.value !== "expert" && next.pricing_plan === "free") next.pricing_plan = "ladder";
       return next;
     });
 
   const needsCompany = v.role === "partner" || v.role === "both";
   const pricingHelper =
-    v.role === "expert"
+    v.pricing_plan === "quarterly_49" || v.pricing_plan === "quarterly_39"
+      ? `One fee for everything on this invite${v.role === "both" ? " (expert access and company listing together)" : ""}: first 6 months free from ${LAUNCH_LABEL}, then $${v.pricing_plan === "quarterly_39" ? 39 : 49} every 3 months with no increase. Agreement, invite page, email and Stripe all show this. A card is saved at acceptance; nothing is charged until the free months end.`
+      : v.role === "expert" && v.pricing_plan === "free"
+      ? "Admin-only. The invite page shows \"Founding expert: free. Nothing to pay.\" with no price and no card. They are never charged and never get a payment email. Their account is labelled \"Free founding expert\" in the console. Counts toward the 20 lifetime-free expert slots."
+      : v.role === "expert"
       ? "Agreement, acceptance page, email and Stripe all show the first 12 months free (from " + LAUNCH_LABEL + "), then $39 a month with no increase. A card is saved at acceptance; nothing is charged until the free months end."
       : v.pricing_plan === "flat"
         ? `Company listing: first 6 months free from ${LAUNCH_LABEL}, then $39 a month with no increase. Nothing they see mentions $149.${
@@ -274,15 +281,21 @@ export default function FoundingInviteDialog({
               onChange={set("pricing_plan")}
               fullWidth
               select
-              disabled={v.role === "expert"}
               helperText={pricingHelper}
             >
               {v.role === "expert" ? (
-                <MenuItem value="ladder" sx={{ whiteSpace: "normal" }}>Founding expert: 12 months free from {LAUNCH_LABEL}, then $39 a month with no increase</MenuItem>
+                [
+                  <MenuItem key="ladder" value="ladder" sx={{ whiteSpace: "normal" }}>$39 a month (normal): 12 months free from {LAUNCH_LABEL}, then $39 a month with no increase</MenuItem>,
+                  <MenuItem key="quarterly_49" value="quarterly_49" sx={{ whiteSpace: "normal" }}>$49 every 3 months: 6 months free from {LAUNCH_LABEL}, then $49 every 3 months, no increase</MenuItem>,
+                  <MenuItem key="quarterly_39" value="quarterly_39" sx={{ whiteSpace: "normal" }}>$39 every 3 months: 6 months free from {LAUNCH_LABEL}, then $39 every 3 months, no increase</MenuItem>,
+                  <MenuItem key="free" value="free" sx={{ whiteSpace: "normal" }}>Free (no payment): founding expert, nothing to pay, no card, ever</MenuItem>,
+                ]
               ) : (
                 [
-                  <MenuItem key="ladder" value="ladder" sx={{ whiteSpace: "normal" }}>Founding company: 6 months free from {LAUNCH_LABEL}, then $39 a month for 12 months, then $149</MenuItem>,
-                  <MenuItem key="flat" value="flat" sx={{ whiteSpace: "normal" }}>Founding company, flat: 6 months free from {LAUNCH_LABEL}, then $39 a month with no increase</MenuItem>,
+                  <MenuItem key="ladder" value="ladder" sx={{ whiteSpace: "normal" }}>$39 a month (normal): 6 months free from {LAUNCH_LABEL}, then $39 a month for 12 months, then $149{v.role === "both" ? " (expert access: 12 months free, then $39 a month)" : ""}</MenuItem>,
+                  <MenuItem key="flat" value="flat" sx={{ whiteSpace: "normal" }}>$39 a month, flat: 6 months free from {LAUNCH_LABEL}, then $39 a month with no increase{v.role === "both" ? " (expert access: 12 months free, then $39 a month)" : ""}</MenuItem>,
+                  <MenuItem key="quarterly_49" value="quarterly_49" sx={{ whiteSpace: "normal" }}>$49 every 3 months: 6 months free from {LAUNCH_LABEL}, then $49 every 3 months, no increase{v.role === "both" ? ", one fee for expert + company" : ""}</MenuItem>,
+                  <MenuItem key="quarterly_39" value="quarterly_39" sx={{ whiteSpace: "normal" }}>$39 every 3 months: 6 months free from {LAUNCH_LABEL}, then $39 every 3 months, no increase{v.role === "both" ? ", one fee for expert + company" : ""}</MenuItem>,
                 ]
               )}
             </TextField>

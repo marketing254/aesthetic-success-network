@@ -5,7 +5,7 @@ import { sendFoundingInviteEmail } from "@/lib/email/foundingInvite";
 import { notifyTeamEvent, type SignupField } from "@/lib/email/teamNotify";
 import { appOrigin, appUrl } from "@/lib/stripe";
 import { insertNotification } from "@/lib/api/notifications";
-import { normalizeProviderRate, providerTermsShort } from "@/lib/providerBilling";
+import { FREE_EXPERT_HEADLINE, isFreePlan, isQuarterlyPlan, normalizeProviderRate, providerTermsShort } from "@/lib/providerBilling";
 import type { FoundingInvitesRow } from "@/lib/supabase/types";
 
 /**
@@ -57,12 +57,47 @@ export function inviteDetailFields(invite: FoundingInvitesRow, extra: SignupFiel
     { label: "Other companies", value: companies },
     { label: "Signer", value: invite.signer_name ? `${invite.signer_name}${invite.signer_title ? `, ${invite.signer_title}` : ""}` : null },
     { label: "Secondary contact", value: [invite.secondary_email, invite.secondary_phone].filter(Boolean).join(" · ") || null },
-    { label: "Expert terms", value: invite.role === "partner" ? null : providerTermsShort(null, null, { expert: true, founding: true }) },
-    { label: "Company terms", value: partnerSide ? providerTermsShort(rate, null) : null },
+    { label: "Plan (one quarterly fee for every role)", value: isQuarterlyPlan(invite.pricing_plan) ? providerTermsShort(invite.pricing_plan, null) : null },
+    { label: "Expert terms", value: invite.role === "partner" || isQuarterlyPlan(invite.pricing_plan) ? null : isFreePlan(invite.pricing_plan) ? `${FREE_EXPERT_HEADLINE} No card, no Stripe, never charged.` : providerTermsShort(null, null, { expert: true, founding: true }) },
+    { label: "Company terms", value: partnerSide && !isQuarterlyPlan(invite.pricing_plan) ? providerTermsShort(rate, null) : null },
     { label: "Agreement version", value: invite.agreement_version },
     { label: "Notes", value: (invite.notes ?? "").replace(/^\[source:[^\]]+\]\s*/, "") || null },
     ...extra,
   ];
+}
+
+/**
+ * Re-render the UNSIGNED agreement for an invite and overwrite it at its
+ * existing storage path (founding/<code>.pdf). Used after an admin edits a
+ * sent invite (for example switching it to "Free (no payment)") so the
+ * link already in the person's inbox shows the corrected terms. Sends no
+ * email and changes no status.
+ */
+export async function regenerateInvitePdf(invite: FoundingInvitesRow): Promise<{ ok: true; path: string } | { ok: false; error: string }> {
+  const sb = getSupabaseAdmin();
+  const signerName = invite.signer_name || invite.full_name;
+  try {
+    const pdf = await renderFoundingAgreementPdf({
+      role: invite.role,
+      pricing: invite.pricing_plan,
+      signer: { name: signerName, email: invite.email, companyName: invite.company_name },
+      companies: invite.companies ?? undefined,
+      memberOffer: invite.member_offer,
+      signedAt: new Date(),
+      ipHashLast6: "pending",
+      accepted: false,
+    });
+    const path = invite.agreement_pdf_path ?? `founding/${invite.code}.pdf`;
+    const { error } = await sb.storage.from("agreements").upload(path, pdf, { contentType: "application/pdf", upsert: true });
+    if (error) return { ok: false, error: `PDF upload failed: ${error.message}` };
+    if (!invite.agreement_pdf_path) {
+      await sb.from("founding_invites").update({ agreement_pdf_path: path, updated_at: new Date().toISOString() } as never).eq("id", invite.id);
+    }
+    return { ok: true, path };
+  } catch (err) {
+    console.error("[founding:regenerate] PDF render failed", err);
+    return { ok: false, error: "Couldn't render the agreement PDF." };
+  }
 }
 
 export type SendInviteResult = {

@@ -49,7 +49,7 @@ export async function GET(req: Request) {
   // Experts
   const { data: experts } = await sb
     .from("experts")
-    .select("id, full_name, email, subscription_status, current_period_end, billing_exempt, free_period_reminder_sent_at")
+    .select("id, full_name, email, subscription_status, current_period_end, billing_exempt, free_period_reminder_sent_at, billing_plan")
     .eq("subscription_status", "trialing")
     .is("free_period_reminder_sent_at", null)
     .not("current_period_end", "is", null);
@@ -62,6 +62,7 @@ export async function GET(req: Request) {
       daysLeft: daysLeft(e.current_period_end!),
       trialEndDate: new Date(e.current_period_end!),
       portalUrl: `${origin}/expert/billing`,
+      rate: e.billing_plan,
     });
     if (ok) {
       await sb.from("experts").update({ free_period_reminder_sent_at: new Date().toISOString() } as never).eq("id", e.id);

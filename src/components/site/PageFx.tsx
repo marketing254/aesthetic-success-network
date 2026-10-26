@@ -79,17 +79,8 @@ export default function PageFx({
 
     if (reduce) return;
 
-    // ── Hero entrance ──────────────────────────────────────────────
-    const heroEls = Array.prototype.slice.call(
-      document.querySelectorAll(
-        ".hero .eyebrow,.hero h1,.hero .sub,.hero .cta-row,.hero .micro,.hero .hero-count,.hero-art",
-      ),
-    ) as HTMLElement[];
-    heroEls.forEach((el, i) => {
-      el.style.transitionDelay = `${0.06 + i * 0.1}s`;
-    });
-    void document.body.offsetWidth;
-    heroEls.forEach((el) => el.classList.add("in"));
+    // Hero entrance is pure CSS now (site.css `asn-hero-in`), so the
+    // headline paints before hydration. Nothing to do here.
 
     // ── Scroll reveal ──────────────────────────────────────────────
     const els = Array.prototype.slice.call(

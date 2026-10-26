@@ -409,6 +409,21 @@
   background: var(--bronze);
   flex: none;
 }
+/* Hero entrance. Pure CSS so the headline (the LCP element) paints at first
+   paint and fades in from there, instead of sitting at opacity 0 until React
+   hydrates and PageFx adds `.in` (measured: LCP 6.5s on slow 4G). The `.js`
+   gate is kept so the no-JS fallback renders static. prefers-reduced-motion
+   disables every animation site-wide further down. */
+@keyframes asn-hero-in {
+  from {
+    opacity: 0;
+    transform: translateY(26px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
 .js .asn-site .hero .eyebrow,
 .js .asn-site .hero h1,
 .js .asn-site .hero .sub,
@@ -416,22 +431,15 @@
 .js .asn-site .hero .micro,
 .js .asn-site .hero .hero-count,
 .js .asn-site .hero-art {
-  opacity: 0;
-  transform: translateY(26px);
-  transition:
-    opacity 0.9s cubic-bezier(0.22, 0.61, 0.36, 1),
-    transform 0.9s cubic-bezier(0.22, 0.61, 0.36, 1);
+  animation: asn-hero-in 0.9s cubic-bezier(0.22, 0.61, 0.36, 1) both;
 }
-.js .asn-site .hero .eyebrow.in,
-.js .asn-site .hero h1.in,
-.js .asn-site .hero .sub.in,
-.js .asn-site .hero .cta-row.in,
-.js .asn-site .hero .micro.in,
-.js .asn-site .hero .hero-count.in,
-.js .asn-site .hero-art.in {
-  opacity: 1;
-  transform: none;
-}
+.js .asn-site .hero .eyebrow { animation-delay: 0.05s; }
+.js .asn-site .hero h1 { animation-delay: 0.12s; }
+.js .asn-site .hero .sub { animation-delay: 0.22s; }
+.js .asn-site .hero .cta-row { animation-delay: 0.32s; }
+.js .asn-site .hero .micro { animation-delay: 0.42s; }
+.js .asn-site .hero .hero-count { animation-delay: 0.52s; }
+.js .asn-site .hero-art { animation-delay: 0.6s; }
 .asn-site .hero-art {
   position: relative;
   display: flex;

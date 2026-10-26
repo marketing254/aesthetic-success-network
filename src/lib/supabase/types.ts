@@ -202,7 +202,7 @@ export type VendorsRow = {
   founding_partner_locked: boolean;
   // 0070 / 0074. Company plan after the 6 free months:
   // ladder = $39 a month for 12 months then $149 (default); flat = $39, no increase.
-  billing_plan: "ladder" | "flat";
+  billing_plan: "ladder" | "flat" | "quarterly_49" | "quarterly_39";
   // 0071. When the single 7-day reminder before the first charge went out.
   free_period_reminder_sent_at: string | null;
   // Added in 0039_vendor_billing_parent.sql — when set, this company's
@@ -698,6 +698,10 @@ export type ExpertsRow = {
   stripe_price_id: string | null;
   subscription_status: string | null;
   subscription_interval: string | null;
+  // 0078. Plan the expert accepted on a founding invite: null/ladder = $39 a
+  // month after the free months; quarterly_49 / quarterly_39 = one quarterly
+  // fee shared with the company listing; free = billing-exempt founding expert.
+  billing_plan: "ladder" | "flat" | "quarterly_49" | "quarterly_39" | "free" | null;
   current_period_end: string | null;
   cancel_at_period_end: boolean | null;
   canceled_at: string | null;
@@ -1064,7 +1068,7 @@ export type FoundingInviteRole = "expert" | "partner" | "both";
  * month, large = $149 a month, both after the free founding months and
  * with no increase. Experts are always $39; ignored on expert-only invites.
  */
-export type FoundingInvitePricing = "ladder" | "flat";
+export type FoundingInvitePricing = "ladder" | "flat" | "quarterly_49" | "quarterly_39" | "free";
 
 // Added in 0041_founding_invite_companies.sql. One entry per company on a
 // founding invite; [0] is the principal (paying) company, the rest become

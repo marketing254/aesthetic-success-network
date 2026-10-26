@@ -19,6 +19,10 @@ import {
   FOUNDING_EXPERT_FREE_MONTHS,
   PROVIDER_FREE_MONTHS,
   normalizeProviderRate,
+  isFreePlan,
+  isQuarterlyPlan,
+  quarterlyLabel,
+  FREE_EXPERT_HEADLINE,
   LAUNCH_LABEL,
 } from "@/lib/providerBilling";
 
@@ -58,6 +62,27 @@ function roleLabelFor(role: FoundingInviteEmailInput["role"]): string {
 
 function termsSection(input: FoundingInviteEmailInput): EmailSection {
   const items: string[] = [];
+  if (isQuarterlyPlan(input.pricing)) {
+    const q = quarterlyLabel(input.pricing);
+    return {
+      title: "Your founding terms",
+      items: [
+        `Your first ${PROVIDER_FREE_MONTHS} months are free, starting ${LAUNCH_LABEL}. After that it's ${q} every three months, and it stays ${q} with no increase.${input.role === "both" ? " One fee covers your expert access and your company listing." : ""}`,
+        `When you accept, we'll securely save a payment method. Nothing is charged until your free months end, and we'll remind you ${FIRST_CHARGE_REMINDER_DAYS} days before your first charge. Cancel any time before then and you won't be charged. After your first charge, cancel with ${CANCEL_NOTICE_DAYS} days' written notice.`,
+      ],
+      tone: "gold",
+    };
+  }
+  if (input.role === "expert" && isFreePlan(input.pricing)) {
+    return {
+      title: "Your founding terms",
+      items: [
+        `${FREE_EXPERT_HEADLINE} Your founding expert access is free for as long as it stays active.`,
+        "No card is needed when you accept, and you will never receive a payment email from us.",
+      ],
+      tone: "gold",
+    };
+  }
   const hasExpert = input.role === "expert" || input.role === "both";
   const hasPartner = input.role === "partner" || input.role === "both";
   if (hasExpert) {

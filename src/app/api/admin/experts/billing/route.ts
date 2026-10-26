@@ -2,7 +2,8 @@ import { NextResponse } from "next/server";
 import { requireAdmin } from "@/lib/auth/guards";
 import { getSupabaseAdmin } from "@/lib/supabase/server";
 import { serverError } from "@/lib/api/errorResponse";
-import { FOUNDING_EXPERT_CAP } from "@/lib/stripe";
+import { FOUNDING_EXPERT_CAP, getStripe } from "@/lib/stripe";
+import { FREE_EXPERT_LABEL } from "@/lib/providerBilling";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -88,7 +89,7 @@ export async function PATCH(req: Request) {
 
     const lookup = supabase
       .from("experts")
-      .select("id, email, display_name, full_name, billing_exempt");
+      .select("id, email, display_name, full_name, billing_exempt, stripe_customer_id, stripe_subscription_id");
     const { data: expert, error: findErr } = body.expertId
       ? await lookup.eq("id", body.expertId).maybeSingle()
       : await lookup.ilike("email", body.email!).maybeSingle();
@@ -104,7 +105,7 @@ export async function PATCH(req: Request) {
     const name = expert.display_name || expert.full_name || expert.email;
 
     if (expert.billing_exempt) {
-      return NextResponse.json({ ok: true, alreadyExempt: true, message: `${name} is already billing-exempt.` });
+      return NextResponse.json({ ok: true, alreadyExempt: true, message: `${name} is already a ${FREE_EXPERT_LABEL}.` });
     }
 
     // Pre-flight so the common case gets a friendly message rather than a
@@ -125,13 +126,54 @@ export async function PATCH(req: Request) {
       );
     }
 
+    // "Take the payment off": cancel the expert subscription (and its
+    // schedule) right away and remove the saved card so it can never be
+    // charged. The vendors row (if they also run a company) keeps its own
+    // subscription on the same Stripe customer, so only detach the card
+    // when nothing else on the customer still bills.
+    const stripeNotes: string[] = [];
+    if (expert.stripe_subscription_id || expert.stripe_customer_id) {
+      try {
+        const stripe = getStripe();
+        if (expert.stripe_subscription_id) {
+          const sub = await stripe.subscriptions.retrieve(expert.stripe_subscription_id).catch(() => null);
+          if (sub && sub.status !== "canceled") {
+            const scheduleId = typeof sub.schedule === "string" ? sub.schedule : sub.schedule?.id;
+            if (scheduleId) await stripe.subscriptionSchedules.release(scheduleId).catch(() => null);
+            await stripe.subscriptions.cancel(expert.stripe_subscription_id, { prorate: false });
+            stripeNotes.push("expert subscription cancelled");
+          }
+        }
+        if (expert.stripe_customer_id) {
+          const remaining = await stripe.subscriptions.list({ customer: expert.stripe_customer_id, status: "all", limit: 20 });
+          const stillBilling = remaining.data.some((s) => s.status !== "canceled" && s.status !== "incomplete_expired");
+          if (!stillBilling) {
+            const pms = await stripe.paymentMethods.list({ customer: expert.stripe_customer_id, type: "card", limit: 20 });
+            for (const pm of pms.data) await stripe.paymentMethods.detach(pm.id).catch(() => null);
+            if (pms.data.length) stripeNotes.push(`${pms.data.length} card${pms.data.length === 1 ? "" : "s"} removed`);
+          } else {
+            stripeNotes.push("card kept: their company subscription still uses it");
+          }
+        }
+      } catch (err) {
+        console.error("[admin/experts/billing] Stripe cleanup failed:", err);
+        return NextResponse.json({ error: "Couldn't cancel their Stripe billing. Nothing was changed. Check Stripe and try again." }, { status: 502 });
+      }
+    }
+
     const { error: upErr } = await supabase
       .from("experts")
       .update({
         billing_exempt: true,
-        billing_exempt_reason: `Billing exemption (manual admin override). Granted by ${guard.email}.`,
+        billing_exempt_reason: `${FREE_EXPERT_LABEL} (admin console). Granted by ${guard.email}.`,
         billing_exempt_granted_at: new Date().toISOString(),
-      })
+        stripe_subscription_id: null,
+        stripe_price_id: null,
+        subscription_status: null,
+        current_period_end: null,
+        card_brand: null,
+        card_last4: null,
+      } as never)
       .eq("id", expert.id);
 
     if (upErr) {
@@ -154,7 +196,7 @@ export async function PATCH(req: Request) {
     const used = (count ?? 0) + 1;
     return NextResponse.json({
       ok: true,
-      message: `${name} is now billing-exempt. ${FOUNDING_EXPERT_CAP - used} of ${FOUNDING_EXPERT_CAP} overrides left.`,
+      message: `${name} is now a ${FREE_EXPERT_LABEL}${stripeNotes.length ? ` (${stripeNotes.join(", ")})` : ""}. ${FOUNDING_EXPERT_CAP - used} of ${FOUNDING_EXPERT_CAP} free slots left.`,
       cap: FOUNDING_EXPERT_CAP,
       used,
       remaining: Math.max(0, FOUNDING_EXPERT_CAP - used),

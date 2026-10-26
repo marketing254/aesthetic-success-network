@@ -1,5 +1,7 @@
 import type { MetadataRoute } from "next";
 import { MEMBER_TOOLS } from "@/lib/toolsData";
+import { getSupabaseAdmin } from "@/lib/supabase/server";
+import { isHiddenFromDirectory } from "@/lib/directoryVisibility";
 
 const SITE = "https://www.aestheticsuccessnetwork.com";
 
@@ -16,7 +18,35 @@ const SITE = "https://www.aestheticsuccessnetwork.com";
  * which is the right signal for marketing pages that get small copy
  * tweaks but no full rewrites.
  */
-export default function sitemap(): MetadataRoute.Sitemap {
+/**
+ * Public expert profiles (/experts/[id]) are server-rendered and indexable
+ * but the /experts directory loads them client-side, so crawlers that don't
+ * run JavaScript (and every AI bot) never discover the links. Listing them
+ * here is the only reliable discovery path. Same filter as
+ * /api/directory/experts: active, with headshot + bio, not house-hidden.
+ */
+async function expertProfiles(): Promise<MetadataRoute.Sitemap> {
+  try {
+    const { data } = await getSupabaseAdmin()
+      .from("experts")
+      .select("id, email, updated_at")
+      .eq("status", "active")
+      .not("headshot_url", "is", null)
+      .not("bio", "is", null);
+    return (data ?? [])
+      .filter((e) => !isHiddenFromDirectory(e.email))
+      .map((e) => ({
+        url: `${SITE}/experts/${e.id}`,
+        lastModified: e.updated_at ? new Date(e.updated_at) : new Date(),
+        changeFrequency: "monthly" as const,
+        priority: 0.6,
+      }));
+  } catch {
+    return []; // never let a DB hiccup break the sitemap
+  }
+}
+
+export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const now = new Date();
 
   // Priorities follow Google's de-facto convention: 1.0 = homepage,
@@ -42,10 +72,11 @@ export default function sitemap(): MetadataRoute.Sitemap {
     { path: "/legal/refund", priority: 0.3, changeFrequency: "yearly" },
   ];
 
-  return PAGES.map(({ path, priority, changeFrequency }) => ({
+  const staticPages = PAGES.map(({ path, priority, changeFrequency }) => ({
     url: `${SITE}${path}`,
     lastModified: now,
     changeFrequency,
     priority,
   }));
+  return [...staticPages, ...(await expertProfiles())];
 }

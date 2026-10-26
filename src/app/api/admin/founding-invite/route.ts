@@ -116,7 +116,16 @@ export async function POST(req: Request) {
   }
   // Company plan: ladder unless the admin picked flat. Expert invites store
   // "ladder" (ignored; experts are 12 months free, then $39).
-  const pricingPlan = role === "expert" ? "ladder" : body.pricing_plan === "flat" ? "flat" : "ladder";
+  // Expert invites: "ladder" (12 months free, then $39) or "free" (nothing
+  // to pay, ever; admin-only option). Companies: ladder or flat; never free.
+  // Quarterly ($49 or $39 every 3 months, one fee for every role) is
+  // available on every role.
+  const quarterly = body.pricing_plan === "quarterly_49" || body.pricing_plan === "quarterly_39" ? body.pricing_plan : null;
+  const pricingPlan =
+    quarterly ??
+    (role === "expert"
+      ? body.pricing_plan === "free" ? "free" : "ladder"
+      : body.pricing_plan === "flat" ? "flat" : "ladder");
   const fullName = (body.full_name ?? "").trim();
   const email = (body.email ?? "").trim().toLowerCase();
   const companyName = (body.company_name ?? "").trim() || null;

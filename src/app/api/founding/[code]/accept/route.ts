@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { getStripe, appOrigin, appUrl, createProviderSubscription } from "@/lib/stripe";
-import { normalizeProviderRate, formatLongDate, COMPANY_LAUNCH_LABEL, COMPANY_STANDARD_LABEL } from "@/lib/providerBilling";
+import { normalizeProviderRate, normalizeProviderPlan, isQuarterlyPlan, quarterlyShort, formatLongDate, isFreePlan, FREE_EXPERT_HEADLINE, FREE_EXPERT_LABEL, COMPANY_LAUNCH_LABEL, COMPANY_STANDARD_LABEL } from "@/lib/providerBilling";
 import { inviteDetailFields } from "@/lib/founding/sendInvite";
 import { getSupabaseAdmin } from "@/lib/supabase/server";
 import { renderFoundingAgreementPdf } from "@/lib/pdf/foundingAgreementPdf";
@@ -23,6 +23,9 @@ export const dynamic = "force-dynamic";
 // schedule, the vendor row mirrors the company schedule.
 
 type Body = { setupIntentId?: string; paymentMethodId?: string };
+
+const FREE_FAIL_MESSAGE =
+  "We couldn't complete your free founding access. Nothing was charged. Please email founding@aestheticsuccessnetwork.com and we'll finish it for you.";
 
 type BillingSnapshot = {
   subscriptionId: string;
@@ -83,12 +86,15 @@ export async function POST(req: Request, ctx: { params: Promise<{ code: string }
 
   const wantsExpert = invite.role === "expert" || invite.role === "both";
   const wantsPartner = invite.role === "partner" || invite.role === "both";
-  // Every founding role saves a card now; nothing is charged until the
+  // Free (no payment) founding expert: no card, no Stripe, nothing to
+  // verify. The expert row is created billing-exempt (lifetime grant).
+  const isFree = invite.role === "expert" && isFreePlan(invite.pricing_plan);
+  // Every PAID founding role saves a card; nothing is charged until the
   // free founding months end.
-  if (!setupIntentId || !paymentMethodId) {
+  if (!isFree && (!setupIntentId || !paymentMethodId)) {
     return NextResponse.json({ error: "Missing payment references." }, { status: 400 });
   }
-  if (!invite.stripe_customer_id) {
+  if (!isFree && !invite.stripe_customer_id) {
     return NextResponse.json({ error: "Payment not set up. Refresh and retry." }, { status: 400 });
   }
 
@@ -98,50 +104,86 @@ export async function POST(req: Request, ctx: { params: Promise<{ code: string }
   const ipHash = hashIp(clientIp(req));
   const userAgent = req.headers.get("user-agent") ?? null;
 
-  let stripe;
-  try {
-    stripe = getStripe();
-  } catch (err) {
-    return serverError(err, { route: "POST /api/founding/[code]/accept", status: 503 });
-  }
-
-  const si = await stripe.setupIntents.retrieve(setupIntentId);
-  if (
-    si.status !== "succeeded" ||
-    typeof si.customer !== "string" ||
-    si.customer !== invite.stripe_customer_id ||
-    si.payment_method !== paymentMethodId
-  ) {
-    return NextResponse.json({ error: "Payment setup didn't complete." }, { status: 400 });
-  }
-
-  const customerId: string = invite.stripe_customer_id;
-  try {
-    await stripe.paymentMethods.attach(paymentMethodId, { customer: customerId });
-  } catch {
-    /* already attached */
-  }
-  await stripe.customers.update(customerId, {
-    invoice_settings: { default_payment_method: paymentMethodId },
-  });
-
   // Card details for the portal.
   let cardBrand: string | null = null;
   let cardLast4: string | null = null;
-  try {
-    const pm = await stripe.paymentMethods.retrieve(paymentMethodId);
-    cardBrand = pm.card?.brand ?? null;
-    cardLast4 = pm.card?.last4 ?? null;
-  } catch {
-    /* best effort */
+  let customerId: string | null = invite.stripe_customer_id;
+
+  if (!isFree) {
+    let stripe;
+    try {
+      stripe = getStripe();
+    } catch (err) {
+      return serverError(err, { route: "POST /api/founding/[code]/accept", status: 503 });
+    }
+
+    const si = await stripe.setupIntents.retrieve(setupIntentId);
+    if (
+      si.status !== "succeeded" ||
+      typeof si.customer !== "string" ||
+      si.customer !== invite.stripe_customer_id ||
+      si.payment_method !== paymentMethodId
+    ) {
+      return NextResponse.json({ error: "Payment setup didn't complete." }, { status: 400 });
+    }
+
+    customerId = invite.stripe_customer_id as string;
+    try {
+      await stripe.paymentMethods.attach(paymentMethodId, { customer: customerId });
+    } catch {
+      /* already attached */
+    }
+    await stripe.customers.update(customerId, {
+      invoice_settings: { default_payment_method: paymentMethodId },
+    });
+    try {
+      const pm = await stripe.paymentMethods.retrieve(paymentMethodId);
+      cardBrand = pm.card?.brand ?? null;
+      cardLast4 = pm.card?.last4 ?? null;
+    } catch {
+      /* best effort */
+    }
   }
 
   const rate = normalizeProviderRate(invite.pricing_plan);
-  const baseMeta = { founding_invite: code, role: invite.role, pricing_plan: rate };
+  const plan = normalizeProviderPlan(invite.pricing_plan);
+  const isQuarterly = isQuarterlyPlan(plan);
+  const baseMeta = { founding_invite: code, role: invite.role, pricing_plan: isFree ? "free" : isQuarterly ? plan : rate };
+
+  // ---- Quarterly plans: ONE subscription for everything on the invite
+  // (expert access + company listing), six free months, then $49 or $39
+  // every three months. Mirrored onto both rows below.
+  let sharedBilling: BillingSnapshot | null = null;
+  if (isQuarterly && !isFree && customerId) {
+    try {
+      const r = await createProviderSubscription({
+        customerId,
+        paymentMethodId,
+        audience: wantsPartner ? "vendor" : "expert",
+        rate: plan,
+        founding: true,
+        metadata: { ...baseMeta, ramp: "founding-quarterly" },
+      });
+      sharedBilling = {
+        subscriptionId: r.subscription.id,
+        priceId: r.priceId,
+        status: r.subscription.status,
+        periodEnd: periodEndIso(r.subscription),
+        trialEnd: r.freePeriodEndsAt,
+      };
+    } catch (err) {
+      return serverError(err, {
+        route: "POST /api/founding/[code]/accept",
+        status: 502,
+        publicMessage: "We couldn't save your card. Nothing was charged. Please try again in a moment, and if it keeps happening email support@aestheticsuccessnetwork.com.",
+      });
+    }
+  }
 
   // ---- Expert side: free until the launch-based date, then $39.
-  let expertBilling: BillingSnapshot | null = null;
-  if (wantsExpert) {
+  // (Free plan: no subscription at all. Quarterly: shared subscription.)
+  let expertBilling: BillingSnapshot | null = isQuarterly && wantsExpert ? sharedBilling : null;
+  if (wantsExpert && !isFree && !isQuarterly && customerId) {
     try {
       const r = await createProviderSubscription({
         customerId,
@@ -167,9 +209,9 @@ export async function POST(req: Request, ctx: { params: Promise<{ code: string }
   }
 
   // ---- Company side: same ladder as the expert side.
-  let partnerBilling: BillingSnapshot | null = null;
+  let partnerBilling: BillingSnapshot | null = isQuarterly && wantsPartner ? sharedBilling : null;
   let partnerStandardStartsAt: string | null = null;
-  if (wantsPartner) {
+  if (wantsPartner && !isQuarterly && customerId) {
     try {
       const r = await createProviderSubscription({
         customerId,
@@ -226,6 +268,16 @@ export async function POST(req: Request, ctx: { params: Promise<{ code: string }
     agreement_ip_hash: ipHash,
     agreement_user_agent: userAgent,
   };
+  // Free founding expert: the lifetime billing exemption (0042). The DB
+  // trigger caps lifetime grants at 20 (0043); if it refuses, the write
+  // below fails and we surface a clear message rather than a half account.
+  const freeFields = isFree
+    ? {
+        billing_exempt: true,
+        billing_exempt_reason: `${FREE_EXPERT_LABEL}: "Free (no payment)" founding invite ${code}. Nothing to pay, no card, never billed.`,
+        billing_exempt_granted_at: signedAt.toISOString(),
+      }
+    : {};
   const billingFieldsFor = (b: BillingSnapshot | null) =>
     b
       ? {
@@ -242,13 +294,22 @@ export async function POST(req: Request, ctx: { params: Promise<{ code: string }
   // Expert row mirrors the expert subscription; vendor row mirrors the
   // company subscription. For "both" these are two different subscriptions
   // on the same customer.
-  const expertSubFields = { ...agreementFields, ...billingFieldsFor(expertBilling) };
+  const expertSubFields = {
+    ...agreementFields,
+    ...billingFieldsFor(expertBilling),
+    ...freeFields,
+    // The plan the expert accepted (0078): quarterly plans drive the
+    // expert billing page copy; free marks the exemption's origin.
+    billing_plan: isFree ? "free" : isQuarterly ? plan : "ladder",
+    ...(isQuarterly ? { subscription_interval: "quarter" } : {}),
+  };
   // vendors.billing_plan (0071) is the rate the company portal shows
   // after the free months: ladder ($39 x 12 then $149) or flat ($39).
   const partnerSubFields = {
     ...agreementFields,
     ...billingFieldsFor(partnerBilling),
-    billing_plan: rate,
+    billing_plan: isQuarterly ? plan : rate,
+    ...(isQuarterly ? { subscription_interval: "quarter" } : {}),
   };
 
   let expertId: string | null = null;
@@ -258,12 +319,15 @@ export async function POST(req: Request, ctx: { params: Promise<{ code: string }
     const { data: existing } = await sb.from("experts").select("id").eq("email", email).maybeSingle();
     if (existing) {
       expertId = existing.id;
-      await sb
+      const { error: upErr } = await sb
         .from("experts")
         .update({ ...expertSubFields, status: "active", founding_expert_locked: true } as never)
         .eq("id", expertId);
+      if (upErr && isFree) {
+        return serverError(upErr, { route: "POST /api/founding/[code]/accept", status: 502, publicMessage: FREE_FAIL_MESSAGE });
+      }
     } else {
-      const { data: ins } = await sb
+      const { data: ins, error: insErr } = await sb
         .from("experts")
         .insert({
           email,
@@ -284,6 +348,9 @@ export async function POST(req: Request, ctx: { params: Promise<{ code: string }
         } as never)
         .select("id")
         .single();
+      if (insErr && isFree) {
+        return serverError(insErr, { route: "POST /api/founding/[code]/accept", status: 502, publicMessage: FREE_FAIL_MESSAGE });
+      }
       expertId = ins?.id ?? null;
     }
 
@@ -471,7 +538,7 @@ export async function POST(req: Request, ctx: { params: Promise<{ code: string }
   if (signedPdf) {
     void sendJoinConfirmationEmail({
       role: invite.role,
-      rate,
+      rate: isQuarterly ? plan : rate,
       to: email,
       accountEmail: email,
       contactName: signerName,
@@ -487,7 +554,8 @@ export async function POST(req: Request, ctx: { params: Promise<{ code: string }
       freePeriodEndsAt,
       companyFreePeriodEndsAt,
       standardStartsAt: partnerStandardStartsAt,
-      cardCaptured: true,
+      cardCaptured: !isFree,
+      free: isFree,
     });
   }
 
@@ -499,12 +567,13 @@ export async function POST(req: Request, ctx: { params: Promise<{ code: string }
     name: signerName,
     email,
     adminLink: appUrl("/admin/founding"),
-    highlight: "Card on file, nothing charged. They're ready to sign in.",
+    highlight: isFree ? `${FREE_EXPERT_HEADLINE} No card, no Stripe. They're ready to sign in.` : "Card on file, nothing charged. They're ready to sign in.",
     fields: inviteDetailFields(invite, [
-      { label: "Payment method", value: cardBrand && cardLast4 ? `${cardBrand} ending ${cardLast4}` : "On file" },
-      { label: "Expert subscription", value: expertBilling ? `${expertBilling.status} (${COMPANY_LAUNCH_LABEL} a month flat after 12 free months)` : null },
+      { label: "Payment method", value: isFree ? "None (free founding expert)" : cardBrand && cardLast4 ? `${cardBrand} ending ${cardLast4}` : "On file" },
+      { label: "Quarterly subscription (one fee, expert + company)", value: isQuarterly && sharedBilling ? `${sharedBilling.status} (${quarterlyShort(plan)}, no increase, after 6 free months)` : null },
+      { label: "Expert subscription", value: !isQuarterly && expertBilling ? `${expertBilling.status} (${COMPANY_LAUNCH_LABEL} a month flat after 12 free months)` : null },
       { label: "Expert free months end", value: formatLongDate(expertBilling?.trialEnd ?? null) },
-      { label: "Company subscription", value: partnerBilling ? `${partnerBilling.status} (${rate === "flat" ? `${COMPANY_LAUNCH_LABEL} a month flat` : `${COMPANY_LAUNCH_LABEL} a month for 12 months, then ${COMPANY_STANDARD_LABEL}`} after 6 free months)` : null },
+      { label: "Company subscription", value: !isQuarterly && partnerBilling ? `${partnerBilling.status} (${rate === "flat" ? `${COMPANY_LAUNCH_LABEL} a month flat` : `${COMPANY_LAUNCH_LABEL} a month for 12 months, then ${COMPANY_STANDARD_LABEL}`} after 6 free months)` : null },
       { label: "Company free months end", value: formatLongDate(companyFreePeriodEndsAt) },
       { label: "$149 standard rate starts", value: formatLongDate(partnerStandardStartsAt) },
       { label: "Accepted on", value: formatLongDate(signedAt) },

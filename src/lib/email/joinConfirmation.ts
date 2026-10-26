@@ -23,6 +23,9 @@ import {
   formatLongDate,
   freeMonthsFor,
   normalizeProviderRate,
+  isQuarterlyPlan,
+  quarterlyLabel,
+  FREE_EXPERT_HEADLINE,
   LAUNCH_LABEL,
 } from "@/lib/providerBilling";
 
@@ -74,6 +77,8 @@ export type JoinConfirmationInput = {
   companies?: { name: string; category?: string | null; member_offer?: string | null }[] | null;
   /** Whether a card was saved as part of this acceptance. */
   cardCaptured?: boolean;
+  /** Free (no payment) founding expert: nothing to pay, no card, never billed. */
+  free?: boolean;
   /** Legacy fields still passed by older callers; freePeriodEndsAt wins. */
   expertTrialEndsAt?: string | null;
   trialEndsAt?: string | null;
@@ -107,6 +112,15 @@ function roleLabelFor(role: JoinConfirmationInput["role"]): string {
 
 function billingSection(input: JoinConfirmationInput): EmailSection {
   const items: string[] = [];
+  if (isQuarterlyPlan(input.rate)) {
+    const q = quarterlyLabel(input.rate);
+    const until = formatLongDate(input.freePeriodEndsAt ?? input.companyFreePeriodEndsAt ?? null);
+    items.push(`Your ${PROVIDER_FREE_MONTHS} founding months are free, and they start ${LAUNCH_LABEL}.${until ? ` Free through: ${until}.` : ""}`);
+    items.push(until ? `First charge: ${q} on ${until}, then ${q} every three months with no increase.` : `First charge: ${q} when your free months end, then ${q} every three months with no increase.`);
+    if (input.role === "both") items.push("One fee covers your expert access and your company listing.");
+    items.push(`Cancel any time before your first charge and you won't be charged. After that, cancel with ${CANCEL_NOTICE_DAYS} days' written notice. We'll remind you ${FIRST_CHARGE_REMINDER_DAYS} days before your first charge.`);
+    return { title: "Your billing, in plain dates", items, tone: "gold" };
+  }
   const expertFreeEnd = input.freePeriodEndsAt ?? input.expertTrialEndsAt ?? input.trialEndsAt ?? null;
   const companyFreeEnd = input.companyFreePeriodEndsAt ?? input.freePeriodEndsAt ?? null;
   const plan = normalizeProviderRate(input.rate);
@@ -282,7 +296,13 @@ function expertDraft(input: JoinConfirmationInput, name: string): EmailDraft {
     ],
     paragraphs: ["The member side opens soon. Until then, use this time to get your profile and first Protocol ready so members find you on day one."],
   });
-  if (input.cardCaptured) sections.push(billingSection(input));
+  if (input.free) {
+    sections.push({
+      title: "Your founding terms",
+      items: [`${FREE_EXPERT_HEADLINE} No card is on file and you will never receive a payment email from us.`],
+      tone: "gold",
+    });
+  } else if (input.cardCaptured) sections.push(billingSection(input));
   if (both) {
     const offer = offerSection(input);
     if (offer) sections.push(offer);
@@ -319,7 +339,7 @@ function expertDraft(input: JoinConfirmationInput, name: string): EmailDraft {
             input.cardCaptured ? "Your card is safely saved with Stripe. Nothing was charged today." : ""
           }`.trim()
         : `Great news: your agreement is accepted, and you're now a founding expert with the Aesthetic Success Network. Your expert portal is live and ready for you. ${
-            input.cardCaptured ? "Your card is safely saved with Stripe. Nothing was charged today." : ""
+            input.free ? "Your founding expert access is free: nothing to pay, no card needed." : input.cardCaptured ? "Your card is safely saved with Stripe. Nothing was charged today." : ""
           }`.trim(),
     ],
     sections,

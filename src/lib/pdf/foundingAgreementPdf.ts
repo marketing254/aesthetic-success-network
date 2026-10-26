@@ -12,6 +12,11 @@ import {
   companyStandardStartsAt,
   formatLongDate,
   normalizeProviderRate,
+  isFreePlan,
+  isQuarterlyPlan,
+  quarterlyLabel,
+  FREE_EXPERT_HEADLINE,
+  LAUNCH_LABEL,
 } from "@/lib/providerBilling";
 
 /**
@@ -150,6 +155,27 @@ function rampBlockHtml(
         `<p style="font-size:9pt;color:#5C6B7A;">${cFreeSentence} After that your company listing is ${COMPANY_LAUNCH_LABEL} a month, and it stays ${COMPANY_LAUNCH_LABEL} for as long as it stays continuously active.${tail}</p>`
       : `<div class="ramp">${step("$0", cFreeLabel)}${step(`${COMPANY_LAUNCH_LABEL}${mo}`, `Next ${COMPANY_LAUNCH_MONTHS} months &middot; launch rate`)}${step(`${COMPANY_STANDARD_LABEL}${mo}`, stdFrom ? `From ${stdFrom} &middot; standard` : "After that &middot; standard")}</div>` +
         `<p style="font-size:9pt;color:#5C6B7A;">${cFreeSentence} After that your company listing is ${COMPANY_LAUNCH_LABEL} a month for your first ${COMPANY_LAUNCH_MONTHS} paid months, then ${COMPANY_STANDARD_LABEL} a month (the standard company rate) for as long as it stays continuously active.${tail}</p>`;
+  // Quarterly plans (same agreement as DMN, ASN name): six free months from
+  // the member launch, then one quarterly fee covering every role on the
+  // agreement, no increase.
+  if (isQuarterlyPlan(pricing)) {
+    const q = quarterlyLabel(pricing);
+    const qUntil = formatLongDate(freePeriodEndsAt ?? companyFreePeriodEndsAt ?? null);
+    const qFreeLabel = qUntil ? `Free until ${qUntil}` : `First ${PROVIDER_FREE_MONTHS} months free`;
+    const per3 = `<span style="font-size:9pt;color:#5C6B7A;">/3 mo</span>`;
+    return (
+      `<div class="ramp">${step("$0", qFreeLabel)}${step(`${q}${per3}`, "After that &middot; no increase")}</div>` +
+      `<p style="font-size:9pt;color:#5C6B7A;">Your first ${PROVIDER_FREE_MONTHS} months are free, starting ${LAUNCH_LABEL}, the day the network opens to members${qUntil ? ` (through ${qUntil})` : ""}. After that, the fee is ${q} every three months, and it stays ${q} with no increase. One fee covers every role on this agreement, and your rate is locked while you stay. Billed every three months through Stripe, with no long-term contract.${tail}</p>`
+    );
+  }
+
+  // Free (no payment) founding expert: no fee, no card, no Stripe.
+  if (role === "expert" && isFreePlan(pricing)) {
+    return (
+      `<div class="free"><b>${FREE_EXPERT_HEADLINE}</b> Your founding expert access is free for as long as it stays active.</div>` +
+      `<p style="font-size:9pt;color:#5C6B7A;">No payment method is collected at acceptance and nothing is ever charged for your expert access. If you later add a partner (company) listing to this account, that listing is billed separately under the ASN Provider Agreement.</p>`
+    );
+  }
   if (role === "expert") return expertBlock;
   if (role === "partner") return companyBlock;
   return heading("Expert access") + expertBlock + heading("Company listing") + companyBlock;
@@ -253,6 +279,44 @@ async function renderAgreementHtml(input: FoundingAgreementPdfInput): Promise<st
     })
     .join("");
 
+  // Expert template only: the "3. What it costs" intro and the whole
+  // "4. Fees and payment" section switch between the paid and the free
+  // wording. Static HTML, no user input, injected raw after the escaped
+  // pass. The partner templates don't carry these tokens (no-op).
+  const freeExpert = input.role === "expert" && isFreePlan(input.pricing);
+  const quarterly = isQuarterlyPlan(input.pricing);
+  const monthlyIntro =
+    input.role === "expert"
+      ? "Your expert access, billed monthly through Stripe once your free founding months end:"
+      : input.role === "partner"
+        ? "Your company listing, billed monthly through Stripe once your free founding months end:"
+        : "Your expert access and your company&#39;s partner listing are billed as two subscriptions through Stripe, on the one card you save at acceptance, once your free founding months end:";
+  const quarterlyIntro =
+    input.role === "expert"
+      ? "Your expert access, billed every three months through Stripe once your free founding months end:"
+      : input.role === "partner"
+        ? "Your company listing, billed every three months through Stripe once your free founding months end:"
+        : "Your expert access and your company&#39;s partner listing (one fee covers both), billed every three months through Stripe once your free founding months end:";
+  const costIntro = freeExpert
+    ? `<p style="margin:6px 0 2px;">Your founding expert access:</p>`
+    : `<p style="margin:6px 0 2px;">${quarterly ? quarterlyIntro : monthlyIntro}</p>`;
+  const payFeeLine = quarterly
+    ? `<li><b>Pay the fee:</b> per the schedule in Section 3, billed every three months through Stripe.</li>`
+    : `<li><b>Pay the fee:</b> per the schedule in Section 3, billed monthly through Stripe.</li>`;
+  const feesSection = freeExpert
+    ? `<div class="sec"><h2>4. Fees and payment</h2><ul>
+      <li>There is no fee for your founding expert access. No payment method is collected and nothing is charged for it.</li>
+      <li>If a partner (company) listing is added to this account later, that listing is billed under the ASN Provider Agreement; prices are in US dollars and applicable taxes are added on top.</li></ul></div>`
+    : quarterly
+      ? `<div class="sec"><h2>4. Fees and payment</h2><ul>
+      <li>All prices are in US dollars; applicable taxes are added on top. Invoices are due net 15.</li>
+      <li>Fees are non-refundable except as stated in the Refund and Cancellation Policy. No pro-rated refunds for part of a quarter. Late amounts may accrue up to 1.5% per month.</li>
+      <li>Billed every three months, with no long-term contract. If a payment fails, we retry and pause your listing until it is resolved.</li></ul></div>`
+      : `<div class="sec"><h2>4. Fees and payment</h2><ul>
+      <li>All prices are in US dollars; applicable taxes are added on top. Invoices are due net 15.</li>
+      <li>Fees are non-refundable except as stated in the Refund and Cancellation Policy. Late amounts may accrue up to 1.5% per month.</li>
+      <li>Annual prepay earns two months free. If a payment fails, we retry and pause your listing until it is resolved.</li></ul></div>`;
+
   const withFonts = template.replace("{{FONT_FACE_CSS}}", fontFaceCss);
   const withTokens = Object.entries(tokens).reduce(
     (html, [token, value]) => html.replaceAll(`{{${token}}}`, escapeHtml(value)),
@@ -260,6 +324,9 @@ async function renderAgreementHtml(input: FoundingAgreementPdfInput): Promise<st
   );
   return withTokens
     .replaceAll("{{COMPANIES_LIST}}", companiesListHtml)
+    .replaceAll("{{COST_INTRO}}", costIntro)
+    .replaceAll("{{PAY_FEE_LINE}}", payFeeLine)
+    .replaceAll("{{FEES_SECTION}}", feesSection)
     .replaceAll("{{RAMP_BLOCK}}", rampBlockHtml(input.role, input.pricing, input.freePeriodEndsAt, input.companyFreePeriodEndsAt));
 }
 
