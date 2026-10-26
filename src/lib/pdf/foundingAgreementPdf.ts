@@ -223,7 +223,7 @@ function memberOfferFor(
   return offer || "To be confirmed before your listing goes live.";
 }
 
-async function renderAgreementHtml(input: FoundingAgreementPdfInput): Promise<string> {
+export async function renderAgreementHtml(input: FoundingAgreementPdfInput): Promise<string> {
   const [template, fontFaceCss] = await Promise.all([loadTemplate(input.role), getFontFaceCss()]);
   const accepted = input.accepted !== false;
 

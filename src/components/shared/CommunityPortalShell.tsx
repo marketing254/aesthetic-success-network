@@ -3,7 +3,6 @@
 import { createContext, useContext, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
-import { Plus_Jakarta_Sans } from "next/font/google";
 import { Avatar, Box, Drawer, IconButton, Stack, Typography, type SxProps, type Theme } from "@mui/material";
 import { ThemeProvider, createTheme, useTheme } from "@mui/material/styles";
 import MenuOutlinedIcon from "@mui/icons-material/MenuOutlined";
@@ -33,16 +32,16 @@ import KeyboardArrowDownOutlinedIcon from "@mui/icons-material/KeyboardArrowDown
 /* Font                                                                */
 /* ------------------------------------------------------------------ */
 
-const jakarta = Plus_Jakarta_Sans({
-  subsets: ["latin"],
-  weight: ["400", "500", "600", "700", "800"],
-  display: "swap",
-});
+// Plus Jakarta Sans is loaded ONCE, in src/app/layout.tsx (next/font/google,
+// exposed as the --font-body CSS variable on <html>). Loading the same Google
+// font a second time here with different options made Turbopack's production
+// build fail ("next/font/google queries have exactly one entry"), so the portal
+// reads the variable instead of calling next/font again.
 
 /** Font stack for everything rendered in the community portal. */
-export const PORTAL_FONT = `${jakarta.style.fontFamily}, 'Plus Jakarta Sans', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif`;
-/** Class that loads the font on a subtree (login page, shell root). */
-export const portalFontClassName = jakarta.className;
+export const PORTAL_FONT = `var(--font-body), 'Plus Jakarta Sans', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif`;
+/** Kept for callers; the font comes from the root layout, so no extra class is needed. */
+export const portalFontClassName = "";
 
 /* ------------------------------------------------------------------ */
 /* Tokens                                                              */
