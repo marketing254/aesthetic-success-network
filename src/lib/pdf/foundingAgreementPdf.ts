@@ -165,7 +165,7 @@ function rampBlockHtml(
     const per3 = `<span style="font-size:9pt;color:#5C6B7A;">/3 mo</span>`;
     return (
       `<div class="ramp">${step("$0", qFreeLabel)}${step(`${q}${per3}`, "After that &middot; no increase")}</div>` +
-      `<p style="font-size:9pt;color:#5C6B7A;">Your first ${PROVIDER_FREE_MONTHS} months are free, starting ${LAUNCH_LABEL}, the day the network opens to members${qUntil ? ` (through ${qUntil})` : ""}. After that, the fee is ${q} every three months, and it stays ${q} with no increase. One fee covers every role on this agreement, and your rate is locked while you stay. Billed every three months through Stripe, with no long-term contract.${tail}</p>`
+      `<p style="font-size:9pt;color:#5C6B7A;">${qUntil ? `Your founding months are free through ${qUntil}.` : `Your first ${PROVIDER_FREE_MONTHS} months are free, starting ${LAUNCH_LABEL}, the day the network opens to members.`} After that, the fee is ${q} every three months, and it stays ${q} with no increase. One fee covers every role on this agreement, and your rate is locked while you stay. Billed every three months through Stripe, with no long-term contract.${tail}</p>`
     );
   }
 
